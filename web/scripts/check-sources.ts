@@ -31,6 +31,8 @@ const GONE = (s: number, err?: string) => s === 404 || s === 410 || (s === 0 && 
 // At most 2 requests at a time per host, 1.2 s apart, so a rate limit can't look like a dead link.
 const hostBusy = new Map<string, number>(), hostLast = new Map<string, number>();
 async function politeProbe(url: string) {
+  // X is used only through its official API (rule 6), and it answers plain fetches with 404s, so it is never probed here.
+  if (/^https?:\/\/(www\.)?(x|twitter)\.com\//i.test(url)) return { status: 0, ok: false, error: "skipped: x.com not fetched" } as any;
   let host = ""; try { host = new URL(url).hostname; } catch { return probe(url); }
   for (;;) {
     const wait = (hostLast.get(host) ?? 0) + 1200 - Date.now();

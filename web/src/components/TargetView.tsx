@@ -14,7 +14,7 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
   const isRace = n.type === "race";
   return (
     <div className="page">
-      <ProfileHead node={n} keyFacts={t.keyFacts} logoSource={n.logo_source_url}
+      <ProfileHead node={n} keyFacts={t.keyFacts} logoSource={n.logo_source_url} citePath={`/node/${n.id}`}
         kicker={<>{TYPE_LABEL[n.type]}{n.external_ids?.status ? <> · {n.external_ids.status} {n.external_ids.status_date && `(${fmtDate(n.external_ids.status_date)})`}</> : null}</>} />
       {t.facts.length > 0 && <ul className="facts">{t.facts.map((f: any, i: number) => <li key={i}>{f.text} <Src url={f.url} /></li>)}</ul>}
       <p className="mono"><Link href={`/map?focus=${n.id}`}>Trace on the map</Link> · <a href={`/api/rss/${n.id}`}>RSS</a></p>
