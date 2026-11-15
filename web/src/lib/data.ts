@@ -388,3 +388,14 @@ export async function getLobbyingByIssue(): Promise<Record<string, { filings: nu
     FROM ${FILING_TAGS} t JOIN filings f ON t.source_kind='filing' AND f.id=t.source_id, unnest(t.issues) i GROUP BY 1`);
   return Object.fromEntries(rows.map((r: any) => [r.issue, { filings: r.filings, actors: r.actors }]));
 }
+
+// Where a merged-away id now lives, following chains of applied merges. Null if the id was never merged.
+export async function getMergedInto(id: string): Promise<string | null> {
+  let cur = id;
+  for (let i = 0; i < 5; i++) {
+    const r = await q<{ kept_id: string }>(`SELECT kept_id FROM merge_log WHERE action='merge' AND status='applied' AND reverted_at IS NULL AND merged_id=$1 ORDER BY applied_at DESC LIMIT 1`, [cur]);
+    if (!r.length) break;
+    cur = r[0].kept_id;
+  }
+  return cur === id ? null : cur;
+}

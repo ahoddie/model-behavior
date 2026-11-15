@@ -3,8 +3,8 @@ import CiteButton from "@/components/CiteButton";
 import { sourceName } from "@/lib/format";
 import Linked from "@/components/Linked";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getProfile, getTarget, getCoverage, getActorIssues, getActorLobbyingIssues, TARGET_TYPES } from "@/lib/data";
+import { notFound, permanentRedirect } from "next/navigation";
+import { getProfile, getTarget, getCoverage, getActorIssues, getActorLobbyingIssues, getMergedInto, TARGET_TYPES } from "@/lib/data";
 import StanceBar from "@/components/StanceBar";
 import CoverageLine from "@/components/CoverageLine";
 import { fmtMoney, fmtDate, TYPE_LABEL, clusterName } from "@/lib/format";
@@ -30,7 +30,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
   const { id } = await props.params;
   const sp = await props.searchParams;
   const head = await getTarget(id);
-  if (!head) notFound();
+  if (!head) { const to = await getMergedInto(id); if (to) permanentRedirect(`/node/${encodeURIComponent(to)}`); notFound(); }
   const coverage = await getCoverage(id);
   if (TARGET_TYPES.includes(head.node.type)) return <TargetView t={head} coverage={coverage} />;
 
