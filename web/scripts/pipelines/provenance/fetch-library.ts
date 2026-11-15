@@ -15,7 +15,7 @@ const doFeed = args.includes("--feed") || !args.includes("--curated");
 const doCurated = args.includes("--curated") || !args.includes("--feed");
 const limit = args.includes("--limit") ? Number(args[args.indexOf("--limit") + 1]) : 100000;
 const KIND: Record<string, string> = { "docket comment": "comment_letter", "op-ed": "op_ed", testimony: "testimony", "blog post": "statement", position: "statement", "policy change": "statement" };
-const SKIP_HOSTS = /(^|\.)(nytimes|wsj|cnbc|wired|semafor|thehill|podscripts|techpolicy|prnewswire|govtech|youtube|x|twitter|bsky|linkedin)\./;
+const SKIP_HOSTS = /(^|\.)(digitaldemocracy|nytimes|wsj|cnbc|wired|semafor|thehill|podscripts|techpolicy|prnewswire|govtech|youtube|x|twitter|bsky|linkedin)\./;
 
 const titleOf = (html: string) => decodeEntities((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "").replace(/\s+/g, " ").trim());
 let stored = 0, failed = 0;

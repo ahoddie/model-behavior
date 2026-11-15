@@ -15,12 +15,12 @@ const nodes = await q<Node>(`SELECT id, name, source_url FROM nodes WHERE type I
 const sdv = await q<{ target_id: string; label: string; effective_from: string }>(`SELECT target_id, label, effective_from::text FROM sd_bill_versions ORDER BY 1,3`);
 let saved = 0;
 
-async function add(n: Node, version: string, date: string | null, url: string, fetchUrl: string, how: "legislative" | "auto" = "auto", via: "direct" | "wayback" = "direct", note?: string) {
+async function add(n: Node, version: string, date: string | null, url: string, fetchUrl: string, how: "legislative" | "auto" = "auto", via: "direct" | "wayback" = "direct", note?: string, quiet = false) {
   const f = await getBytes(fetchUrl);
   if (!f) { console.log(`  miss ${fetchUrl}`); return false; }
   const text = toText(f, how);
   const d = date ?? firstDate(text);
-  if (!d) { await logGap(`- [provenance] ${n.id} ${version}: text fetched but no date could be read, so it was not stored (${url}).`); return false; }
+  if (!d) { if (!quiet) await logGap(`- [provenance] ${n.id} ${version}: text fetched but no date could be read, so it was not stored (${url}).`); return false; }
   const id = await saveText({ billNodeId: n.id, version, sourceKind: "bill_version", title: `${n.name}: ${version}`, date: d, url, fetchUrl, text, via, note });
   if (id) { saved++; console.log(`  + ${n.id} ${version} ${d} ${text.split(/\s+/).length}w`); }
   return !!id;
@@ -38,7 +38,7 @@ for (const n of nodes) {
     const u = `https://www.govinfo.gov/content/pkg/BILLS-${cong}${typ}${num}${code}/html/BILLS-${cong}${typ}${num}${code}.htm`;
     const head = await fetch(u, { method: "HEAD", signal: AbortSignal.timeout(30000), headers: { "User-Agent": "ModelBehavior-local-research/0.1" } }).catch(() => null);
     if (!head?.ok) continue;
-    any = (await add(n, GOV_CODES[code], null, u, u)) || any;
+    any = (await add(n, GOV_CODES[code], null, u, u, "auto", "direct", undefined, true)) || any;
     await sleep(300);
   }
   if (!any) await logGap(`- [provenance] ${n.id}: no text found on govinfo.gov (probed ${Object.keys(GOV_CODES).length} version codes); not loaded.`);

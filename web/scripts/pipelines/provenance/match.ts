@@ -111,8 +111,9 @@ const clip = (s: string, n = 110) => s.split(/\s+/).slice(0, n).join(" ");
 if (has("--llm")) {
   const limit = Number(arg("--limit", "50"));
   const minScore = Number(arg("--min-score", "0"));
+  const ids: number[] | null = has("--ids") ? (JSON.parse(readFileSync(join(EVAL_DIR, "pairs.json"), "utf8")) as { id: number }[]).map((p) => p.id) : null;
   const rows = await q<{ id: number; bill_text: string; src_text: string; score: number }>(
-    `SELECT id, bill_text, src_text, score FROM prov_cands WHERE relation IS NULL AND score >= $2 ORDER BY ${has("--spread") ? "md5(id::text)" : "score DESC"} LIMIT $1`, [limit, minScore]);
+    `SELECT id, bill_text, src_text, score FROM prov_cands WHERE relation IS NULL AND score >= $2 AND ($3::bigint[] IS NULL OR id = ANY($3)) ORDER BY ${has("--spread") ? "md5(id::text)" : "score DESC"} LIMIT $1`, [limit, minScore, ids]);
   console.log(`${rows.length} candidates to ask about`);
   let n = 0;
   for (const r of rows) {
