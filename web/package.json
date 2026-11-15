@@ -48,7 +48,8 @@
     "money:export": "tsx scripts/pipelines/money/export.ts",
     "money:totals": "tsx scripts/pipelines/money/totals.ts",
     "money:spotcheck": "tsx scripts/pipelines/money/spotcheck.ts",
-    "money:archive": "tsx scripts/pipelines/money/archive-hops.ts"
+    "money:archive": "tsx scripts/pipelines/money/archive-hops.ts",
+    "analyze-topics": "tsx scripts/analyze-topics.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

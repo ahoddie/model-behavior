@@ -96,12 +96,16 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
           </section>}
           {lobbyIssues.length > 0 && <section>
             <h2>Lobbying by issue</h2>
-            <p className="note">Topics named in the text of each LDA lobbying report where {p.node.name} is the client, and in the purpose of grants on record. Tagged by keyword rules and an open-source model; a tag is kept only when the filed words name the issue. Filings list topics, not positions, and dollar amounts are reported per filing, not per issue. <Link href={href("money")} scroll={false}>All filings</Link>.</p>
+            <p className="note">Issues named in {p.node.name}&apos;s federal lobbying reports and grants, in the filed words. Filings list topics, not positions; amounts are per filing. <Link href={href("money")} scroll={false}>All filings</Link>.</p>
             <ul className="lobby-issues">{lobbyIssues.map((i) => (
               <li key={i.id}>
                 <details>
                   <summary><h3>{i.label}</h3> <span className="muted">{[i.n > 0 && `${i.n} ${i.n === 1 ? "filing" : "filings"}`, i.grants.length > 0 && `${i.grants.length} ${i.grants.length === 1 ? "grant" : "grants"}`].filter(Boolean).join(", ")}</span></summary>
-                  {i.filings.length > 0 && <p className="lobby-links">{i.filings.map((f, k) => <span key={f.id}>{k > 0 && ", "}<a href={f.url}>{f.period ?? fmtDate(f.filed) ?? "Filing"}</a></span>)}</p>}
+                  {i.filings.length > 0 && <ul className="record lobby-filings">{i.filings.map((f) => (
+                    <li key={f.id}><div className="when">{f.period ?? (fmtDate(f.filed) || "Undated")}</div>
+                      <div>{f.items.length ? <ul className="lobby-items">{f.items.map((t, k) => <li key={k}>{t}</li>)}</ul> : <p className="muted">No issue text on the filing.</p>}
+                        <p className="note">{[f.firm && `Via ${f.firm}`, f.amount != null && fmtMoney(f.amount)].filter(Boolean).join(" · ")} <Src url={f.url} archive={f.archive_url} /></p></div></li>
+                  ))}</ul>}
                   {i.grants.length > 0 && <ul className="record">{i.grants.map((g) => (
                     <li key={g.id}><div className="when">{fmtDate(g.date) || "Undated"}</div>
                       <div><p>{g.dir === "out" ? "Grant to" : "Grant from"} <Link href={`/node/${g.other_id}`}>{g.other_name}</Link>.<Src url={g.url} /></p></div></li>

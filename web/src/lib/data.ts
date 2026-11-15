@@ -354,15 +354,32 @@ export async function getActorIssues(id: string) {
 // The newest tag row per filing or grant. Tags name topics only, never a position.
 const FILING_TAGS = `(SELECT DISTINCT ON (t.source_kind, t.source_id) t.* FROM filing_issue_tags t ORDER BY t.source_kind, t.source_id, t.tagged_at DESC)`;
 export type LobbyIssue = { id: string; label: string; n: number;
-  filings: { id: number; period: string | null; filed: string | null; url: string }[];
+  filings: { id: number; period: string | null; filed: string | null; url: string; archive_url: string | null; amount: number | null; firm: string | null; items: string[] }[];
   grants: { id: number; dir: "out" | "in"; other_id: string; other_name: string; date: string | null; url: string }[] };
 
 // One actor's LDA filings (as client) and grants (given or received), grouped by the issues their own text names.
+// An LDA description reads "3rd Quarter - Report. Via TOWER 19. Issues related to X | Issues related to Y". Split it into the
+// lobbying firm and the listed items, each cut to 25 words, in the filing's own words.
+function lobbyItems(d: string | null): { firm: string | null; items: string[] } {
+  if (!d) return { firm: null, items: [] };
+  let rest = d.replace(/^[^.]*(Quarter|Report|Year|Termination|Amendment)[^.]*\.\s*/i, "");
+  const via = rest.match(/^Via (.+?)\.\s+/);
+  const inHouse = !via && /^In-house\.\s*/i.test(rest);
+  const firm = via ? via[1].replace(/\.$/, "").trim() : inHouse ? "its own staff" : null;
+  if (via) rest = rest.slice(via[0].length); else if (inHouse) rest = rest.replace(/^In-house\.\s*/i, "");
+  const items = [...new Set(rest.split(/\s*\|\s*/).map((x) => x.trim().replace(/\.$/, "")).filter(Boolean))]
+    // "Issues related to Artificial Intelligence in the FY24 NDAA" -> "FY24 NDAA": the boilerplate opening repeats on every item.
+    .map((x) => x.replace(/^issues? (related to|regarding|concerning|pertaining to)\s+/i, "").replace(/^(artificial intelligence|AI)( policy| technology| issues)?(,?\s*(generally|in general))?\s*(,|;|:|and|in|including|related to|regarding|for|on)?\s*(the\s+)?/i, "").trim())
+    .map((x) => x ? x[0].toUpperCase() + x.slice(1) : "AI in general")
+    .map((x) => { const w = x.split(/\s+/); return w.length > 25 ? w.slice(0, 25).join(" ") + " …" : x; });
+  return { firm, items };
+}
+
 export async function getActorLobbyingIssues(id: string): Promise<LobbyIssue[]> {
   "use cache";
   cached();
   const filings = await q<any>(`
-    SELECT i AS issue, f.id::int, f.period, f.filed_date::text AS filed, f.url
+    SELECT i AS issue, f.id::int, f.period, f.filed_date::text AS filed, f.url, f.archive_url, f.amount::float8 AS amount, f.description
     FROM ${FILING_TAGS} t JOIN filings f ON t.source_kind='filing' AND f.id=t.source_id, unnest(t.issues) i
     WHERE f.node_id=$1 ORDER BY f.filed_date DESC NULLS LAST, f.id`, [id]);
   const grants = await q<any>(`
@@ -373,7 +390,7 @@ export async function getActorLobbyingIssues(id: string): Promise<LobbyIssue[]> 
     WHERE $1 IN (l.from_id, l.to_id) ORDER BY l.date_start DESC NULLS LAST, l.id`, [id]);
   const areas = await q<any>(`SELECT id, label FROM issue_areas ORDER BY sort`);
   return areas.map((a: any) => {
-    const fs = filings.filter((f: any) => f.issue === a.id).map(({ issue, ...f }: any) => f);
+    const fs = filings.filter((f: any) => f.issue === a.id).map(({ issue, description, ...f }: any) => ({ ...f, ...lobbyItems(description) }));
     const gs = grants.filter((g: any) => g.issue === a.id).map(({ issue, ...g }: any) => g);
     return { id: a.id, label: a.label, n: fs.length, filings: fs, grants: gs };
   }).filter((r) => r.filings.length || r.grants.length).sort((x, y) => y.n - x.n || y.grants.length - x.grants.length);
