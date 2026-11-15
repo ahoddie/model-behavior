@@ -44,14 +44,14 @@ export async function getGraph() {
   const links = await q<GLink>(`
     -- note is left out: the map never shows it, and it is most of the payload. Profiles read it separately.
     SELECT id::int, from_id AS "from", to_id AS "to", type, subtype, amount::float8 AS amount, pdate(date_start, date_start_prec) AS date_start, pdate(date_end, date_end_prec) AS date_end, stance, NULL::text AS note, source_url
-    FROM links WHERE NOT (type='money' AND subtype='lobbying' AND amount IS NULL)
+    FROM links_shown WHERE NOT (type='money' AND subtype='lobbying' AND amount IS NULL)
     UNION ALL (
     -- Lobbying contacts without an amount arrive once per quarterly filing. The map shows one line per pair,
     -- sourced to the most recent filing; every filing is still listed on the profile.
     SELECT DISTINCT ON (from_id, to_id) id::int, from_id, to_id, type, subtype, NULL::float8, pdate(date_start, date_start_prec) AS date_start,
       (max(coalesce(date_end, date_start)) OVER (PARTITION BY from_id, to_id))::text,
       stance, NULL::text, source_url
-    FROM links WHERE type='money' AND subtype='lobbying' AND amount IS NULL
+    FROM links_shown WHERE type='money' AND subtype='lobbying' AND amount IS NULL
     ORDER BY from_id, to_id, date_start DESC NULLS LAST)`);
   return { nodes, links };
 }
@@ -70,8 +70,8 @@ export async function getNodeSummary(id: string) {
   const link = buildLinker(await q<{ id: string; name: string }>(`SELECT id, name FROM nodes`));
   const facts: { text: string; url: string; parts: Part[] }[] = raw.map((f) => ({ ...f, parts: link(f.text, id) }));
   const stats = (await q<{ money_out: number; money_in: number; links: number; feed: number; filings: number }>(`
-    SELECT (SELECT coalesce(sum(amount),0)::float8 FROM links WHERE from_id=$1 AND type='money' AND subtype <> 'lobbying') AS money_out,
-           (SELECT coalesce(sum(amount),0)::float8 FROM links WHERE to_id=$1 AND type='money' AND subtype <> 'lobbying') AS money_in,
+    SELECT (SELECT coalesce(sum(amount),0)::float8 FROM links_shown WHERE from_id=$1 AND type='money' AND subtype <> 'lobbying') AS money_out,
+           (SELECT coalesce(sum(amount),0)::float8 FROM links_shown WHERE to_id=$1 AND type='money' AND subtype <> 'lobbying') AS money_in,
            (SELECT count(*)::int FROM links WHERE from_id=$1 OR to_id=$1) AS links,
            (SELECT count(*)::int FROM feed_items WHERE node_id=$1 AND status='approved') AS feed,
            (SELECT count(*)::int FROM filings WHERE node_id=$1) AS filings`, [id]))[0];
@@ -91,7 +91,7 @@ export async function getProfile(id: string) {
     SELECT l.id::int, l.type, l.subtype, l.amount::float8 AS amount, pdate(l.date_start, l.date_start_prec) AS date_start, pdate(l.date_end, l.date_end_prec) AS date_end, l.stance, l.note, l.source_url,
       CASE WHEN l.from_id=$1 THEN 'out' ELSE 'in' END AS dir,
       o.id AS other_id, o.name AS other_name, o.type AS other_type, o.descriptor AS other_descriptor
-    FROM links l JOIN nodes o ON o.id = CASE WHEN l.from_id=$1 THEN l.to_id ELSE l.from_id END
+    FROM links_shown l JOIN nodes o ON o.id = CASE WHEN l.from_id=$1 THEN l.to_id ELSE l.from_id END
     WHERE l.from_id=$1 OR l.to_id=$1 ORDER BY l.date_start DESC NULLS LAST`, [id]);
   return { ...s, feed, filings, links };
 }
@@ -177,13 +177,13 @@ export async function getTarget(id: string) {
   const pushes = await q<any>(`
     SELECT l.id::int, l.type, l.subtype, l.amount::float8 AS amount, pdate(l.date_start, l.date_start_prec) AS date_start, l.stance, l.note, l.source_url,
       a.id AS actor_id, a.name AS actor_name, a.type AS actor_type, a.cluster,
-      (SELECT coalesce(sum(m.amount),0)::float8 FROM links m WHERE m.from_id=a.id AND m.type='money' AND m.subtype IN ('contribution','independent expenditure','donation','transfer')) AS actor_political_money
-    FROM links l JOIN nodes a ON a.id=l.from_id WHERE l.to_id=$1 ORDER BY l.amount DESC NULLS LAST, l.date_start DESC NULLS LAST`, [id]);
+      (SELECT coalesce(sum(m.amount),0)::float8 FROM links_shown m WHERE m.from_id=a.id AND m.type='money' AND m.subtype IN ('contribution','independent expenditure','donation','transfer')) AS actor_political_money
+    FROM links_shown l JOIN nodes a ON a.id=l.from_id WHERE l.to_id=$1 ORDER BY l.amount DESC NULLS LAST, l.date_start DESC NULLS LAST`, [id]);
   const statements = await q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, n.name AS actor_name FROM feed_items f JOIN nodes n ON n.id=f.node_id WHERE f.target_id=$1 AND f.status='approved' ORDER BY f.date DESC`, [id]);
   const candidates = s.node.type === "race" ? await q<any>(`SELECT id, name, descriptor FROM nodes WHERE type='lawmaker' AND external_ids->>'race'=$1`, [id]) : [];
   const candidatePushes = candidates.length ? await q<any>(`
     SELECT l.to_id AS candidate, l.stance, l.amount::float8 AS amount, pdate(l.date_start, l.date_start_prec) AS date_start, l.note, l.source_url, a.id AS actor_id, a.name AS actor_name
-    FROM links l JOIN nodes a ON a.id=l.from_id WHERE l.to_id = ANY($1) ORDER BY l.amount DESC NULLS LAST`, [candidates.map((c) => c.id)]) : [];
+    FROM links_shown l JOIN nodes a ON a.id=l.from_id WHERE l.to_id = ANY($1) ORDER BY l.amount DESC NULLS LAST`, [candidates.map((c) => c.id)]) : [];
   return { ...s, pushes, statements, candidates, candidatePushes };
 }
 
@@ -194,7 +194,7 @@ export async function listTargets() {
       count(*) FILTER (WHERE l.subtype='lobbying')::int AS lobbying,
       coalesce(sum(l.amount) FILTER (WHERE l.type='money'),0)::float8 AS money,
       (SELECT count(*)::int FROM nodes c WHERE c.type='lawmaker' AND c.external_ids->>'race'=n.id) AS candidates,
-      (SELECT coalesce(sum(l2.amount),0)::float8 FROM links l2 JOIN nodes c ON c.id=l2.to_id
+      (SELECT coalesce(sum(l2.amount),0)::float8 FROM links_shown l2 JOIN nodes c ON c.id=l2.to_id
         WHERE l2.type='money' AND c.type='lawmaker' AND c.external_ids->>'race'=n.id) AS race_money
     FROM nodes n
     LEFT JOIN LATERAL (SELECT max(extract(year FROM coalesce(date_end, date_start)))::int AS y FROM links WHERE to_id=n.id OR from_id=n.id) ly ON true
@@ -208,10 +208,10 @@ export async function moneyFlows(start: string, depth = 4) {
   const rows = await q<any>(`
     WITH RECURSIVE walk(id, from_id, to_id, amount, date_start, note, source_url, subtype, stance, d, path) AS (
       SELECT id, from_id, to_id, amount::float8, pdate(date_start, date_start_prec) AS date_start, note, source_url, subtype, stance, 1, ARRAY[from_id, to_id]
-        FROM links WHERE from_id=$1 AND type='money' AND subtype <> 'lobbying'
+        FROM links_shown WHERE from_id=$1 AND type='money' AND subtype <> 'lobbying'
       UNION ALL
       SELECT l.id, l.from_id, l.to_id, l.amount::float8, pdate(l.date_start, l.date_start_prec) AS date_start, l.note, l.source_url, l.subtype, l.stance, w.d+1, w.path || l.to_id
-        FROM links l JOIN walk w ON l.from_id=w.to_id
+        FROM links_shown l JOIN walk w ON l.from_id=w.to_id
         WHERE l.type='money' AND l.subtype <> 'lobbying' AND w.d < $2 AND NOT l.to_id = ANY(w.path))
     SELECT DISTINCT ON (w.id) w.*, f.name AS from_name, t.name AS to_name, t.type AS to_type FROM walk w
       JOIN nodes f ON f.id=w.from_id JOIN nodes t ON t.id=w.to_id ORDER BY w.id, w.d`, [start, depth]);
@@ -222,7 +222,7 @@ export async function moneyStarts() {
   "use cache";
   cached();
   return q<{ id: string; name: string; type: string; out: number }>(`
-    SELECT n.id, n.name, n.type, sum(l.amount)::float8 AS out FROM nodes n JOIN links l ON l.from_id=n.id AND l.type='money' AND l.subtype <> 'lobbying'
+    SELECT n.id, n.name, n.type, sum(l.amount)::float8 AS out FROM nodes n JOIN links_shown l ON l.from_id=n.id AND l.type='money' AND l.subtype <> 'lobbying'
     GROUP BY n.id HAVING sum(l.amount) > 0 ORDER BY sum(l.amount) DESC`);
 }
 
@@ -239,14 +239,14 @@ export async function getHome() {
       (SELECT count(DISTINCT n.id)::int FROM nodes n WHERE n.type NOT IN ('bill','race','rule','lawmaker','agency')) AS actors,
       (SELECT count(*)::int FROM feed_items WHERE status='approved' AND excerpt IS NOT NULL) AS quotes,
       (SELECT count(*)::int FROM links WHERE type='position') + (SELECT count(*)::int FROM feed_items WHERE status='approved' AND stance IS NOT NULL) AS stances,
-      (SELECT coalesce(sum(l.amount),0)::float8 FROM links l JOIN nodes f ON f.id=l.from_id WHERE l.type='money' AND l.amount > 0 AND f.type IN ${SOURCE_TYPES}) AS direct,
+      (SELECT coalesce(sum(l.amount),0)::float8 FROM links_shown l JOIN nodes f ON f.id=l.from_id WHERE l.type='money' AND l.amount > 0 AND f.type IN ${SOURCE_TYPES}) AS direct,
       (SELECT count(*)::int FROM filings) AS filings,
       (SELECT count(DISTINCT u)::int FROM (SELECT source_url u FROM links UNION SELECT url FROM feed_items UNION SELECT url FROM filings UNION SELECT url FROM facts) x) AS sources`);
   const givers = await q<any>(`SELECT f.id, f.name, f.type, sum(l.amount)::float8 AS total, count(*)::int AS n, count(DISTINCT l.to_id)::int AS recipients
-    FROM links l JOIN nodes f ON f.id=l.from_id WHERE l.type='money' AND l.amount > 0 AND f.type IN ${SOURCE_TYPES}
+    FROM links_shown l JOIN nodes f ON f.id=l.from_id WHERE l.type='money' AND l.amount > 0 AND f.type IN ${SOURCE_TYPES}
     GROUP BY f.id ORDER BY total DESC LIMIT 10`);
   const recipients = await q<any>(`SELECT t.id, t.name, t.type, t.descriptor, sum(l.amount)::float8 AS total, count(DISTINCT l.from_id)::int AS givers,
-      (SELECT string_agg(name, ', ') FROM (SELECT f2.name FROM links l2 JOIN nodes f2 ON f2.id=l2.from_id WHERE l2.to_id=t.id AND l2.type='money' AND f2.type IN ${SOURCE_TYPES}
+      (SELECT string_agg(name, ', ') FROM (SELECT f2.name FROM links_shown l2 JOIN nodes f2 ON f2.id=l2.from_id WHERE l2.to_id=t.id AND l2.type='money' AND f2.type IN ${SOURCE_TYPES}
         GROUP BY f2.name ORDER BY sum(l2.amount) DESC NULLS LAST LIMIT 3) g) AS top_givers
     FROM links l JOIN nodes f ON f.id=l.from_id JOIN nodes t ON t.id=l.to_id
     WHERE l.type='money' AND l.amount > 0 AND f.type IN ${SOURCE_TYPES} GROUP BY t.id ORDER BY total DESC LIMIT 10`);
@@ -320,7 +320,7 @@ export async function getAnalysis() {
     WITH s AS (SELECT fi.node_id, e.key AS issue FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues) e WHERE ${GOOD}),
     mix AS (SELECT node_id, issue, count(*)::float8 / sum(count(*)) OVER (PARTITION BY node_id) AS share FROM s GROUP BY 1, 2),
     enough AS (SELECT node_id FROM s GROUP BY 1 HAVING count(*) >= 2),
-    gifts AS (SELECT l.from_id, l.to_id, l.amount::float8 AS amount FROM links l JOIN nodes f ON f.id=l.from_id
+    gifts AS (SELECT l.from_id, l.to_id, l.amount::float8 AS amount FROM links_shown l JOIN nodes f ON f.id=l.from_id
       WHERE l.type='money' AND l.amount > 0 AND coalesce(l.subtype,'') <> 'lobbying' AND f.type IN ${SOURCE_TYPES})
     SELECT m.issue, g.from_id, f.name, sum(g.amount * m.share)::float8 AS total
     FROM gifts g JOIN enough e ON e.node_id=g.to_id JOIN mix m ON m.node_id=g.to_id JOIN nodes f ON f.id=g.from_id GROUP BY 1, 2, 3`);
@@ -328,7 +328,7 @@ export async function getAnalysis() {
     WITH s AS (SELECT fi.node_id FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues) e WHERE ${GOOD}),
     enough AS (SELECT node_id FROM s GROUP BY 1 HAVING count(*) >= 2)
     SELECT coalesce(sum(l.amount) FILTER (WHERE l.to_id IN (SELECT node_id FROM enough)),0)::float8 AS assigned, coalesce(sum(l.amount),0)::float8 AS total
-    FROM links l JOIN nodes f ON f.id=l.from_id WHERE l.type='money' AND l.amount > 0 AND coalesce(l.subtype,'') <> 'lobbying' AND f.type IN ${SOURCE_TYPES}`);
+    FROM links_shown l JOIN nodes f ON f.id=l.from_id WHERE l.type='money' AND l.amount > 0 AND coalesce(l.subtype,'') <> 'lobbying' AND f.type IN ${SOURCE_TYPES}`);
   const rows: IssueRow[] = issues.map((i: any) => {
     const ms = money.filter((m: any) => m.issue === i.id).sort((a: any, b: any) => b.total - a.total);
     return { ...i, money: ms.reduce((x: number, m: any) => x + m.total, 0), money_givers: ms.slice(0, 3).map((m: any) => ({ id: m.from_id, name: m.name, total: m.total })) };
@@ -430,7 +430,7 @@ const CHAIN_EDGES = `
          max(h.amount)::float8 AS amount, min(h.source_url) AS source_url, min(h.archive_url) AS archive_url, max(h.date)::text AS date,
          (SELECT max(CASE x.support_oppose WHEN 'S' THEN 'support' WHEN 'O' THEN 'oppose' END) FROM money_x_hop_txns ht JOIN money_x_fec_tx x ON x.id=ht.tx_id WHERE ht.hop_id = (array_agg(h.id))[1]) AS stance,
          (SELECT count(*)::int FROM money_x_hop_txns ht WHERE ht.hop_id = (array_agg(h.id))[1]) AS n_lines
-    FROM money_hops h JOIN nodes t ON t.id=h.to_id LEFT JOIN nodes f ON f.id=h.from_id
+    FROM money_hops_shown h JOIN nodes t ON t.id=h.to_id LEFT JOIN nodes f ON f.id=h.from_id
    GROUP BY 1, 2, 3, 4, 5, 6, (CASE WHEN h.hop_basis='disclosed' THEN coalesce((SELECT max(x.support_oppose) FROM money_x_hop_txns ht JOIN money_x_fec_tx x ON x.id=ht.tx_id WHERE ht.hop_id=h.id), '') ELSE '' END)`;
 
 // Same shape as moneyFlows() so the existing <MoneyFlow> component can draw it, plus basis/archive_url/n_lines.
