@@ -4,7 +4,8 @@ import { sourceName } from "@/lib/format";
 import Linked from "@/components/Linked";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { getProfile, getTarget, getCoverage, getActorIssues, getActorLobbyingIssues, getMergedInto, TARGET_TYPES } from "@/lib/data";
+import { getProfile, getTarget, getCoverage, getActorIssues, getActorLobbyingIssues, getMergedInto, approvedConflictFlags, TARGET_TYPES } from "@/lib/data";
+import ConflictFlags from "@/components/ConflictFlags";
 import StanceBar from "@/components/StanceBar";
 import CoverageLine from "@/components/CoverageLine";
 import { fmtMoney, fmtDate, TYPE_LABEL, clusterName } from "@/lib/format";
@@ -34,7 +35,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
   const coverage = await getCoverage(id);
   if (TARGET_TYPES.includes(head.node.type)) return <TargetView t={head} coverage={coverage} />;
 
-  const [pr, actorIssues, lobbyIssues] = await Promise.all([getProfile(id), getActorIssues(id), getActorLobbyingIssues(id)]);
+  const [pr, actorIssues, lobbyIssues, flags] = await Promise.all([getProfile(id), getActorIssues(id), getActorLobbyingIssues(id), approvedConflictFlags(id)]);
   const p = pr!;
   const tab = (typeof sp.tab === "string" ? sp.tab : "record") as (typeof TABS)[number][0];
   const kind = typeof sp.kind === "string" ? sp.kind : "";
@@ -57,7 +58,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
       <FollowForm nodeId={id} />
 
       <nav className="tabs" aria-label="Profile sections">
-        {TABS.map(([t, label]) => <Link key={t} href={href(t)} scroll={false} aria-current={tab === t ? "page" : undefined}>{label}{t === "flags" && p.flags.length ? ` (${p.flags.length})` : ""}</Link>)}
+        {TABS.map(([t, label]) => <Link key={t} href={href(t)} scroll={false} aria-current={tab === t ? "page" : undefined}>{label}{t === "flags" && flags.length ? ` (${flags.length})` : ""}</Link>)}
       </nav>
 
       {tab === "record" && (() => {
@@ -202,14 +203,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
         );
       })}
 
-      {tab === "flags" && (p.flags.length === 0 ? <p className="muted">No case on record where a statement and an action point different ways.</p> : (
-        <ul className="feed">{p.flags.map((f, i) => (
-          <li key={i}><div className="when">{f.kind}</div>
-            <div><p style={{ marginTop: 0 }}>{f.text}</p>
-              <p>Said: {f.said.label} <span className="mono muted">{fmtDate(f.said.date)}</span> <Src url={f.said.url} /></p>
-              <p>Did: {f.did.label} <span className="mono muted">{fmtDate(f.did.date)}</span> <Src url={f.did.url} /></p></div></li>
-        ))}</ul>
-      ))}
+      {tab === "flags" && <ConflictFlags flags={flags} />}
     </div>
   );
 }

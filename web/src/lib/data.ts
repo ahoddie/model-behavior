@@ -93,7 +93,7 @@ export async function getProfile(id: string) {
       o.id AS other_id, o.name AS other_name, o.type AS other_type, o.descriptor AS other_descriptor
     FROM links l JOIN nodes o ON o.id = CASE WHEN l.from_id=$1 THEN l.to_id ELSE l.from_id END
     WHERE l.from_id=$1 OR l.to_id=$1 ORDER BY l.date_start DESC NULLS LAST`, [id]);
-  return { ...s, feed, filings, links, flags: await conflictFlags(id) };
+  return { ...s, feed, filings, links };
 }
 
 /** Places where what an actor says and what its money does point different ways. Each flag carries both sources. */

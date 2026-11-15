@@ -53,15 +53,17 @@ export default function MoneyFlow({ start, flows }: { start: string; flows: Flow
             </a>
           );
         })}
-        {[...pos.entries()].map(([id, p]) => (
-          <Link key={id} href={`/node/${id}`}>
+        {[...pos.entries()].map(([id, p]) => {
+          // "Undisclosed donors" is a placeholder, not a profile, so it is drawn without a link.
+          const box = (
             <g transform={`translate(${p.x},${p.y})`} className="item">
               <rect width={colW} height={p.h} rx="2" />
               <text x="8" y="15" className="nlabel">{(names.get(id) ?? id).slice(0, 28)}</text>
               <text x="8" y="29" className="namt">{fmtMoney(inflow.get(id))}</text>
             </g>
-          </Link>
-        ))}
+          );
+          return id.startsWith("undisclosed:") ? <g key={id}>{box}</g> : <Link key={id} href={`/node/${id}`}>{box}</Link>;
+        })}
       </svg>
     </div>
   );
