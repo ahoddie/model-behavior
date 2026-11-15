@@ -20,7 +20,11 @@
     "typecheck": "tsc --noEmit",
     "logos": "tsx scripts/logos.ts",
     "validate": "tsx scripts/validate.ts",
-    "tag-filings": "tsx scripts/tag-filings.ts"
+    "tag-filings": "tsx scripts/tag-filings.ts",
+    "say-do:run": "tsx scripts/pipelines/say_do/run.ts",
+    "say-do:eval": "tsx scripts/pipelines/say_do/eval.ts",
+    "say-do:commitments": "tsx scripts/pipelines/say_do/commitments.ts",
+    "say-do:seed": "tsx scripts/pipelines/say_do/seed.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
