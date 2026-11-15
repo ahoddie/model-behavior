@@ -29,6 +29,7 @@ export function parseFec(file: string, text: string) {
     report_code: base === "F3X" ? clean(hdr[9]) : base === "F24" ? "24" : null,
     coverage_start: base === "F3X" ? date(hdr[13]) : null, coverage_end: base === "F3X" ? date(hdr[14]) : null,
     total_receipts: base === "F3X" ? num(hdr[23]) : null, total_disbursements: base === "F3X" ? num(hdr[25]) : null,
+    f3x_cols: base === "F3X" ? Object.fromEntries(hdr.slice(22, 62).map((v, i) => [String(22 + i), num(v)])) : null,
   };
   const rows: Row[] = [];
   for (const l of lines) {
@@ -66,9 +67,9 @@ async function main() {
     const parsed = parseFec(fn, readFileSync(resolve(FEC_DIR, f), "latin1"));
     if (!parsed) { console.log("skip", f); continue; }
     const { filing, rows } = parsed;
-    await pool.query(`INSERT INTO money_x_fec_filings (file_number,committee_id,form_type,report_code,amendment,coverage_start,coverage_end,total_receipts,total_disbursements)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (file_number) DO UPDATE SET form_type=$3,report_code=$4,amendment=$5,coverage_start=$6,coverage_end=$7,total_receipts=$8,total_disbursements=$9`,
-      [fn, filing.committee_id, filing.form_type, filing.report_code, filing.amendment, filing.coverage_start, filing.coverage_end, filing.total_receipts, filing.total_disbursements]);
+    await pool.query(`INSERT INTO money_x_fec_filings (file_number,committee_id,form_type,report_code,amendment,coverage_start,coverage_end,total_receipts,total_disbursements,f3x_cols)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (file_number) DO UPDATE SET form_type=$3,report_code=$4,amendment=$5,coverage_start=$6,coverage_end=$7,total_receipts=$8,total_disbursements=$9,f3x_cols=$10`,
+      [fn, filing.committee_id, filing.form_type, filing.report_code, filing.amendment, filing.coverage_start, filing.coverage_end, filing.total_receipts, filing.total_disbursements, filing.f3x_cols]);
     for (const r of rows) {
       const url = `https://docquery.fec.gov/cgi-bin/forms/${filing.committee_id}/${fn}/${r.sched.toLowerCase()}`;
       await pool.query(`INSERT INTO money_x_fec_tx (committee_id,node_id,file_number,form_type,report_code,amendment,coverage_start,coverage_end,sched,line_code,transaction_id,entity_type,name,employer,occupation,city,state,tx_date,amount,purpose,other_committee_id,candidate_id,candidate_name,candidate_office,candidate_state,candidate_district,support_oppose,election_code,dissemination_date,memo,memo_text,source_url)
