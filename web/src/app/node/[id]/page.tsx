@@ -1,4 +1,6 @@
 import { connection } from "next/server";
+import CiteButton from "@/components/CiteButton";
+import { sourceName } from "@/lib/format";
 import Linked from "@/components/Linked";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -47,7 +49,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
 
   return (
     <div className="page">
-      <ProfileHead node={p.node} keyFacts={p.keyFacts} logoSource={p.node.logo_source_url}
+      <ProfileHead node={p.node} keyFacts={p.keyFacts} logoSource={p.node.logo_source_url} citePath={`/node/${id}`}
         kicker={<>{TYPE_LABEL[p.node.type]} · <Link href={`/map?focus=${id}`}>{clusterName(p.node.cluster)}</Link></>} />
       <p className="mono"><Link href={`/map?focus=${id}`}>Trace on the map</Link> · <a href={`/api/rss/${id}`}>RSS</a></p>
       <CoverageLine c={coverage} />
@@ -70,7 +72,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
             <h2>In {p.node.name}&apos;s words</h2>
             <ul className="record">{quotes.slice(0, 8).map((f: any) => (
               <li key={f.id}><div className="when">{fmtDate(f.date) || "Undated"}</div>
-                <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /></p>
+                <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /> <CiteButton small kind="quote" speaker={p.node.name} quote={f.excerpt} date={fmtDate(f.date)} url={f.url} archive={f.archive_url} outlet={sourceName(f.url)} /></p>
                   {f.target_name && <p className="note">On {f.target_id ? <Link href={`/node/${f.target_id}`}>{f.target_name}</Link> : f.target_name}</p>}</div></li>
             ))}</ul>
             {quotes.length > 8 && <p className="more"><Link href={href("feed")} scroll={false}>All {p.feed.length} statements</Link></p>}
@@ -139,7 +141,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
             <li key={f.id}>
               <div className="when">{fmtDate(f.date)}<br /><span className="tag">{f.kind}</span></div>
               <div>
-                {f.excerpt ? <blockquote>“{f.excerpt}” <Src url={f.url} archive={f.archive_url} /></blockquote> : <p style={{ margin: 0 }}>{f.summary} <Src url={f.url} archive={f.archive_url} /></p>}
+                {f.excerpt ? <blockquote>“{f.excerpt}” <Src url={f.url} archive={f.archive_url} /> <CiteButton small kind="quote" speaker={p.node.name} quote={f.excerpt} date={fmtDate(f.date)} url={f.url} archive={f.archive_url} outlet={sourceName(f.url)} /></blockquote> : <p style={{ margin: 0 }}>{f.summary} <Src url={f.url} archive={f.archive_url} /></p>}
                 <p className="mono muted" style={{ margin: "4px 0 0" }}>
                   {[f.platform, f.stance && `${f.stance}${f.target_name ? ` · ${f.target_name}` : ""}`, ...f.issues].filter(Boolean).join(" · ")}
                 </p>

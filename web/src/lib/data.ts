@@ -297,7 +297,7 @@ export async function targetSides() {
 // ── Analysis (machine-classified; see scripts/analyze.ts and the methodology page) ──
 // Labels used: the newest label per statement, own-voice only, confidence ≥ 0.6.
 const LABELS = `(SELECT DISTINCT ON (sl.feed_id) sl.* FROM statement_labels sl ORDER BY sl.feed_id, sl.labeled_at DESC)`;
-const GOOD = `own_voice AND confidence >= 0.6`;
+const GOOD = `l.own_voice AND l.confidence >= 0.6`;  // qualified: feed_items also has a confidence column
 export type IssueRow = { id: string; label: string; description: string; positive: string; statements: number; actors: number; avg: number | null;
   plus: number; minus: number; neutral: number; money: number; money_givers: { id: string; name: string; total: number }[] };
 
@@ -346,7 +346,7 @@ export async function getActorIssues(id: string) {
     SELECT a.id, a.label, a.positive, round(avg(e.value::int) FILTER (WHERE e.value::int <> 0), 1)::float8 AS avg, count(*)::int AS n,
       json_agg(json_build_object('feed_id', fi.id, 'v', e.value::int, 'excerpt', fi.excerpt, 'url', fi.url, 'date', pdate(fi.date, fi.date_prec), 'reason', l.reason) ORDER BY fi.date DESC) AS items
     FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues) e JOIN issue_areas a ON a.id=e.key
-    WHERE fi.node_id=$1 AND fi.status='approved' AND ${GOOD.replace(/own_voice/, "l.own_voice").replace(/confidence/, "l.confidence")}
+    WHERE fi.node_id=$1 AND fi.status='approved' AND ${GOOD}
     GROUP BY a.id ORDER BY count(*) DESC, a.sort`, [id]);
 }
 

@@ -1,5 +1,7 @@
 // Shared top of every profile: logo (or an initials box), name, descriptor and the sourced key facts.
 // Each fact ends in a source pill (components/Src.tsx); Website values link to the site itself.
+import CiteButton from "./CiteButton";
+import { fmtDate } from "@/lib/format";
 import { TYPE_LABEL } from "@/lib/format";
 import Src from "./Src";
 
@@ -30,9 +32,9 @@ export function KeyFacts({ facts, compact }: { facts: KeyFact[]; compact?: boole
   );
 }
 
-export default function ProfileHead({ node, keyFacts, kicker, logoSource }: {
+export default function ProfileHead({ node, keyFacts, kicker, logoSource, citePath }: {
   node: { name: string; type: string; descriptor?: string | null; source_url: string; logo_url?: string | null };
-  keyFacts: KeyFact[]; kicker?: React.ReactNode; logoSource?: string | null;
+  keyFacts: KeyFact[]; kicker?: React.ReactNode; logoSource?: string | null; citePath?: string;
 }) {
   return (
     <header className="profile-head">
@@ -41,7 +43,7 @@ export default function ProfileHead({ node, keyFacts, kicker, logoSource }: {
         <div>
           <h1>{node.name}</h1>
           {node.descriptor && <p className="lede">{node.descriptor} <Src url={node.source_url} /></p>}
-          <p className="profile-meta">{kicker ?? TYPE_LABEL[node.type]}</p>
+          <p className="profile-meta">{kicker ?? TYPE_LABEL[node.type]}{citePath && <> <CiteButton small kind="page" title={node.name} path={citePath} asOf={fmtDate(new Date().toISOString().slice(0, 10))} /></>}</p>
         </div>
       </div>
       <KeyFacts facts={keyFacts} />
