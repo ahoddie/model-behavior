@@ -388,3 +388,81 @@ export async function getLobbyingByIssue(): Promise<Record<string, { filings: nu
     FROM ${FILING_TAGS} t JOIN filings f ON t.source_kind='filing' AND f.id=t.source_id, unnest(t.issues) i GROUP BY 1`);
   return Object.fromEntries(rows.map((r: any) => [r.issue, { filings: r.filings, actors: r.actors }]));
 }
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Workstream D (money chains). Reads money_chains / money_hops, built by web/scripts/pipelines/money/.
+// One row per distinct pair of parties. Amounts are pool-level totals of the filed lines between the pair: a chain does not trace one
+// donor's dollars through a PAC (the filings never say which receipt funded which spend). Undisclosed hops have from_id
+// "undisclosed:<entity id>", the name "Undisclosed donors" and a null amount: never a person, never a guessed donor.
+const CHAIN_EDGES = `
+  SELECT coalesce(h.from_id, 'undisclosed:' || h.to_id) AS from_id, h.to_id, h.hop_basis,
+         coalesce(f.name, 'Undisclosed donors') AS from_name, t.name AS to_name, t.type AS to_type,
+         max(h.amount)::float8 AS amount, min(h.source_url) AS source_url, min(h.archive_url) AS archive_url, max(h.date)::text AS date,
+         (SELECT max(CASE x.support_oppose WHEN 'S' THEN 'support' WHEN 'O' THEN 'oppose' END) FROM money_x_hop_txns ht JOIN money_x_fec_tx x ON x.id=ht.tx_id WHERE ht.hop_id = (array_agg(h.id))[1]) AS stance,
+         (SELECT count(*)::int FROM money_x_hop_txns ht WHERE ht.hop_id = (array_agg(h.id))[1]) AS n_lines
+    FROM money_hops h JOIN nodes t ON t.id=h.to_id LEFT JOIN nodes f ON f.id=h.from_id
+   GROUP BY 1, 2, 3, 4, 5, 6, (CASE WHEN h.hop_basis='disclosed' THEN coalesce((SELECT max(x.support_oppose) FROM money_x_hop_txns ht JOIN money_x_fec_tx x ON x.id=ht.tx_id WHERE ht.hop_id=h.id), '') ELSE '' END)`;
+
+// Same shape as moneyFlows() so the existing <MoneyFlow> component can draw it, plus basis/archive_url/n_lines.
+// `start` may be an actor id or "undisclosed:<entity id>" to start from an Undisclosed-donors placeholder.
+export async function moneyChainFlows(start: string, depth = 4) {
+  "use cache";
+  cached();
+  return q<any>(`
+    WITH RECURSIVE edge AS (${CHAIN_EDGES}),
+    walk(from_id, to_id, from_name, to_name, to_type, amount, source_url, archive_url, date, stance, hop_basis, n_lines, d, path) AS (
+      SELECT from_id, to_id, from_name, to_name, to_type, amount, source_url, archive_url, date, stance, hop_basis, n_lines, 1, ARRAY[from_id, to_id] FROM edge WHERE from_id=$1
+      UNION ALL
+      SELECT e.from_id, e.to_id, e.from_name, e.to_name, e.to_type, e.amount, e.source_url, e.archive_url, e.date, e.stance, e.hop_basis, e.n_lines, w.d+1, w.path || e.to_id
+        FROM edge e JOIN walk w ON e.from_id=w.to_id WHERE w.d < $2 AND NOT e.to_id = ANY(w.path))
+    SELECT DISTINCT ON (from_id, to_id, stance) *, (hop_basis='undisclosed') AS undisclosed FROM walk ORDER BY from_id, to_id, stance, d`, [start, depth]);
+}
+
+// Starting points for the Follow-the-money picker: sources with filed or self-reported outflow, plus Undisclosed-donors placeholders.
+export async function moneyChainStarts() {
+  "use cache";
+  cached();
+  return q<{ id: string; name: string; type: string; out: number | null; basis: string }>(`
+    WITH edge AS (${CHAIN_EDGES})
+    SELECT from_id AS id, from_name AS name, CASE WHEN hop_basis='undisclosed' THEN 'undisclosed' ELSE (SELECT type FROM nodes WHERE id=edge.from_id) END AS type,
+           sum(amount)::float8 AS out, min(hop_basis) AS basis
+      FROM edge WHERE from_id NOT IN (SELECT id FROM nodes WHERE type='lawmaker')
+      GROUP BY from_id, from_name, hop_basis HAVING hop_basis='undisclosed' OR sum(amount) > 0
+        AND from_id NOT IN (SELECT to_id FROM edge e2 WHERE e2.hop_basis<>'undisclosed' AND e2.to_type IN ('pac','nonprofit') AND e2.from_id <> edge.from_id)
+      ORDER BY (hop_basis='undisclosed'), sum(amount) DESC NULLS LAST`);
+}
+
+// Totals by source actor, by target race and by committee, with disclosed / self-reported / undisclosed-upstream shares.
+export async function moneyChainSummary() {
+  "use cache";
+  cached();
+  const [bySource, byRace, byCommittee, reconcile, counts] = await Promise.all([
+    q<any>(`WITH edge AS (${CHAIN_EDGES})
+      SELECT e.from_id AS id, e.from_name AS name, sum(e.amount) FILTER (WHERE e.hop_basis='disclosed')::float8 AS disclosed, sum(e.amount) FILTER (WHERE e.hop_basis='self_reported')::float8 AS self_reported,
+             array_agg(DISTINCT e.to_name) AS to_names
+        FROM edge e JOIN nodes f ON f.id=e.from_id WHERE e.to_type='pac' AND e.hop_basis<>'undisclosed' AND f.type IN ('person','lab','investor','funder')
+         OR (e.hop_basis='self_reported')
+        GROUP BY 1, 2 ORDER BY coalesce(sum(e.amount),0) DESC LIMIT 30`),
+    q<any>(`WITH edge AS (${CHAIN_EDGES})
+      SELECT coalesce(n.external_ids->>'race', e.to_id) AS race_id, coalesce(r.name, e.to_name) AS race, sum(e.amount) FILTER (WHERE e.stance='support')::float8 AS support,
+             sum(e.amount) FILTER (WHERE e.stance='oppose')::float8 AS oppose, sum(e.amount)::float8 AS total, array_agg(DISTINCT e.from_name) AS spenders
+        FROM edge e JOIN nodes n ON n.id=e.to_id AND n.type='lawmaker' LEFT JOIN nodes r ON r.id=n.external_ids->>'race' GROUP BY 1, 2 ORDER BY total DESC LIMIT 40`),
+    q<any>(`WITH edge AS (${CHAIN_EDGES}), opaque AS (SELECT to_id AS id FROM edge WHERE hop_basis='undisclosed')
+      SELECT e.to_id AS id, e.to_name AS name, sum(e.amount)::float8 AS itemized_in,
+             sum(e.amount) FILTER (WHERE e.from_id IN (SELECT id FROM opaque))::float8 AS via_undisclosed_intermediary,
+             sum(e.amount) FILTER (WHERE e.hop_basis='self_reported')::float8 AS self_reported_in
+        FROM edge e WHERE e.to_type IN ('pac','nonprofit') AND e.hop_basis<>'undisclosed' GROUP BY 1, 2 ORDER BY itemized_in DESC NULLS LAST`),
+    q<any>(`SELECT count(*) FILTER (WHERE status='ok')::int AS ok, count(*) FILTER (WHERE status='explained')::int AS explained, count(*) FILTER (WHERE status='open')::int AS open FROM money_x_reconcile`),
+    q<any>(`SELECT (SELECT count(*)::int FROM money_chains) AS chains, (SELECT count(*)::int FROM money_hops) AS hops,
+             (SELECT count(*)::int FROM money_hops WHERE hop_basis='undisclosed') AS undisclosed_hops, (SELECT count(*)::int FROM money_hops WHERE hop_basis='self_reported') AS self_reported_hops`),
+  ]);
+  return { bySource, byRace, byCommittee, reconcile: reconcile[0], counts: counts[0] };
+}
+
+// Ad spend as filed (FEC Schedule E): which PAC ran what, for or against whom, where and when.
+export async function moneyAds(node: string, limit = 50) {
+  "use cache";
+  cached();
+  return q<any>(`SELECT a.id, a.amount::float8 AS amount, a.start_date::text AS date, a.placement, a.description, a.support_oppose, a.target_node, a.target_label, a.source_url, a.archive_url
+    FROM money_x_ads a WHERE a.node_id=$1 ORDER BY a.start_date DESC NULLS LAST, a.amount DESC LIMIT $2`, [node, limit]);
+}

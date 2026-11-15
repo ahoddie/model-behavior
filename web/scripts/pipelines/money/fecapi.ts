@@ -29,20 +29,26 @@ export async function fec(path: string, params: Record<string, string | number> 
     for (const [k, v] of Object.entries({ ...params, api_key: KEY })) u.searchParams.set(k, String(v));
     const res = await fetch(u, { headers: { "User-Agent": "ModelBehavior-local-research/0.1" } });
     const left = res.headers.get("x-ratelimit-remaining");
-    if (res.status === 429) { console.log(`429 (remaining ${left}); waiting 15 min`); await sleep(15 * 60_000); continue; }
+    if (res.status === 429) { console.log(`429 (remaining ${left}); waiting 10 min`); await sleep(10 * 60_000); continue; }
     if (!res.ok) throw new Error(`fec ${res.status} ${path}`);
     const j = await res.json();
     writeFileSync(cachePath(path, params), JSON.stringify(j));
-    await sleep(isDemo() ? (left && +left > 15 ? 15_000 : 100_000) : 700);
+    await sleep(isDemo() ? 380_000 : 700);
     return j;
   }
 }
 
 async function main() {
+  // DEMO_KEY allows ~10 calls/hour from a shared IP, so order matters: the spec's networks first, then company PACs.
+  const nets = ["leading-the-future", "think-big", "american-mission", "public-first", "jobs-and-democracy", "defending-our-values", "abundant-future"];
+  const co = ["meta-pac", "microsoft-pac", "google-netpac", "amazon-pac", "nvidia-pac", "palantir-pac"];
+  const by = (n: string) => TRACKED.find((t) => t.node === n)!;
   const jobs: [string, Record<string, string | number>][] = [];
+  for (const n of nets) jobs.push([`/committee/${by(n).fec}/totals/`, { cycle: 2026, per_page: 5 }]);
+  for (const n of co) jobs.push([`/committee/${by(n).fec}/filings/`, { per_page: 100, sort: "-receipt_date" }]);
+  for (const n of ["anthropic-pac", ...nets]) jobs.push([`/committee/${by(n).fec}/filings/`, { per_page: 100, sort: "-receipt_date" }]);
+  for (const n of ["anthropic-pac", ...co, "guardrails-alliance", "innovation-council", "building-the-future"]) jobs.push([`/committee/${by(n).fec}/totals/`, { cycle: 2026, per_page: 5 }]);
   for (const c of TRACKED) for (const cy of CYCLES) jobs.push([`/committee/${c.fec}/totals/`, { cycle: cy, per_page: 5 }]);
-  for (const c of TRACKED) jobs.push([`/committee/${c.fec}/filings/`, { per_page: 100, sort: "-receipt_date" }]);
-  // Network committees first.
   for (const [p, a] of jobs) {
     if (cached(p, a)) continue;
     try { const j = await fec(p, a); console.log("ok", p, a.cycle ?? "", j.pagination?.count); } catch (e) { console.log("fail", p, (e as Error).message); }

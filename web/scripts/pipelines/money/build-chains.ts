@@ -28,19 +28,22 @@ const displayName = (t: { name: string; entity_type: string | null }) => {
 type Tx = { id: number; committee_id: string; node_id: string; sched: string; line_code: string; entity_type: string | null; name: string; amount: string; tx_date: string | null;
   purpose: string | null; other_committee_id: string | null; candidate_id: string | null; candidate_name: string | null; support_oppose: string | null; source_url: string; file_number: string;
   employer: string | null; city: string | null; state: string | null };
-type Edge = { from: string | null; fromLabel: string | null; to: string; basis: "disclosed" | "self_reported" | "undisclosed"; amount: number | null; txs: { tx?: number; link?: number; amount: number | null; date: string | null; url: string }[];
+type Edge = { from: string | null; fromLabel: string | null; to: string; basis: "disclosed" | "self_reported" | "undisclosed"; amount: number | null; txs: { tx?: number; link?: number; amount: number | null; date: string | null; url: string; side?: string }[];
   first: string | null; last: string | null; url: string; stance?: string | null };
 
 async function main() {
   if (process.argv.includes("--reset")) {
     await pool.query(`DELETE FROM money_chains WHERE created_by='money'`);
   }
-  const nodes = await q<{ id: string; type: string; name: string; external_ids: any }>(`SELECT id,type,name,external_ids FROM nodes`);
+  const nodes = await q<{ id: string; type: string; name: string; descriptor: string | null; external_ids: any }>(`SELECT id,type,name,descriptor,external_ids FROM nodes`);
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const nodeByFec = new Map<string, string>();
   for (const n of nodes) for (const c of [n.external_ids?.fec].flat()) if (c) nodeByFec.set(String(c), n.id);
   const candNode = new Map<string, { node: string; race: string | null }>();
   for (const n of nodes) if (n.type === "lawmaker" && n.external_ids?.fec) candNode.set(String(n.external_ids.fec), { node: n.id, race: n.external_ids.race ?? null });
+  const nk = (s: string) => { const w = s.toLowerCase().replace(/[^a-z ]/g, " ").split(/\s+/).filter((x) => x && !/^(jr|sr|ii|iii|dr|mr|mrs)$/.test(x)); return w.length > 1 ? `${w[0]} ${w.at(-1)}` : w[0] ?? ""; };
+  const candByName = new Map<string, string>();   // only unambiguous names
+  for (const n of nodes.filter((x) => x.type === "lawmaker")) { const k = nk(n.name); candByName.set(k, candByName.has(k) ? "" : n.id); }
   const links = await q<any>(`SELECT id, from_id, to_id, subtype, amount::float8 amount, date_start::text d, source_url, note FROM links WHERE type='money'`);
   const linkKey = new Map<string, any[]>();
   for (const l of links) { const k = `${l.to_id}|${l.source_url}|${l.amount}`; linkKey.set(k, [...(linkKey.get(k) ?? []), l]); }
@@ -61,7 +64,7 @@ async function main() {
     FROM money_x_fec_tx WHERE NOT superseded AND NOT memo AND node_id IS NOT NULL ORDER BY tx_date, id`);
 
   const edges = new Map<string, Edge>();
-  const addTx = (key: string, base: Omit<Edge, "txs" | "first" | "last" | "amount">, t: { tx?: number; link?: number; amount: number | null; date: string | null; url: string }) => {
+  const addTx = (key: string, base: Omit<Edge, "txs" | "first" | "last" | "amount">, t: { tx?: number; link?: number; amount: number | null; date: string | null; url: string; side?: string }) => {
     const e = edges.get(key) ?? { ...base, amount: 0, txs: [], first: null, last: null };
     e.txs.push(t); e.amount = (e.amount ?? 0) + (t.amount ?? 0);
     if (t.date && (!e.first || t.date < e.first)) e.first = t.date;
@@ -98,8 +101,8 @@ async function main() {
           if (id) {
             if (!byId.has(id)) {
               await pool.query(`INSERT INTO nodes (id,type,name,descriptor,cluster,source_url) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
-                [id, type === "person" ? "person" : "investor", nm, `Named on FEC filings as a donor to ${byId.get(t.node_id)!.name}. Created by the money pipeline; identity not yet reviewed.`, type === "person" ? "other-investors" : "other-investors", t.source_url]);
-              byId.set(id, { id, type: type === "person" ? "person" : "investor", name: nm, external_ids: {} });
+                [id, type === "person" ? "person" : type === "pac" ? "pac" : "investor", nm, `Named on FEC filings as a donor to ${byId.get(t.node_id)!.name}. Created by the money pipeline; identity not yet reviewed.`, type === "person" ? "other-investors" : "other-investors", t.source_url]);
+              byId.set(id, { id, type: type === "person" ? "person" : type === "pac" ? "pac" : "investor", name: nm, descriptor: null, external_ids: {} });
               stats.newNodes++;
               await enqueue({ workstream: "money", kind: "node", refTable: "nodes", refId: id, title: `New donor node: ${nm} (${fmt(amt)} to ${byId.get(t.node_id)!.name})`,
                 payload: { rationale: "Named exactly as filed; created so the hop can be shown. Needs identity review (who is this donor?).", employer: t.employer, state: t.state },
@@ -110,7 +113,7 @@ async function main() {
         } else { stats.skipped_small++; continue; }
       }
       if (!from || from === t.node_id) continue;
-      addTx(`${from}|${t.node_id}|d`, { from, fromLabel: null, to: t.node_id, basis: "disclosed", url: t.source_url }, { tx: t.id, link: lk?.id, amount: amt, date: t.tx_date, url: t.source_url });
+      addTx(`${from}|${t.node_id}|d`, { from, fromLabel: null, to: t.node_id, basis: "disclosed", url: t.source_url }, { tx: t.id, link: lk?.id, amount: amt, date: t.tx_date, url: t.source_url, side: "A" });
       stats.disclosed_lines++;
     } else if (t.sched === "B" && /^SB(23|29)/.test(t.line_code) && amt > 0) {
       let to: string | null = null;
@@ -125,11 +128,12 @@ async function main() {
         continue;
       }
       if (to === t.node_id) continue;
-      addTx(`${t.node_id}|${to}|d`, { from: t.node_id, fromLabel: null, to, basis: "disclosed", url: t.source_url }, { tx: t.id, link: lk?.id, amount: amt, date: t.tx_date, url: t.source_url });
+      addTx(`${t.node_id}|${to}|d`, { from: t.node_id, fromLabel: null, to, basis: "disclosed", url: t.source_url }, { tx: t.id, link: lk?.id, amount: amt, date: t.tx_date, url: t.source_url, side: "B" });
     } else if (t.sched === "E" && amt > 0) {
       const c = t.candidate_id ? candNode.get(t.candidate_id) : null;
       const lk = links.find((l) => l.from_id === t.node_id && l.source_url === t.source_url && Math.abs(l.amount - amt) < 0.01 && dayDiff(l.d, t.tx_date) <= 7 && byId.get(l.to_id)?.type === "lawmaker");
-      const to = lk?.to_id ?? c?.node ?? null;
+      const nameHit = t.candidate_name ? candByName.get(nk(t.candidate_name.includes(",") ? t.candidate_name.split(",").reverse().join(" ") : t.candidate_name)) : null;
+      const to = lk?.to_id ?? c?.node ?? (!t.candidate_id && nameHit ? nameHit : null);
       if (!to) { stats.unmatched_ie++; continue; }
       addTx(`${t.node_id}|${to}|d|${t.support_oppose ?? ""}`, { from: t.node_id, fromLabel: null, to, basis: "disclosed", url: t.source_url, stance: t.support_oppose === "S" ? "support" : t.support_oppose === "O" ? "oppose" : null },
         { tx: t.id, link: lk?.id, amount: amt, date: t.tx_date, url: t.source_url });
@@ -156,8 +160,33 @@ async function main() {
     stats.queued++;
   }
 
+  // The same transfer between two tracked committees appears twice: as a disbursement (Schedule B) at the giver and as a receipt (Schedule A)
+  // at the receiver. Pair each disbursement line with at most ONE receipt line of the same amount within 7 days and keep the receipt copy.
+  // Unpaired lines stay: separate gifts of equal amounts are real and are never merged with each other.
+  for (const e of edges.values()) {
+    const A = e.txs.filter((t) => t.side === "A"), B = e.txs.filter((t) => t.side === "B");
+    if (!A.length || !B.length) continue;
+    const used = new Set<number>(); const keep = [...e.txs.filter((t) => t.side !== "B")];
+    for (const b of B) {
+      const i = A.findIndex((a, k) => !used.has(k) && Math.abs((a.amount ?? 0) - (b.amount ?? 0)) < 0.01 && dayDiff(a.date, b.date) <= 7);
+      if (i >= 0) used.add(i); else keep.push(b);
+    }
+    e.txs = keep; e.amount = keep.reduce((a, t) => a + (t.amount ?? 0), 0);
+    const ds = keep.map((t) => t.date).filter(Boolean).sort() as string[]; e.first = ds[0] ?? null; e.last = ds.at(-1) ?? null;
+  }
+
   // Undisclosed upstream: an intermediary that is not a person/company/lab/PAC (a 501(c)(4) or other nonprofit) whose donors are not public.
-  const nonDisc = (id: string) => ["nonprofit", "funder"].includes(byId.get(id)?.type ?? "");
+  // Only entities that are KNOWN to keep donors private get the placeholder (a 501(c)(4)/(c)(3)/(c)(6) per the node's own sourced descriptor).
+  // Other nonprofit-typed nodes whose legal status isn't recorded (527s and PACs disclose donors on Form 8872 / FEC) are queued for a status check instead.
+  const opaque = (id: string) => /501\(c\)\(\d+\)/.test(nodes.find((n) => n.id === id)?.descriptor ?? "");
+  const nonDisc = opaque;
+  for (const id of new Set([...edges.values()].map((e) => e.from).filter((x): x is string => !!x))) {
+    const n = byId.get(id);
+    if (n && (n.type === "nonprofit" || n.type === "funder") && !opaque(id))
+      await enqueue({ workstream: "money", kind: "node", refTable: "nodes", refId: `${id}:legal-status`, title: `Check legal status of ${n.name}: donors are public only if it is a PAC or 527`,
+        payload: { node: id, rationale: "Gave to a tracked committee. If it files with the FEC (PAC) or the IRS Form 8872 (527), its donors are public and the chain can be traced further; if it is a 501(c)(4)/(c)(3) its donors are undisclosed and a placeholder hop must be added." },
+        evidence: [{ label: "Filing that shows the gift", url: [...edges.values()].find((e) => e.from === id)!.url }], confidence: 0.5, significance: 0.4 });
+  }
   for (const e of [...edges.values()]) {
     const f = e.from;
     if (!f || !nonDisc(f)) continue;
