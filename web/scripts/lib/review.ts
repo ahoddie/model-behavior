@@ -2,7 +2,7 @@
 // Nothing a pipeline infers reaches the site until a reviewer approves it on /review.
 import { pool } from "../../src/lib/db.ts";
 
-export type Workstream = "statements" | "er" | "say_do" | "money" | "core";
+export type Workstream = "statements" | "er" | "say_do" | "money" | "provenance" | "core";
 export type Evidence = { label: string; url: string; archive_url?: string | null; date?: string | null };
 
 export type ReviewItem = {

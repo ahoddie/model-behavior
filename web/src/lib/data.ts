@@ -507,3 +507,40 @@ export async function getMergedInto(id: string): Promise<string | null> {
   }
   return cur === id ? null : cur;
 }
+
+// ── Notable topics (table `topics`) ──
+// Where each actor stands on each topic, from three kinds of evidence: quotes labeled on the topic itself (topic_labels),
+// quotes labeled on the issue a topic reuses (statement_labels via topics.issue_id), and public letters the person signed
+// (topic_positions). Quote readings are machine labels; a signature is the person's own public act.
+export type TopicEvidence = { kind: "quote" | "letter"; v: number; text: string; url: string; archive_url: string | null; date: string | null; doc?: string };
+export type TopicActor = { id: string; name: string; type: string; avg: number; items: TopicEvidence[] };
+export type TopicRow = { id: string; label: string; description: string; positive: string; agree: TopicActor[]; neutral: TopicActor[]; disagree: TopicActor[] };
+export async function getTopics(): Promise<TopicRow[]> {
+  "use cache";
+  cached();
+  const topics = await q<any>(`SELECT id, label, description, positive, issue_id FROM topics ORDER BY sort`);
+  const rows = await q<any>(`
+    SELECT t.id AS topic, fi.node_id, tl.answer::int AS v, 'quote' AS kind, fi.excerpt AS text, fi.url, fi.archive_url, pdate(fi.date, fi.date_prec)::text AS date, NULL AS doc
+      FROM topic_labels tl JOIN topics t ON t.id=tl.topic_id JOIN feed_items fi ON fi.id=tl.feed_id
+     WHERE tl.answer IS NOT NULL AND fi.status='approved'
+    UNION ALL
+    SELECT t.id, fi.node_id, e.value::int, 'quote', fi.excerpt, fi.url, fi.archive_url, pdate(fi.date, fi.date_prec)::text, NULL
+      FROM topics t JOIN ${LABELS} l ON true JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues) e
+     WHERE t.issue_id IS NOT NULL AND e.key=t.issue_id AND fi.status='approved' AND ${GOOD}
+    UNION ALL
+    SELECT p.topic_id, p.node_id, p.answer::int, 'letter', p.quote, p.source_url, p.archive_url, p.date::text, p.document_name
+      FROM topic_positions p`);
+  const nodes = new Map((await q<any>(`SELECT id, name, type FROM nodes WHERE id = ANY($1)`, [[...new Set(rows.map((r: any) => r.node_id))]])).map((n: any) => [n.id, n]));
+  return topics.map((t: any) => {
+    const by = new Map<string, TopicEvidence[]>();
+    for (const r of rows.filter((r: any) => r.topic === t.id)) by.set(r.node_id, [...(by.get(r.node_id) ?? []), { kind: r.kind, v: r.v, text: r.text, url: r.url, archive_url: r.archive_url, date: r.date, doc: r.doc ?? undefined }]);
+    const actors: TopicActor[] = [...by.entries()].filter(([id]) => nodes.has(id)).map(([id, items]) => {
+      const sided = items.filter((i) => i.v !== 0);
+      const avg = sided.length ? sided.reduce((a, i) => a + i.v, 0) / sided.length : 0;
+      const n = nodes.get(id);
+      return { id, name: n.name, type: n.type, avg, items: items.sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? ""))) };
+    }).sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
+    return { id: t.id, label: t.label, description: t.description, positive: t.positive,
+      agree: actors.filter((a) => a.avg > 0), neutral: actors.filter((a) => a.avg === 0), disagree: actors.filter((a) => a.avg < 0) };
+  });
+}

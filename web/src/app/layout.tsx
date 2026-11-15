@@ -26,6 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/map">Map</Link>
             <Link href="/money">Money</Link>
             <Link href="/targets">Lands on</Link>
+            <Link href="/topics">Topics</Link>
           </nav>
           <div className="mast-tools">
             <HeaderSearch />
