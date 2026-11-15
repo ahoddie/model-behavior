@@ -82,7 +82,7 @@ await pool.query(`SELECT set_config('mb.actor','er',false)`);
 let logged = 0;
 for (const p of proposals) {
   const keptId = finalKept(p.merged.id);
-  const [exists] = await q(`SELECT id FROM merge_log WHERE action='merge' AND merged_id=$1 AND kept_id=$2 AND status IN ('proposed','applied')`, [p.merged.id, keptId]);
+  const [exists] = await q(`SELECT id FROM merge_log WHERE action='merge' AND ((merged_id=$1 AND kept_id=$2) OR (merged_id=$2 AND kept_id=$1))`, [p.merged.id, keptId]);
   if (exists) continue;
   const kn = meta.get(keptId)!, mn = meta.get(p.merged.id)!;
   const snapshot = { note: "proposal-time summary; the full reversal snapshot (every moved/deleted row) is written by er:apply", kept: { id: keptId, refs: refCount.get(keptId) ?? 0 }, merged: { id: p.merged.id, name: p.merged.name, type: p.merged.type, refs: refCount.get(p.merged.id) ?? 0, ids: p.merged.ids } };
