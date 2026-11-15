@@ -20,7 +20,15 @@
     "typecheck": "tsc --noEmit",
     "logos": "tsx scripts/logos.ts",
     "validate": "tsx scripts/validate.ts",
-    "tag-filings": "tsx scripts/tag-filings.ts"
+    "tag-filings": "tsx scripts/tag-filings.ts",
+    "er:seed-ids": "tsx scripts/pipelines/er/seed-ids.ts",
+    "er:watchlist": "tsx scripts/pipelines/er/watchlist.ts",
+    "er:resolve-batch": "tsx scripts/pipelines/er/batch.ts",
+    "er:apply": "tsx scripts/pipelines/er/apply.ts apply",
+    "er:revert": "tsx scripts/pipelines/er/apply.ts revert",
+    "er:ids": "tsx scripts/pipelines/er/ids-api.ts",
+    "er:eval": "tsx scripts/pipelines/er/eval.ts",
+    "er:wikidata": "tsx scripts/pipelines/er/wikidata.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
