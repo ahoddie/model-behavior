@@ -5,7 +5,7 @@
 //      employer+title); otherwise the result is provisional "person_name_only" and the caller holds the item for review.
 //   4. Organizations: normalized-name key within the same kind (PACs never resolve to their sponsor and vice versa).
 import { loadStore } from "./profiles.ts";
-import { keyFor } from "./normalize.ts";
+import { keyFor, nameVariants } from "./normalize.ts";
 import { THRESHOLDS, compatibleTypes, profileFromInput, scorePair, type Profile } from "./score.ts";
 import type { ResolveInput, ResolveResult } from "../../lib/resolve.ts";
 
@@ -30,16 +30,16 @@ export async function realResolve(input: ResolveInput, provisionalId: (i: Resolv
   }
 
   // 2/3/4. candidate generation by name key
-  const key = isPerson ? null : keyFor(input.type, input.name);
+  const keys = isPerson ? [] : nameVariants(input.name).map((n) => keyFor(input.type, n)).filter((k) => k.length >= 3);
   const cands: Profile[] = [];
   for (const p of store.byId.values()) {
     if (!compatibleTypes(p.type, input.type) && !(isPerson && (p.type === "person" || p.type === "lawmaker"))) continue;
     if (isPerson) {
       const pp = p.names.some((n) => lastTok(n) === lastTok(input.name) || (lastTok(n) === firstTok(input.name) && firstTok(n) === lastTok(input.name)));
       if (pp) cands.push(p);
-    } else if (key && key.length >= 3) {
+    } else if (keys.length) {
       const k = (s: string) => keyFor(input.type, s);
-      if (p.names.some((n) => k(n) === key)) cands.push(p);
+      if (p.names.some((n) => keys.includes(k(n)))) cands.push(p);
     }
   }
   if (!cands.length) return { id: provisionalId(input), provisional: true, exists: false, matchedBy: "new", confidence: 0 };

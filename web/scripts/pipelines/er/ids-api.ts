@@ -61,3 +61,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   else console.log("usage: er:ids show <node> | lookup <system> <value> | add-id <node> <system> <value> [source_url] | add-alias <node> <alias> <kind> <source_url>");
   await pool.end();
 }
+
+/** Follow proposed/applied merges: returns the canonical node id for any id ever used. Importers that mint deterministic ids
+ *  (agency-<slug>, lawmaker-<slug>) should call this before upsertNode so a merged-away node is not re-created. */
+export async function canonicalId(id: string): Promise<string> {
+  let cur = id;
+  for (let i = 0; i < 6; i++) {
+    const [m] = await q<{ kept_id: string }>(`SELECT kept_id FROM merge_log WHERE action='merge' AND merged_id=$1 AND status IN ('proposed','applied') ORDER BY id DESC LIMIT 1`, [cur]);
+    if (!m || m.kept_id === cur) return cur;
+    cur = m.kept_id;
+  }
+  return cur;
+}

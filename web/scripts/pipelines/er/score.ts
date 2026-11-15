@@ -1,5 +1,5 @@
 // Pairwise scoring for entity resolution (Workstream B). Deterministic; the LLM judge only sees pairs this leaves in the middle band.
-import { compareNames, employerKey, keyFor, normCity, normDomain, normHandle, normOccupation, normState, parsePerson, zip5, type NameMatch } from "./normalize.ts";
+import { compareNames, employerKey, keyFor, nameVariants, normCity, normDomain, normHandle, normOccupation, normState, parsePerson, zip5, type NameMatch } from "./normalize.ts";
 
 export type Profile = {
   id: string;
@@ -16,6 +16,8 @@ export type Profile = {
   cluster?: string;
 };
 
+// ER_PERSON_AUTO_GROUPS=3 makes people need three independent attributes to auto-merge (precision over recall); default 2 per the brief.
+export const PERSON_AUTO_GROUPS = Number(process.env.ER_PERSON_AUTO_GROUPS ?? 2);
 export const THRESHOLDS = { auto: 0.93, review: 0.5 } as const;
 // Identifiers that name exactly one entity of the kind (a second, different value in the same system means two entities).
 export const SINGLE_VALUED = new Set(["bioguide", "wikidata", "openstates", "lda_registrant", "lda_client"]);
@@ -103,7 +105,7 @@ function scorePerson(a: Profile, b: Profile, strong: string[]): PairResult {
   else score = base + (n === 2 ? 0.06 : 0.12) - (common ? 0.08 : 0);
   if (nm === "initial") score = Math.min(score, 0.85);
   score = Math.round(score * 1000) / 1000;
-  const decision = n >= 2 && score >= THRESHOLDS.auto ? "auto" : n >= 1 && score >= THRESHOLDS.review ? "review" : "reject";
+  const decision = n >= PERSON_AUTO_GROUPS && score >= THRESHOLDS.auto ? "auto" : n >= 1 && score >= THRESHOLDS.review ? "review" : "reject";
   return R(score, decision, null, nm, groups, [], n < 2 ? `only ${n} independent attribute(s) beyond name` : `${nm} name + ${groups.join(", ")}${common ? " (common name)" : ""}`);
 }
 const rank = (m: NameMatch) => ({ exact: 5, variant: 4, swapped: 3, initial: 2, none: 1, conflict: 0 }[m]);
@@ -135,7 +137,7 @@ export function profileFromInput(i: { type: string; name: string; externalIds?: 
   const city = normCity(h.city), st = normState(h.state);
   const e = employerKey(h.employer);
   return {
-    id: "(input)", type: i.type, name: i.name, names: [i.name],
+    id: "(input)", type: i.type, name: i.name, names: nameVariants(i.name),
     ids: Object.fromEntries(Object.entries(i.externalIds ?? {}).filter(([, v]) => v).map(([k, v]) => [k, [String(v)]])),
     employers: e ? [e] : [], cityStates: city && st ? [`${city}|${st}`] : [], zips: zip5(h.zip5) ? [zip5(h.zip5)!] : [],
     handles: [normHandle(h.handle)].filter(Boolean) as string[], domains: [normDomain(h.website)].filter(Boolean) as string[],

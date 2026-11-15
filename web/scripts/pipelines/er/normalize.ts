@@ -19,13 +19,14 @@ export const orgKey = (name: string) => orgCore(name).replace(/ /g, "");
 const ABBR: [RegExp, string][] = [[/\bnatl\b/g, "national"], [/\bdept\b/g, "department"], [/\bu s\b/g, "us"], [/\bgov\b/g, "government"], [/\bassn\b/g, "association"], [/\bcmte\b/g, "committee"], [/\bcmtee\b/g, "committee"]];
 /** Agencies: "Commerce, Dept of (DOC)" ~ "U.S. Department of Commerce"; "White House Office of Science and Technology Policy" ~ "Office of Science & Technology Policy (OSTP)". */
 export function agencyKey(name: string): string {
-  let s = name.replace(/\([^)]*\)/g, " ");
+  let s = name.replace(/\([^)]*\)/g, " ").replace(/^\s*[A-Za-z]{2,8}\s+[-–]\s+/, "");   // "FCC - Federal Communications Commission"
   const m = s.match(/^\s*([^,]+),\s*(dept|department)\.?\s+of\s*$/i); // "Commerce, Dept of"
   if (m) s = `department of ${m[1]}`;
   s = base(s);
   for (const [r, t] of ABBR) s = s.replace(r, t);
   s = s.replace(/\b(the|united states|us|white house|federal|office)\b/g, " ").replace(/\b(of|and|for)\b/g, " ").replace(/\s+/g, " ").trim();
-  return s.replace(/ /g, "");
+  const k = s.replace(/ /g, "");
+  return k.length >= 3 ? k : base(name.replace(/\([^)]*\)/g, " ")).replace(/ /g, "");   // "White House Office" would otherwise strip to nothing
 }
 /** Acronym in trailing parentheses, if any: "Federal Trade Commission (FTC)" -> "ftc". */
 export const parenAcronym = (name: string) => name.match(/\(([A-Za-z]{2,8})\)\s*$/)?.[1]?.toLowerCase() ?? null;
@@ -50,7 +51,7 @@ export function employerKey(raw: string | null | undefined): string | null {
 // ---------- people ----------
 const NICK: Record<string, string> = {
   bob: "robert", rob: "robert", bobby: "robert", robbie: "robert", bill: "william", billy: "william", will: "william", willy: "william",
-  jim: "james", jimmy: "james", jamie: "james", joe: "joseph", joey: "joseph", jack: "john", johnny: "john", jon: "john", jonathan: "jonathan", mike: "michael", mick: "michael",
+  jim: "james", jimmy: "james", jamie: "james", joe: "joseph", joey: "joseph", jack: "john", johnny: "john", jon: "jonathan", jonathan: "jonathan", mike: "michael", mick: "michael",
   dave: "david", davey: "david", dan: "daniel", danny: "daniel", tom: "thomas", tommy: "thomas", tim: "timothy", chris: "christopher", kit: "christopher",
   steve: "steven", stephen: "steven", greg: "gregory", gregg: "gregory", ben: "benjamin", benny: "benjamin", sam: "samuel", sammy: "samuel", andy: "andrew", drew: "andrew",
   tony: "anthony", nick: "nicholas", nic: "nicholas", matt: "matthew", pete: "peter", rick: "richard", rich: "richard", dick: "richard", ricky: "richard", ted: "edward", ed: "edward", eddie: "edward", ned: "edward",
@@ -116,3 +117,13 @@ export const zip5 = (z?: string | null) => (z && /^\d{5}/.test(z.trim()) ? z.tri
 export const normHandle = (h?: string | null) => (h ? h.trim().replace(/^@/, "").toLowerCase() : null);
 export const normDomain = (u?: string | null) => (u ? u.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "") : null);
 export const normOccupation = (o?: string | null) => (o ? base(o) : null);
+
+/** All name strings worth matching on for an organization: the name, without a trailing parenthetical, and a long parenthetical full name. */
+export function nameVariants(name: string): string[] {
+  const out = [name];
+  const bare = name.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  if (bare && bare !== name) out.push(bare);
+  const paren = name.match(/\(([^)]{12,})\)/)?.[1]?.trim();
+  if (paren && paren.split(/\s+/).length >= 3 && !/^(now|formerly|fpp|super)/i.test(paren)) out.push(paren);
+  return out;
+}
