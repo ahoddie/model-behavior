@@ -80,7 +80,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
           </section>}
           {actorIssues.length > 0 && <section>
             <h2>Issues they speak on</h2>
-            <p className="note">Machine-labeled by an open-source model from the quotes above; open an issue to see each quote and the label it got. <Link href="/data?view=methodology#analysis">How this works</Link>.</p>
+            <p className="note">Labeled by an open-source model from the quotes above. Open an issue to see each label. <Link href="/data?view=methodology#analysis">How this works</Link>.</p>
             <ul className="issues">{actorIssues.map((i: any) => (
               <li key={i.id}>
                 <details>
@@ -165,7 +165,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
               ))}
           </tbody></table>
         )}
-        <p className="muted">Rows are grouped by target and newest first, so a change in stance shows as a new row above the old one.</p>
+        <p className="muted">Grouped by target, newest first, so a change in stance sits above the old one.</p>
       </>}
 
       {tab === "money" && (p.filings.length === 0 ? <p className="muted">No filings on record yet.</p> : (

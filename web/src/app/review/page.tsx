@@ -25,7 +25,7 @@ export default async function Review(props: PageProps<"/review">) {
   return (
     <div className="page">
       <h1>Review queue</h1>
-      <p className="lede">Machine-found items wait here. Only approved items show on the map and profiles. Check each one against its source before you approve it.</p>
+      <p className="lede">Machine-found items wait here until approved. Check each against its source first.</p>
 
       <section className="panel" style={{ padding: "var(--s4)", marginBottom: "var(--s5)" }}>
         <h3>Run an importer now</h3>

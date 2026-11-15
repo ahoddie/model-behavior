@@ -39,7 +39,7 @@ export default function ProfileHead({ node, keyFacts, kicker, logoSource, citePa
   return (
     <header className="profile-head">
       <div className="profile-title">
-        {logoSource && node.logo_url ? <a href={logoSource} target="_blank" rel="noreferrer" aria-label={`${node.name} logo source`}><Mark node={node} /></a> : <Mark node={node} />}
+        {logoSource && node.logo_url ? <a className="no-ext" href={logoSource} target="_blank" rel="noreferrer" aria-label={`${node.name} logo source`}><Mark node={node} /></a> : <Mark node={node} />}
         <div>
           <h1>{node.name}</h1>
           {node.descriptor && <p className="lede">{node.descriptor} <Src url={node.source_url} /></p>}

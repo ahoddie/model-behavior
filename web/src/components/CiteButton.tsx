@@ -9,7 +9,9 @@ type QuoteCite = { kind: "quote"; speaker: string; quote: string; date: string; 
 const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
 
 function text(c: PageCite | QuoteCite, origin: string) {
-  if (c.kind === "page") return `Model Behavior. “${c.title}.” Data as of ${c.asOf}. ${origin}${c.path}`;
+  // The site is not published yet, so a local address is left out of the citation rather than handed to readers.
+  const local = !origin || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin);
+  if (c.kind === "page") return `Model Behavior. “${c.title}.” Data as of ${c.asOf}.${local ? "" : ` ${origin}${c.path}`}`;
   return `${c.speaker}, “${c.quote}” ${c.outlet || host(c.url)}${c.date ? `, ${c.date}` : ""}. ${c.url}${c.archive ? ` (archived: ${c.archive})` : ""}`;
 }
 

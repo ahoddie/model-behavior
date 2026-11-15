@@ -30,7 +30,7 @@ function Side({ title, items }: { title: string; items: FlagEvidence[] }) {
 }
 
 export default function ConflictFlags({ flags }: { flags: ApprovedFlag[] }) {
-  if (!flags.length) return <p className="muted">No reviewed case on record where a statement and an action point different ways. Cases are found by software and shown only after a person has checked both sources.</p>;
+  if (!flags.length) return <p className="muted">No reviewed case where a statement and an action point different ways. Software finds cases; a person checks both sources before one appears.</p>;
   return (
     <ul className="feed">
       {flags.map((f) => (

@@ -518,3 +518,11 @@ svg.map:active { cursor: default; }
 .cite-actions a { font-size: 13px; color: var(--carbon); font-weight: 600; }
 .cite-card.cite-left { left: 0; right: auto; }
 .cite-card.cite-right { right: 0; left: auto; }
+
+/* Links that leave the site get a small arrow; links within the site stay plain. Internal links are relative paths. */
+a[href^="http"]:not(.no-ext)::after {
+  content: "\2197" / " (leaves this site)";
+  display: inline-block; margin-left: 2px; font-size: 0.78em; line-height: 1; vertical-align: 0.12em;
+  color: var(--muted); font-weight: 400;
+}
+a[href^="http"]:hover::after { color: currentColor; }

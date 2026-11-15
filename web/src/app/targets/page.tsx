@@ -36,7 +36,7 @@ export default async function Targets({ searchParams }: PageProps<"/targets">) {
   return (
     <div className="page">
       <h1>Lands on</h1>
-      <p className="lede">The bills, rules, elections and parts of government that the money, lobbying and public positions reach.</p>
+      <p className="lede">The bills, rules, elections and agencies that the money, lobbying and positions reach.</p>
       <nav className="tabs" aria-label="Kinds">
         {KINDS.map(([k, label, test]) => (
           <Link key={k} href={`/targets?kind=${k}`} scroll={false} aria-current={kind[0] === k ? "page" : undefined}>

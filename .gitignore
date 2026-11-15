@@ -8,3 +8,4 @@ data/cache/
 *.log
 .env*.local
 .claude/settings.local.json
+data/pruned/
