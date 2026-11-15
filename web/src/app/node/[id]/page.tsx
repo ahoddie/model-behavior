@@ -4,7 +4,7 @@ import { sourceName } from "@/lib/format";
 import Linked from "@/components/Linked";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { getProfile, getTarget, getCoverage, getActorIssues, getActorLobbyingIssues, getMergedInto, approvedConflictFlags, TARGET_TYPES } from "@/lib/data";
+import { getNodeSummary, getProfile, getTarget, getCoverage, getActorIssues, getActorLobbyingIssues, getMergedInto, approvedConflictFlags, TARGET_TYPES } from "@/lib/data";
 import ConflictFlags from "@/components/ConflictFlags";
 import StanceBar from "@/components/StanceBar";
 import CoverageLine from "@/components/CoverageLine";
@@ -30,10 +30,10 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
   await connection();
   const { id } = await props.params;
   const sp = await props.searchParams;
-  const head = await getTarget(id);
+  // The summary says which kind of page this is; target-only reads (pushes, statements) run only for targets.
+  const [head, coverage] = await Promise.all([getNodeSummary(id), getCoverage(id)]);
   if (!head) { const to = await getMergedInto(id); if (to) permanentRedirect(`/node/${encodeURIComponent(to)}`); notFound(); }
-  const coverage = await getCoverage(id);
-  if (TARGET_TYPES.includes(head.node.type)) return <TargetView t={head} coverage={coverage} />;
+  if (TARGET_TYPES.includes(head.node.type)) return <TargetView t={(await getTarget(id))!} coverage={coverage} />;
 
   const [pr, actorIssues, lobbyIssues, flags] = await Promise.all([getProfile(id), getActorIssues(id), getActorLobbyingIssues(id), approvedConflictFlags(id)]);
   const p = pr!;

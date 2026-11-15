@@ -59,40 +59,50 @@ export async function getGraph() {
 export async function getNodeSummary(id: string) {
   "use cache";
   cached();
-  const [node] = await q<GNode & { external_ids: any; archive_url: string | null; logo_url: string | null; logo_source_url: string | null }>(`SELECT * FROM nodes WHERE id=$1`, [id]);
-  if (!node) return null;
-  // Labeled facts (Founded, Leader, Website...) form the key-facts block; unlabeled ones are notes.
-  const keyFacts = await q<{ label: string; text: string; url: string }>(
-    `SELECT DISTINCT ON (label) label, text, url FROM facts WHERE node_id=$1 AND label IS NOT NULL ORDER BY label, id DESC`, [id]);
-  keyFacts.sort((a, b) => FACT_ORDER.indexOf(a.label) - FACT_ORDER.indexOf(b.label));
-  const raw = await q<{ text: string; url: string }>(`SELECT text, url FROM facts WHERE node_id=$1 AND label IS NULL ORDER BY id LIMIT 8`, [id]);
-  // Names of other tracked actors inside a note link to their profiles.
-  const link = buildLinker(await q<{ id: string; name: string }>(`SELECT id, name FROM nodes`));
-  const facts: { text: string; url: string; parts: Part[] }[] = raw.map((f) => ({ ...f, parts: link(f.text, id) }));
-  const stats = (await q<{ money_out: number; money_in: number; links: number; feed: number; filings: number }>(`
+  // Independent reads, run together: a cold profile otherwise waits on five round trips in a row.
+  const [[node], keyFacts, raw, allNodes, [stats]] = await Promise.all([
+    q<GNode & { external_ids: any; archive_url: string | null; logo_url: string | null; logo_source_url: string | null }>(`SELECT * FROM nodes WHERE id=$1`, [id]),
+    // Labeled facts (Founded, Leader, Website...) form the key-facts block; unlabeled ones are notes.
+    q<{ label: string; text: string; url: string }>(
+      `SELECT DISTINCT ON (label) label, text, url FROM facts WHERE node_id=$1 AND label IS NOT NULL ORDER BY label, id DESC`, [id]),
+    q<{ text: string; url: string }>(`SELECT text, url FROM facts WHERE node_id=$1 AND label IS NULL ORDER BY id LIMIT 8`, [id]),
+    nodeNames(),
+    q<{ money_out: number; money_in: number; links: number; feed: number; filings: number }>(`
     SELECT (SELECT coalesce(sum(amount),0)::float8 FROM links WHERE from_id=$1 AND type='money' AND subtype <> 'lobbying') AS money_out,
            (SELECT coalesce(sum(amount),0)::float8 FROM links WHERE to_id=$1 AND type='money' AND subtype <> 'lobbying') AS money_in,
            (SELECT count(*)::int FROM links WHERE from_id=$1 OR to_id=$1) AS links,
            (SELECT count(*)::int FROM feed_items WHERE node_id=$1 AND status='approved') AS feed,
-           (SELECT count(*)::int FROM filings WHERE node_id=$1) AS filings`, [id]))[0];
+           (SELECT count(*)::int FROM filings WHERE node_id=$1) AS filings`, [id]),
+  ]);
+  if (!node) return null;
+  keyFacts.sort((a, b) => FACT_ORDER.indexOf(a.label) - FACT_ORDER.indexOf(b.label));
+  // Names of other tracked actors inside a note link to their profiles.
+  const link = buildLinker(allNodes);
+  const facts: { text: string; url: string; parts: Part[] }[] = raw.map((f) => ({ ...f, parts: link(f.text, id) }));
   return { node, facts, keyFacts, stats };
+}
+
+// Every node's id and name, for the linker. One cached read shared by all profiles.
+async function nodeNames() {
+  "use cache";
+  cached();
+  return q<{ id: string; name: string }>(`SELECT id, name FROM nodes`);
 }
 
 export async function getProfile(id: string) {
   "use cache";
   cached();
-  const s = await getNodeSummary(id);
-  if (!s) return null;
-  const feed = await q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, t.name AS target_name FROM feed_items f LEFT JOIN nodes t ON t.id=f.target_id
-                             WHERE f.node_id=$1 AND f.status='approved' ORDER BY f.date DESC, f.id DESC`, [id]);
-  const filings = await q<any>(`SELECT *, pdate(filed_date, filed_prec) AS filed_date, amount::float8 AS amount FROM filings WHERE node_id=$1
-                                ORDER BY coalesce(filed_date, to_date(substring(period from '\\d{4}'), 'YYYY')) DESC NULLS LAST, id DESC`, [id]);
-  const links = await q<any>(`
+  const [s, feed, filings, links] = await Promise.all([getNodeSummary(id), q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, t.name AS target_name FROM feed_items f LEFT JOIN nodes t ON t.id=f.target_id
+                             WHERE f.node_id=$1 AND f.status='approved' ORDER BY f.date DESC, f.id DESC`, [id]),
+    q<any>(`SELECT *, pdate(filed_date, filed_prec) AS filed_date, amount::float8 AS amount FROM filings WHERE node_id=$1
+                                ORDER BY coalesce(filed_date, to_date(substring(period from '\\d{4}'), 'YYYY')) DESC NULLS LAST, id DESC`, [id]),
+    q<any>(`
     SELECT l.id::int, l.type, l.subtype, l.amount::float8 AS amount, pdate(l.date_start, l.date_start_prec) AS date_start, pdate(l.date_end, l.date_end_prec) AS date_end, l.stance, l.note, l.source_url,
       CASE WHEN l.from_id=$1 THEN 'out' ELSE 'in' END AS dir,
       o.id AS other_id, o.name AS other_name, o.type AS other_type, o.descriptor AS other_descriptor
     FROM links l JOIN nodes o ON o.id = CASE WHEN l.from_id=$1 THEN l.to_id ELSE l.from_id END
-    WHERE l.from_id=$1 OR l.to_id=$1 ORDER BY l.date_start DESC NULLS LAST`, [id]);
+    WHERE l.from_id=$1 OR l.to_id=$1 ORDER BY l.date_start DESC NULLS LAST`, [id])]);
+  if (!s) return null;
   return { ...s, feed, filings, links };
 }
 
@@ -172,14 +182,13 @@ export async function getCoverage(id: string): Promise<Coverage> {
 export async function getTarget(id: string) {
   "use cache";
   cached();
-  const s = await getNodeSummary(id);
-  if (!s) return null;
-  const pushes = await q<any>(`
+  const [s, pushes, statements] = await Promise.all([getNodeSummary(id), q<any>(`
     SELECT l.id::int, l.type, l.subtype, l.amount::float8 AS amount, pdate(l.date_start, l.date_start_prec) AS date_start, l.stance, l.note, l.source_url,
       a.id AS actor_id, a.name AS actor_name, a.type AS actor_type, a.cluster,
       (SELECT coalesce(sum(m.amount),0)::float8 FROM links m WHERE m.from_id=a.id AND m.type='money' AND m.subtype IN ('contribution','independent expenditure','donation','transfer')) AS actor_political_money
-    FROM links l JOIN nodes a ON a.id=l.from_id WHERE l.to_id=$1 ORDER BY l.amount DESC NULLS LAST, l.date_start DESC NULLS LAST`, [id]);
-  const statements = await q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, n.name AS actor_name FROM feed_items f JOIN nodes n ON n.id=f.node_id WHERE f.target_id=$1 AND f.status='approved' ORDER BY f.date DESC`, [id]);
+    FROM links l JOIN nodes a ON a.id=l.from_id WHERE l.to_id=$1 ORDER BY l.amount DESC NULLS LAST, l.date_start DESC NULLS LAST`, [id]),
+    q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, n.name AS actor_name FROM feed_items f JOIN nodes n ON n.id=f.node_id WHERE f.target_id=$1 AND f.status='approved' ORDER BY f.date DESC`, [id])]);
+  if (!s) return null;
   const candidates = s.node.type === "race" ? await q<any>(`SELECT id, name, descriptor FROM nodes WHERE type='lawmaker' AND external_ids->>'race'=$1`, [id]) : [];
   const candidatePushes = candidates.length ? await q<any>(`
     SELECT l.to_id AS candidate, l.stance, l.amount::float8 AS amount, pdate(l.date_start, l.date_start_prec) AS date_start, l.note, l.source_url, a.id AS actor_id, a.name AS actor_name
@@ -361,17 +370,17 @@ export type LobbyIssue = { id: string; label: string; n: number;
 export async function getActorLobbyingIssues(id: string): Promise<LobbyIssue[]> {
   "use cache";
   cached();
-  const filings = await q<any>(`
+  const [filings, grants, areas] = await Promise.all([q<any>(`
     SELECT i AS issue, f.id::int, f.period, f.filed_date::text AS filed, f.url
     FROM ${FILING_TAGS} t JOIN filings f ON t.source_kind='filing' AND f.id=t.source_id, unnest(t.issues) i
-    WHERE f.node_id=$1 ORDER BY f.filed_date DESC NULLS LAST, f.id`, [id]);
-  const grants = await q<any>(`
+    WHERE f.node_id=$1 ORDER BY f.filed_date DESC NULLS LAST, f.id`, [id]),
+    q<any>(`
     SELECT i AS issue, l.id::int, CASE WHEN l.from_id=$1 THEN 'out' ELSE 'in' END AS dir,
       o.id AS other_id, o.name AS other_name, l.date_start::text AS date, l.source_url AS url
     FROM ${FILING_TAGS} t JOIN links l ON t.source_kind='grant' AND l.id=t.source_id
       JOIN nodes o ON o.id = CASE WHEN l.from_id=$1 THEN l.to_id ELSE l.from_id END, unnest(t.issues) i
-    WHERE $1 IN (l.from_id, l.to_id) ORDER BY l.date_start DESC NULLS LAST, l.id`, [id]);
-  const areas = await q<any>(`SELECT id, label FROM issue_areas ORDER BY sort`);
+    WHERE $1 IN (l.from_id, l.to_id) ORDER BY l.date_start DESC NULLS LAST, l.id`, [id]),
+    q<any>(`SELECT id, label FROM issue_areas ORDER BY sort`)]);
   return areas.map((a: any) => {
     const fs = filings.filter((f: any) => f.issue === a.id).map(({ issue, ...f }: any) => f);
     const gs = grants.filter((g: any) => g.issue === a.id).map(({ issue, ...g }: any) => g);
