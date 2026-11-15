@@ -76,10 +76,14 @@ async function main() {
 
   for (const t of live) {
     const amt = Number(t.amount);
-    if (t.sched === "A" && /^SA(11|12)/.test(t.line_code) && amt > 0) {
+    // SA15/SA17 are "offsets" and "other receipts". Super PACs also receive nonprofit money there (Public First Action's gifts to its sister
+    // PACs are SA17), so those lines count when they are not interest, refunds, rebates or in-kind staff time, and only when the giver is a known node.
+    const otherReceipt = /^SA1[57]/.test(t.line_code) && !/interest|refund|rebate|reimburs|offset|dividend|void|return|in-kind|credit/i.test(t.purpose ?? "");
+    if (t.sched === "A" && (/^SA(11|12)/.test(t.line_code) || otherReceipt) && amt > 0) {
       // Who gave? 1) the curated link for this very line, 2) the donor committee's id, 3) resolve(), 4) a new node for large gifts.
       let from: string | null = null;
       const lk = (linkKey.get(`${t.node_id}|${t.source_url}|${amt}`) ?? []).find((l) => dayDiff(l.d, t.tx_date) <= 7);
+      if (process.env.DEBUG_EDGE && t.name.toLowerCase().includes(process.env.DEBUG_EDGE)) console.log("DBG", t.name, t.node_id, t.source_url, amt, t.tx_date, !!lk, linkKey.get(`${t.node_id}|${t.source_url}|${amt}`)?.length);
       if (lk) from = lk.from_id;
       else if (t.entity_type !== "IND" && orgIndex.has(core(t.name)) && core(t.name).length > 3) from = orgIndex.get(core(t.name))!;
       else if (t.other_committee_id && nodeByFec.has(t.other_committee_id)) from = nodeByFec.get(t.other_committee_id)!;
@@ -88,7 +92,7 @@ async function main() {
         const nm = displayName(t);
         const r = await resolve({ type: type as any, name: nm });
         if (r.exists && !r.provisional) from = r.id;
-        else if (amt >= MIN_NEW_NODE) {
+        else if (amt >= MIN_NEW_NODE && !otherReceipt) {
           const id = seenNew.get(nm) ?? (r.exists ? null : r.id);
           if (r.exists && r.provisional) {
             // A person matched on name only: hold in review, make no hop (CONTRACTS §2).
@@ -111,6 +115,7 @@ async function main() {
             seenNew.set(nm, id); from = id;
           }
         } else { stats.skipped_small++; continue; }
+        if (!from && otherReceipt) { stats.skipped_small++; continue; }
       }
       if (!from || from === t.node_id) continue;
       addTx(`${from}|${t.node_id}|d`, { from, fromLabel: null, to: t.node_id, basis: "disclosed", url: t.source_url }, { tx: t.id, link: lk?.id, amount: amt, date: t.tx_date, url: t.source_url, side: "A" });
@@ -197,6 +202,7 @@ async function main() {
   }
 
   console.log("edges", edges.size, stats);
+  if (process.env.DEBUG_EDGE) console.log([...edges.keys()].filter((k) => k.includes(process.env.DEBUG_EDGE!))); if (process.env.DEBUG_EDGE) { await pool.end(); return; }
   await persist(edges, byId);
   await pool.end();
 }

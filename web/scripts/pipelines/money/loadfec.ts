@@ -71,7 +71,7 @@ async function main() {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (file_number) DO UPDATE SET form_type=$3,report_code=$4,amendment=$5,coverage_start=$6,coverage_end=$7,total_receipts=$8,total_disbursements=$9,f3x_cols=$10`,
       [fn, filing.committee_id, filing.form_type, filing.report_code, filing.amendment, filing.coverage_start, filing.coverage_end, filing.total_receipts, filing.total_disbursements, filing.f3x_cols]);
     for (const r of rows) {
-      const url = `https://docquery.fec.gov/cgi-bin/forms/${filing.committee_id}/${fn}/${r.sched.toLowerCase()}`;
+      const url = `https://docquery.fec.gov/cgi-bin/forms/${filing.committee_id}/${fn}/s${r.sched.toLowerCase()}`;
       await pool.query(`INSERT INTO money_x_fec_tx (committee_id,node_id,file_number,form_type,report_code,amendment,coverage_start,coverage_end,sched,line_code,transaction_id,entity_type,name,employer,occupation,city,state,tx_date,amount,purpose,other_committee_id,candidate_id,candidate_name,candidate_office,candidate_state,candidate_district,support_oppose,election_code,dissemination_date,memo,memo_text,source_url)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32)
         ON CONFLICT (file_number, transaction_id) DO NOTHING`,

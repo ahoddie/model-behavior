@@ -41,4 +41,20 @@ for (const [name, cm] of byTreasurer) {
   }
 }
 console.log("treasurer fact proposals", n);
+
+// FEC memo lines that attribute an organisation's contribution to named individuals (for example an LLC's gift split between its partners).
+// The memo is a filed attribution, not a transfer from those people to the organisation, so it is a proposed fact and never a hop.
+const memos = await q<any>(`SELECT m.id, m.node_id, m.name AS person, m.amount::float8 amount, m.tx_date::text d, m.source_url::text url, p.name AS org, p.amount::float8 org_amount
+  FROM money_x_fec_tx m JOIN money_x_fec_tx p ON p.file_number=m.file_number AND p.sched='A' AND NOT p.memo AND p.entity_type<>'IND' AND p.tx_date=m.tx_date AND p.amount >= m.amount
+  WHERE m.sched='A' AND m.memo AND m.entity_type='IND' AND NOT m.superseded AND NOT p.superseded`);
+let nm = 0;
+for (const m of memos) {
+  const [first, last] = m.person.includes(",") ? m.person.split(",").reverse().map((x: string) => x.trim()) : ["", m.person];
+  const person = `${first} ${last}`.replace(/\b([a-z])([a-z]*)/gi, (_: string, a: string, b: string) => a.toUpperCase() + b.toLowerCase()).trim();
+  await enqueue({ workstream: "money", kind: "fact", refTable: "money_x_fec_tx", refId: m.id, title: `FEC memo attributes ${m.org}'s ${Math.round(m.amount).toLocaleString("en-US")} dollar gift (${m.d}) to ${person}`,
+    payload: { node: m.node_id, key: "Contribution attribution", value: `${person}: ${m.amount.toLocaleString("en-US")} of ${m.org}'s ${m.org_amount.toLocaleString("en-US")} dollars`, rationale: "Memo line in the committee's own report. It attributes the organisation's contribution; it does not show money moving from the person to the organisation." },
+    evidence: [{ label: "FEC filing line (memo)", url: m.url, date: m.d }], confidence: 0.9, significance: Math.min(1, m.amount / 1e7) });
+  nm++;
+}
+console.log("memo attribution proposals", nm);
 await pool.end();
