@@ -31,9 +31,16 @@ function mergeFlows(links: any[], chain: any[]) {
 export default async function Money(props: PageProps<"/money">) {
   await connection();
   const sp = await props.searchParams;
-  const starts = mergeStarts(await moneyStarts(), await moneyChainStarts());
-  const start = typeof sp.from === "string" ? sp.from : starts[0]?.id;
-  const flows = start ? mergeFlows(await moneyFlows(start), await moneyChainFlows(start)) : [];
+  // The two lists and the two walks are independent queries, so they run at the same time. With ?from= the walk starts
+  // alongside the picker list; without it the walk waits for the list's first entry.
+  const flowsFor = (s: string) => Promise.all([moneyFlows(s), moneyChainFlows(s)]).then(([l, c]) => mergeFlows(l, c));
+  const from = typeof sp.from === "string" ? sp.from : undefined;
+  const [starts, early] = await Promise.all([
+    Promise.all([moneyStarts(), moneyChainStarts()]).then(([a, b]) => mergeStarts(a, b)),
+    from ? flowsFor(from) : null,
+  ]);
+  const start = from ?? starts[0]?.id;
+  const flows = start ? (early ?? await flowsFor(start)) : [];
   const name = starts.find((s) => s.id === start)?.name ?? start;
   return (
     <div className="page wide">

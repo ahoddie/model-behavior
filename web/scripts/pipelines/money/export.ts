@@ -8,14 +8,8 @@ import { resolve } from "node:path";
 import { REPO } from "../../env.ts";
 import { q, pool } from "../../../src/lib/db.ts";
 
-export const CHAIN_EDGES = `
-  SELECT coalesce(h.from_id, 'undisclosed:' || h.to_id) AS from_id, h.to_id, h.hop_basis,
-         coalesce(f.name, 'Undisclosed donors') AS from_name, t.name AS to_name, t.type AS to_type,
-         max(h.amount)::float8 AS amount, min(h.source_url) AS source_url, min(h.archive_url) AS archive_url, max(h.date)::text AS date,
-         (SELECT max(CASE x.support_oppose WHEN 'S' THEN 'support' WHEN 'O' THEN 'oppose' END) FROM money_x_hop_txns ht JOIN money_x_fec_tx x ON x.id=ht.tx_id WHERE ht.hop_id = (array_agg(h.id))[1]) AS stance,
-         (SELECT count(*)::int FROM money_x_hop_txns ht WHERE ht.hop_id = (array_agg(h.id))[1]) AS n_lines
-    FROM money_hops h JOIN nodes t ON t.id=h.to_id LEFT JOIN nodes f ON f.id=h.from_id
-   GROUP BY 1, 2, 3, 4, 5, 6, (CASE WHEN h.hop_basis='disclosed' THEN coalesce((SELECT max(x.support_oppose) FROM money_x_hop_txns ht JOIN money_x_fec_tx x ON x.id=ht.tx_id WHERE ht.hop_id=h.id), '') ELSE '' END)`;
+// One row per distinct edge, from the money_edges view (db/migrations/193_money_edges.sql).
+export const CHAIN_EDGES = `SELECT * FROM money_edges`;
 
 export async function moneyFlowExport(start: string, depth = 4) {
   return q<any>(`
