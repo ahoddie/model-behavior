@@ -34,8 +34,9 @@ type Edge = { from: string | null; fromLabel: string | null; to: string; basis: 
 async function main() {
   if (process.argv.includes("--reset")) {
     await pool.query(`DELETE FROM money_chains WHERE created_by='money'`);
+    await pool.query(`DELETE FROM money_x_staged_hops`);
   }
-  const nodes = await q<{ id: string; type: string; name: string; descriptor: string | null; external_ids: any }>(`SELECT id,type,name,descriptor,external_ids FROM nodes`);
+  const nodes = await q<{ id: string; type: string; name: string; descriptor: string | null; external_ids: any }>(`SELECT id,type,name,descriptor,external_ids FROM nodes WHERE NOT (id LIKE 'ent\\_%' AND coalesce(descriptor,'') LIKE '%Created by the money pipeline%')`);
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const nodeByFec = new Map<string, string>();
   for (const n of nodes) for (const c of [n.external_ids?.fec].flat()) if (c) nodeByFec.set(String(c), n.id);
@@ -105,18 +106,13 @@ async function main() {
               evidence: [{ label: "FEC filing line", url: t.source_url, date: t.tx_date }], confidence: 0.5, significance: Math.min(1, amt / 1e7) });
             stats.queued++; continue;
           }
-          if (id) {
-            if (!byId.has(id)) {
-              await pool.query(`INSERT INTO nodes (id,type,name,descriptor,cluster,source_url) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
-                [id, type === "person" ? "person" : type === "pac" ? "pac" : "investor", nm, `Named on FEC filings as a donor to ${byId.get(t.node_id)!.name}. Created by the money pipeline; identity not yet reviewed.`, type === "person" ? "other-investors" : "other-investors", t.source_url]);
-              byId.set(id, { id, type: type === "person" ? "person" : type === "pac" ? "pac" : "investor", name: nm, descriptor: null, external_ids: {} });
-              stats.newNodes++;
-              await enqueue({ workstream: "money", kind: "node", refTable: "nodes", refId: id, title: `New donor node: ${nm} (${fmt(amt)} to ${byId.get(t.node_id)!.name})`,
-                payload: { rationale: "Named exactly as filed; created so the hop can be shown. Needs identity review (who is this donor?).", employer: t.employer, state: t.state },
-                evidence: [{ label: "FEC filing line", url: t.source_url, date: t.tx_date }], confidence: 0.6, significance: Math.min(1, amt / 1e7) });
-            }
-            seenNew.set(nm, id); from = id;
-          }
+          // Unresolved party: no node is created here (orchestrator rule). A review item asks for the node; the gift waits in money_x_staged_hops.
+          await enqueue({ workstream: "money", kind: "node", refTable: "money_x_staged_hops", refId: `${t.node_id}:${nm}`, title: `New donor needs a node: ${nm} (${fmt(amt)} to ${byId.get(t.node_id)!.name})`,
+            payload: { rationale: "Named exactly as filed; resolve() found no node. Hop is staged until a node exists.", proposed_type: type === "person" ? "person" : type === "pac" ? "pac" : "investor (change to nonprofit/funder if so)", provisional_id: id, employer: t.employer, state: t.state },
+            evidence: [{ label: "FEC filing line", url: t.source_url, date: t.tx_date }], confidence: 0.6, significance: Math.min(1, amt / 1e7) });
+          await pool.query(`INSERT INTO money_x_staged_hops (committee_node, party_name, party_kind, provisional_id, amount, tx_date, tx_id, source_url) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (tx_id) DO NOTHING`,
+            [t.node_id, nm, type, id, amt, t.tx_date, t.id, t.source_url]);
+          stats.queued++; continue;
         } else { stats.skipped_small++; continue; }
         if (!from && otherReceipt) { stats.skipped_small++; continue; }
       }
