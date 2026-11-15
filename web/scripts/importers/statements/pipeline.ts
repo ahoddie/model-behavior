@@ -250,7 +250,7 @@ export async function processDoc(doc: Doc, opts: { dryRun?: boolean } = {}): Pro
     if (!opts.dryRun) for (const p of owners) await markSeen(seenKey(doc, p), doc.source, "irrelevant");
     res.dropped = owners.length || 1; return res;
   }
-  const fresh = [];
+  const fresh: Person[] = [];
   for (const p of owners) if (!(await alreadyDone(doc, p))) fresh.push(p);
   if (!fresh.length) { res.seen = true; return res; }
   const units = (await buildUnits({ ...doc, people: fresh, turns: doc.turns?.filter((t) => fresh.some((f) => f.id === t.person.id)) })).filter((u) => fresh.some((f) => f.id === u.person.id));

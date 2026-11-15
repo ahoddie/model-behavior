@@ -61,7 +61,7 @@ export function sentences(text: string): string[] {
   return text.replace(/\s+/g, " ").split(/(?<=[.!?]["”’']?)\s+(?=[A-Z“"'‘(])/).map((s) => s.trim()).filter(Boolean);
 }
 
-export const normQuote = (s: string) => normMap(s).norm.toLowerCase().replace(/[^\p{L}\p{N} ]+/g, " ").replace(/\s+/g, " ").trim();
+export const normQuote = (s: string) => normMap(s).norm.toLowerCase().replace(/[^\p{L}\p{N} ]+/gu, " ").replace(/\s+/g, " ").trim();
 export function similar(a: string, b: string): boolean {
   const x = normQuote(a), y = normQuote(b);
   if (!x || !y) return false;
