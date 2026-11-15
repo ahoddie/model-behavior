@@ -11,7 +11,7 @@ import { fetchPage } from "../textutil.ts";
 
 const KEY = () => process.env.DATA_GOV_KEY ?? "DEMO_KEY";
 const MONTHS = "January|February|March|April|May|June|July|August|September|October|November|December";
-const DATE_RE = new RegExp(`(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\\s+(${MONTHS})\\s+(\\d{1,2}),\\s+(\\d{4})`);
+const DATE_RE = new RegExp(`(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\\s+(${MONTHS})\\s+(\\d{1,2}),\\s+(\\d{4})`, "i");
 const TURN = /(?:^|\n)[ \t]*(?:Mr\.|Ms\.|Mrs\.|Dr\.|Prof\.|Senator|Chairman|Chairwoman|Chair|Ranking Member|Representative|Secretary|General|Admiral|Commissioner|Director|Judge)[ \t]+([A-Z][A-Za-z'’-]+(?:[ \t]+[A-Z][A-Za-z'’-]+)?)\.[ \t]/g;
 
 export function hearingDate(text: string): string | null {

@@ -42,7 +42,7 @@ const POLICY_STRONG = /\b(?:regulat\w*|legislat\w*|laws?|lawmakers?|congress\w*|
 export const aiTerms = (t: string) => AI_TERMS.test(t);
 export const policyTerms = (t: string) => POLICY_STRONG.test(t);
 export const passesPrefilter = (t: string) => AI_TERMS.test(t) && POLICY_STRONG.test(t);
-const density = (t: string) => (t.match(new RegExp(AI_TERMS.source, "g"))?.length ?? 0) + (t.match(new RegExp(POLICY_STRONG.source, "gi"))?.length ?? 0);
+export const density = (t: string) => (t.match(new RegExp(AI_TERMS.source, "g"))?.length ?? 0) + (t.match(new RegExp(POLICY_STRONG.source, "gi"))?.length ?? 0);
 
 // Split a long own-words document into model-sized windows and keep the most policy-dense ones.
 export function topWindows(text: string, k = 3, maxChars = 1100): string[] {
@@ -101,8 +101,9 @@ export async function allowedByRobots(url: string): Promise<boolean> {
   const r = await robotsFor(u.origin);
   if (!r) return true;
   const path = u.pathname + u.search;
-  const longest = (list: string[]) => Math.max(-1, ...list.filter((p) => path.startsWith(p.replace(/\*.*$/, ""))).map((p) => p.length));
-  return longest(r.allow) >= longest(r.disallow);
+  // Longest matching rule wins; `*` matches any run of characters and a trailing `$` anchors the end (RFC 9309).
+  const matchLen = (list: string[]) => Math.max(-1, ...list.filter((p) => new RegExp("^" + p.replace(/[.+?^{}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\$$/, "$")).test(path)).map((p) => p.length));
+  return matchLen(r.allow) >= matchLen(r.disallow);
 }
 export async function fetchPage(url: string, opts: { html?: boolean } = {}): Promise<{ text: string; html: string; finalUrl: string } | null> {
   try {

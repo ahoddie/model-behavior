@@ -41,7 +41,7 @@ export function socialLinks(html: string, page: string, personName: string, ownS
     for (const m of html.matchAll(/<link[^>]+rel=["']alternate["'][^>]*>/gi)) {
       if (!/rss|atom/i.test(m[0])) continue;
       const href = m[0].match(/href=["']([^"']+)["']/i)?.[1];
-      if (href) add({ platform: "blog_rss", handle: new URL(href, page).toString(), page }, m.index!);
+      if (href && !/comments\/feed|\/comments\//i.test(href)) add({ platform: "blog_rss", handle: new URL(href, page).toString(), page }, m.index!);
     }
   }
   return out;

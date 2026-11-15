@@ -8,7 +8,7 @@ import { enqueue } from "../../lib/review.ts";
 import * as J from "./judge.ts";
 import { PROMPT_SET, type Stance } from "./judge.ts";
 import { TAXONOMY, detectTargets, targetById, issueById } from "./taxonomy.ts";
-import { passesPrefilter, policyTerms, sentences, sha1, similar, topWindows, verifyQuote, words } from "./textutil.ts";
+import { density, passesPrefilter, policyTerms, sentences, sha1, similar, topWindows, verifyQuote, words } from "./textutil.ts";
 
 export const PREFILTER_VERSION = "pf1";
 export const PRIMARY_STANCE: "A" | "B" = "A";     // which stance prompt supplies the stored label; the other is the cross-check
@@ -123,7 +123,11 @@ const ATTRIB_VERB = /\b(?:said|says|told|argued|argues|wrote|writes|warned|warns
 export async function buildUnits(doc: Doc): Promise<Unit[]> {
   const out: Unit[] = [];
   if (doc.turns) {
-    for (const t of doc.turns) for (const w of (words(t.text) > 120 ? topWindows(t.text, 2) : [t.text])) out.push({ person: t.person, attribution: "direct", text: w, quoteSource: w });
+    // Several turns per person: take the most policy-dense windows across all of them (at most 4 units per person per document).
+    for (const person of new Map(doc.turns.map((t) => [t.person.id, t.person])).values()) {
+      const wins = doc.turns.filter((t) => t.person.id === person.id).flatMap((t) => (words(t.text) > 120 ? topWindows(t.text, 2) : [t.text])).filter(passesPrefilter);
+      for (const w of wins.sort((a, b) => density(b) / Math.sqrt(b.length) - density(a) / Math.sqrt(a.length)).slice(0, 4)) out.push({ person, attribution: "direct", text: w, quoteSource: w });
+    }
     return out;
   }
   if (doc.author) {
