@@ -25,7 +25,8 @@ export function agencyKey(name: string): string {
   s = base(s);
   for (const [r, t] of ABBR) s = s.replace(r, t);
   s = s.replace(/\b(the|united states|us|white house|federal|office)\b/g, " ").replace(/\b(of|and|for)\b/g, " ").replace(/\s+/g, " ").trim();
-  return s.replace(/ /g, "");
+  const k = s.replace(/ /g, "");
+  return k.length >= 3 ? k : base(name.replace(/\([^)]*\)/g, " ")).replace(/ /g, "");   // "White House Office" would otherwise strip to nothing
 }
 /** Acronym in trailing parentheses, if any: "Federal Trade Commission (FTC)" -> "ftc". */
 export const parenAcronym = (name: string) => name.match(/\(([A-Za-z]{2,8})\)\s*$/)?.[1]?.toLowerCase() ?? null;
