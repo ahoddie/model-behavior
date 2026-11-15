@@ -56,7 +56,8 @@ export async function pollTestimony(opts: { maxHearings?: number } = {}): Promis
   }
   // Hearings found earlier but not yet read are picked up from the cursor table.
   for (const h of hearings.values()) if (!mode.dry) await pool.query(`INSERT INTO stmt_cursors (source,key,cursor,done) VALUES ('testimony_hearing',$1,$2,false) ON CONFLICT DO NOTHING`, [h.id, h.title]);
-  const todo = await q<{ key: string; cursor: string }>(`SELECT key, cursor FROM stmt_cursors WHERE source='testimony_hearing' AND NOT done LIMIT $1`, [opts.maxHearings ?? 25]);
+  const todo = mode.dry ? [...hearings.values()].slice(0, opts.maxHearings ?? 25).map((h) => ({ key: h.id, cursor: h.title }))
+    : await q<{ key: string; cursor: string }>(`SELECT key, cursor FROM stmt_cursors WHERE source='testimony_hearing' AND NOT done LIMIT $1`, [opts.maxHearings ?? 25]);
   for (const h of todo) {
     const url = `https://www.govinfo.gov/content/pkg/${h.key}/html/${h.key}.htm`;
     const page = await fetchPage(url);
