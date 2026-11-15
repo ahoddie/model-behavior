@@ -3,7 +3,9 @@
 //   firehose:  Jetstream filtered to the watchlist DIDs, run as a long-lived local process (`pnpm statements:firehose`).
 // Reposts and replies are skipped; a quote-post that adds under three words is skipped as a repost. The post's own text is the only
 // text read, so everything stored from here is attribution = direct.
-import { pool, q } from "../../../../src/lib/db.ts";
+import { q } from "../../../../src/lib/db.ts";
+import { getCursor, setCursor } from "../cursors.ts";
+import { pool } from "../../../../src/lib/db.ts";
 import { politeFetch, sleep } from "../../../lib/ingest.ts";
 import { processDoc, type Doc, type Person } from "../pipeline.ts";
 import { words } from "../textutil.ts";
@@ -30,7 +32,7 @@ export async function pollBluesky(opts: { maxPages?: number; only?: string } = {
   const st = emptyStats();
   for (const a of await accounts()) {
     if (opts.only && a.person.id !== opts.only) continue;
-    const [cur] = await q<{ cursor: string | null; done: boolean }>(`SELECT cursor, done FROM stmt_cursors WHERE source='bluesky' AND key=$1`, [a.did]);
+    const cur = await getCursor("bluesky", a.did);
     const state: { newest?: string; next?: string } = cur?.cursor ? JSON.parse(cur.cursor) : {};
     const backfilling = !cur?.done;
     let next: string | undefined = backfilling ? state.next : undefined;
@@ -56,8 +58,7 @@ export async function pollBluesky(opts: { maxPages?: number; only?: string } = {
       }
       next = j.cursor;
       const done = reachedOld || !next;
-      await pool.query(`INSERT INTO stmt_cursors (source, key, cursor, done) VALUES ('bluesky',$1,$2,$3)
-        ON CONFLICT (source,key) DO UPDATE SET cursor=$2, done=$3, updated_at=now()`, [a.did, JSON.stringify({ newest, next: done ? undefined : next }), backfilling ? done : true]);
+      await setCursor("bluesky", a.did, JSON.stringify({ newest, next: done ? undefined : next }), backfilling ? done : true);
       if (done) break;
       await sleep(300);
     }

@@ -1,6 +1,7 @@
 // Mastodon: public REST API, no key. Verified handles only (a link from the person's own site, ideally rel="me").
 // Threads: the official API needs an access token the app owner creates; with THREADS_ACCESS_TOKEN unset it is skipped and logged as a gap.
-import { pool, q } from "../../../../src/lib/db.ts";
+import { q } from "../../../../src/lib/db.ts";
+import { getCursor, setCursor } from "../cursors.ts";
 import { politeFetch, sleep } from "../../../lib/ingest.ts";
 import { htmlToText } from "../../../lib/text.ts";
 import { processDoc, type Doc } from "../pipeline.ts";
@@ -13,7 +14,7 @@ export async function pollMastodon(opts: { maxPages?: number } = {}): Promise<St
     `SELECT n.id, n.name, w.influence_tier AS tier, h.handle FROM stmt_handles h JOIN stmt_watchlist w ON w.node_id=h.node_id JOIN nodes n ON n.id=h.node_id WHERE h.platform='mastodon' AND h.status='verified'`);
   for (const r of rows) {
     const [user, host] = r.handle.split("@");
-    const [cur] = await q<{ cursor: string | null; done: boolean }>(`SELECT cursor, done FROM stmt_cursors WHERE source='mastodon' AND key=$1`, [r.handle]);
+    const cur = await getCursor("mastodon", r.handle);
     const state: { newest?: string; maxId?: string } = cur?.cursor ? JSON.parse(cur.cursor) : {};
     const backfilling = !cur?.done;
     const acct = await politeFetch(`https://${host}/api/v1/accounts/lookup?acct=${encodeURIComponent(user)}`);
@@ -35,8 +36,7 @@ export async function pollMastodon(opts: { maxPages?: number } = {}): Promise<St
         st.docs++; st.stored += out.stored; st.duplicates += out.duplicates; st.dropped += out.dropped;
       }
       maxId = list.at(-1)?.id;
-      await pool.query(`INSERT INTO stmt_cursors (source,key,cursor,done) VALUES ('mastodon',$1,$2,$3) ON CONFLICT (source,key) DO UPDATE SET cursor=$2, done=$3, updated_at=now()`,
-        [r.handle, JSON.stringify({ newest, maxId: old ? undefined : maxId }), backfilling ? old : true]);
+      await setCursor("mastodon", r.handle, JSON.stringify({ newest, maxId: old ? undefined : maxId }), backfilling ? old : true);
       if (old) break;
       await sleep(400);
     }

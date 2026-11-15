@@ -6,6 +6,7 @@
 //    quotes and attributed statements by the people it names.
 //  - Backfill is windowed and resumable: tier 3 people by month, tier 2 by quarter, tier 1 by half-year, from 2023-01-01.
 import { pool, q } from "../../../../src/lib/db.ts";
+import { mode, setCursor } from "../cursors.ts";
 import { politeFetch, sleep } from "../../../lib/ingest.ts";
 import Parser from "rss-parser";
 import { loadWatchlist, nameRe, processDoc, type Doc, type Person } from "../pipeline.ts";
@@ -67,7 +68,7 @@ const pageDate = (html: string) => html.match(/<meta[^>]+(?:property|name)=["'](
 export async function handleArticle(hit: Hit, people: Person[], st: Stats) {
   const marker = sha1(`${hit.link}|_doc`);
   if ((await q(`SELECT 1 FROM stmt_seen WHERE item_key=$1`, [marker])).length) return;
-  const mark = (o: string) => pool.query(`INSERT INTO stmt_seen (item_key, source, outcome, prompt_versions) VALUES ($1,'news',$2,'fetch') ON CONFLICT DO NOTHING`, [marker, o]);
+  const mark = (o: string) => mode.dry ? Promise.resolve() : pool.query(`INSERT INTO stmt_seen (item_key, source, outcome, prompt_versions) VALUES ($1,'news',$2,'fetch') ON CONFLICT DO NOTHING`, [marker, o]);
   const url = await publisherUrl(hit.link);
   if (!url || /news\.google\.com/.test(url)) { await mark("skipped"); return; }
   const page = await fetchPage(url);
@@ -115,7 +116,7 @@ export async function pollNews(opts: { when?: string; backfill?: boolean; budget
       if ((await q(`SELECT 1 FROM stmt_cursors WHERE source='news' AND key=$1 AND done`, [key])).length) continue;
       const end = addMonths(d, step(p.tier));
       await run(await googleNews(p.name, { after: iso(d), before: iso(end) }), p.tier >= 3 ? 30 : 15);
-      if (!over()) await pool.query(`INSERT INTO stmt_cursors (source,key,done) VALUES ('news',$1,true) ON CONFLICT (source,key) DO UPDATE SET done=true, updated_at=now()`, [key]);
+      if (!over()) await setCursor("news", key, null, true);
     }
   }
   return st;

@@ -7,7 +7,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import Parser from "rss-parser";
 import { REPO } from "../../../env.ts";
-import { pool, q } from "../../../../src/lib/db.ts";
+import { q } from "../../../../src/lib/db.ts";
+import { getCursor, setCursor } from "../cursors.ts";
 import { politeFetch, sleep } from "../../../lib/ingest.ts";
 import { htmlToText } from "../../../lib/text.ts";
 import { loadWatchlist, processDoc, type Doc } from "../pipeline.ts";
@@ -28,7 +29,7 @@ export async function pollBlogs(opts: { days?: number } = {}): Promise<Stats> {
     const posts: { url: string; date: string; text: string }[] = [];
     if (r.platform === "substack") {
       const base = r.handle.replace(/\/feed$/, "");
-      const [cur] = await q<{ done: boolean }>(`SELECT done FROM stmt_cursors WHERE source='substack' AND key=$1`, [base]);
+      const cur = await getCursor("substack", base);
       // The public archive listing the site itself uses; fetched politely and only when robots.txt allows it.
       if (!cur?.done && (await allowedByRobots(`${base}/api/v1/archive`))) {
         for (let off = 0; off < 600; off += 25) {
@@ -40,7 +41,7 @@ export async function pollBlogs(opts: { days?: number } = {}): Promise<Stats> {
           if (list.at(-1).post_date.slice(0, 10) < cutoff) break;
           await sleep(500);
         }
-        await pool.query(`INSERT INTO stmt_cursors (source,key,done) VALUES ('substack',$1,true) ON CONFLICT (source,key) DO UPDATE SET done=true, updated_at=now()`, [base]);
+        await setCursor("substack", base, null, true);
       }
     }
     const res = await politeFetch(r.handle);

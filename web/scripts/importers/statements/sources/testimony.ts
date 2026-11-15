@@ -4,6 +4,7 @@
 // A turn is attributed to a watchlist person only when their full name appears in the hearing text and no other watchlist person in
 // that hearing shares the surname. The statement date is the hearing date printed in the transcript, never the print date.
 import { pool, q } from "../../../../src/lib/db.ts";
+import { mode, setCursor } from "../cursors.ts";
 import { politeFetch, sleep } from "../../../lib/ingest.ts";
 import { loadWatchlist, nameRe, processDoc, type Doc, type Person } from "../pipeline.ts";
 import { FLOOR, emptyStats, type Stats } from "./bluesky.ts";
@@ -51,10 +52,10 @@ export async function pollTestimony(opts: { maxHearings?: number } = {}): Promis
       body: JSON.stringify({ query, pageSize: 100, offsetMark: "*", sorts: [{ field: "publishdate", sortOrder: "DESC" }], historical: true, resultLevel: "default" }) });
     if (!r.ok) { console.log(`testimony: govinfo search ${r.status}${r.status === 429 ? " (rate limited; DEMO_KEY allows ~30/hour). Retry later." : ""}`); continue; }
     for (const x of ((await r.json()).results ?? []) as any[]) hearings.set(x.packageId, { id: x.packageId, title: x.title });
-    await pool.query(`INSERT INTO stmt_cursors (source,key,done) VALUES ('testimony_search',$1,true) ON CONFLICT (source,key) DO UPDATE SET done=true, updated_at=now()`, [query]);
+    await setCursor("testimony_search", query, null, true);
   }
   // Hearings found earlier but not yet read are picked up from the cursor table.
-  for (const h of hearings.values()) await pool.query(`INSERT INTO stmt_cursors (source,key,cursor,done) VALUES ('testimony_hearing',$1,$2,false) ON CONFLICT DO NOTHING`, [h.id, h.title]);
+  for (const h of hearings.values()) if (!mode.dry) await pool.query(`INSERT INTO stmt_cursors (source,key,cursor,done) VALUES ('testimony_hearing',$1,$2,false) ON CONFLICT DO NOTHING`, [h.id, h.title]);
   const todo = await q<{ key: string; cursor: string }>(`SELECT key, cursor FROM stmt_cursors WHERE source='testimony_hearing' AND NOT done LIMIT $1`, [opts.maxHearings ?? 25]);
   for (const h of todo) {
     const url = `https://www.govinfo.gov/content/pkg/${h.key}/html/${h.key}.htm`;
@@ -71,7 +72,7 @@ export async function pollTestimony(opts: { maxHearings?: number } = {}): Promis
           st.docs++; st.stored += r.stored; st.duplicates += r.duplicates; st.dropped += r.dropped;
         }
       }
-      await pool.query(`UPDATE stmt_cursors SET done=true, updated_at=now() WHERE source='testimony_hearing' AND key=$1`, [h.key]);
+      if (!mode.dry) await pool.query(`UPDATE stmt_cursors SET done=true, updated_at=now() WHERE source='testimony_hearing' AND key=$1`, [h.key]);
     }
     await sleep(800);
   }

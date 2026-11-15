@@ -8,6 +8,7 @@ import { enqueue } from "../../lib/review.ts";
 import * as J from "./judge.ts";
 import { PROMPT_SET, type Stance } from "./judge.ts";
 import { TAXONOMY, detectTargets, targetById, issueById } from "./taxonomy.ts";
+import { hooks, mode } from "./cursors.ts";
 import { density, passesPrefilter, policyTerms, sentences, sha1, similar, topWindows, verifyQuote, words } from "./textutil.ts";
 
 export const PREFILTER_VERSION = "pf1";
@@ -236,6 +237,7 @@ const seenKey = (doc: Doc, p: Person) => sha1(`${doc.url}|${p.id}`);
 const seenVersion = () => `${PREFILTER_VERSION}:${PROMPT_SET}`;
 
 async function markSeen(key: string, source: string, outcome: string, feedId?: number) {
+  if (mode.dry) return;
   await pool.query(`INSERT INTO stmt_seen (item_key, source, outcome, feed_item_id, prompt_versions) VALUES ($1,$2,$3,$4,$5)
     ON CONFLICT (item_key) DO UPDATE SET outcome=EXCLUDED.outcome, feed_item_id=COALESCE(EXCLUDED.feed_item_id, stmt_seen.feed_item_id), prompt_versions=EXCLUDED.prompt_versions, seen_at=now()`,
     [key, source, outcome, feedId ?? null, seenVersion()]);
@@ -248,6 +250,7 @@ export async function alreadyDone(doc: Doc, p: Person): Promise<boolean> {
 export async function processDoc(doc: Doc, opts: { dryRun?: boolean } = {}): Promise<DocResult> {
   const res: DocResult = { stored: 0, duplicates: 0, dropped: 0, seen: false };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(doc.date) || !/^https?:\/\/\S+$/.test(doc.url)) return res;     // no date or URL, no row
+  if (hooks.onDoc?.(doc)) return res;                                                              // collect-only mode (eval corpus)
   // Articles: only people the text actually names are owners (avoids a database lookup per watchlist person per article).
   const owners = doc.author ? [doc.author] : doc.turns ? [...new Map(doc.turns.map((t) => [t.person.id, t.person])).values()] : (doc.people ?? []).filter((p) => nameRe(p.name).test(doc.text));
   // Cheap exit: nothing in the doc passes the prefilter, so record ids only and stop.
