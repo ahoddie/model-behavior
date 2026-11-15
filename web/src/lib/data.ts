@@ -297,7 +297,7 @@ export async function targetSides() {
 // ── Analysis (machine-classified; see scripts/analyze.ts and the methodology page) ──
 // Labels used: the newest label per statement, own-voice only, confidence ≥ 0.6.
 const LABELS = `(SELECT DISTINCT ON (sl.feed_id) sl.* FROM statement_labels sl ORDER BY sl.feed_id, sl.labeled_at DESC)`;
-const GOOD = `own_voice AND confidence >= 0.6`;
+const GOOD = `l.own_voice AND l.confidence >= 0.6`;  // qualified: feed_items also has a confidence column
 export type IssueRow = { id: string; label: string; description: string; positive: string; statements: number; actors: number; avg: number | null;
   plus: number; minus: number; neutral: number; money: number; money_givers: { id: string; name: string; total: number }[] };
 
@@ -346,7 +346,7 @@ export async function getActorIssues(id: string) {
     SELECT a.id, a.label, a.positive, round(avg(e.value::int) FILTER (WHERE e.value::int <> 0), 1)::float8 AS avg, count(*)::int AS n,
       json_agg(json_build_object('feed_id', fi.id, 'v', e.value::int, 'excerpt', fi.excerpt, 'url', fi.url, 'date', pdate(fi.date, fi.date_prec), 'reason', l.reason) ORDER BY fi.date DESC) AS items
     FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues) e JOIN issue_areas a ON a.id=e.key
-    WHERE fi.node_id=$1 AND fi.status='approved' AND ${GOOD.replace(/own_voice/, "l.own_voice").replace(/confidence/, "l.confidence")}
+    WHERE fi.node_id=$1 AND fi.status='approved' AND ${GOOD}
     GROUP BY a.id ORDER BY count(*) DESC, a.sort`, [id]);
 }
 
@@ -400,4 +400,16 @@ export async function approvedConflictFlags(id: string): Promise<ApprovedFlag[]>
     SELECT f.id, f.type, f.target_id, t.name AS target_name, f.severity, f.description, f.said_evidence AS said, f.did_evidence AS did
     FROM conflict_flags f LEFT JOIN nodes t ON t.id = f.target_id
     WHERE f.node_id = $1 AND f.status = 'approved' ORDER BY f.severity DESC, f.created_at DESC`, [id]);
+}
+
+// Where a merged-away id now lives, following chains of applied merges. Null if the id was never merged.
+export async function getMergedInto(id: string): Promise<string | null> {
+  let cur = id;
+  for (let i = 0; i < 5; i++) {
+    const r = await q<{ kept_id: string }>(`SELECT kept_id FROM merge_log WHERE action='merge' AND status='applied' AND reverted_at IS NULL AND merged_id=$1 ORDER BY applied_at DESC LIMIT 1`, [cur]);
+    if (!r.length) break;
+    cur = r[0].kept_id;
+  }
+  return cur === id ? null : cur;
+>>>>>>> master
 }

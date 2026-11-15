@@ -326,10 +326,6 @@ em, i, cite, address, dfn, var { font-style: normal; }
 .panel-open { margin: 0 0 var(--s4); font-weight: 500; }
 
 /* Home: a question bar, an intro, then one section per question. */
-.qbar { position: sticky; top: 0; z-index: 30; display: flex; gap: 6px 22px; flex-wrap: wrap; justify-content: center; padding: 10px var(--s5);
-  background: var(--ink); }
-.qbar a { color: var(--paper); font-size: 15px; font-weight: 500; white-space: nowrap; }
-.qbar a:hover { color: #fff; text-decoration: underline; }
 .home { --w: 1000px; }
 .home-intro, .home-sec { max-width: var(--w); margin: 0 auto; padding: var(--s7) var(--s5) 0; }
 .home-intro h1 { font-size: clamp(40px, 6vw, 68px); max-width: none; }
@@ -388,7 +384,7 @@ em, i, cite, address, dfn, var { font-style: normal; }
 .skyline { flex: 1; min-width: 0; height: .95em; color: var(--ink); margin-bottom: .02em; }
 @media (max-width: 520px) { .skyline { display: none; } }
 /* Tabs and filter links: no underline on hover; the hover shows as a light panel instead. */
-.tabs a:hover, .filters a:hover, .qbar a:hover { text-decoration: none; }
+.tabs a:hover, .filters a:hover { text-decoration: none; }
 .tabs a:hover:not([aria-current="page"]) { background: color-mix(in srgb, var(--panel) 70%, transparent); }
 
 /* Map header and toolbar: title, one line of explanation, then two quiet rows of controls. */
@@ -419,7 +415,6 @@ em, i, cite, address, dfn, var { font-style: normal; }
 /* No underlines anywhere. Links are carbon blue and darken to ink on hover. */
 a, a:hover, a:focus, button.linkish, button.linkish:hover, .keyfacts dd a, .coverage a, .filters a[aria-current="page"] { text-decoration: none !important; }
 a:hover { color: var(--ink); }
-.qbar a:hover { color: #fff; }
 .src, .src:hover, .src-arch { border-bottom: 0; padding-bottom: 0; }
 .src { font-weight: 600; }
 button.linkish { color: var(--carbon); font-weight: 500; }
@@ -427,8 +422,6 @@ button.linkish { color: var(--carbon); font-weight: 500; }
 .speed button { padding: 4px 9px; font-size: 14px; }
 
 /* Home: the question bar is the masthead's rule, so the two sit flush with no sliver of paper between them. */
-body:has(.qbar) .masthead { border-bottom: 0; padding-bottom: 10px; }
-.qbar { margin-top: -1px; border-top: 1px solid var(--ink); }
 
 /* Analysis: issues with an average stance bar. */
 .issues { list-style: none; margin: 0; padding: 0; }
@@ -495,3 +488,33 @@ svg.map:active { cursor: default; }
 .lobby-issues summary h3::before { content: "▸ "; color: var(--muted); }
 .lobby-issues details[open] summary h3::before { content: "▾ "; }
 .lobby-links { margin: var(--s2) 0 0; line-height: 1.8; font-family: var(--f-mono); font-size: 14px; }
+
+
+/* Home: sticky list of sections on wide screens (replaces the question bar). */
+.home { display: grid; grid-template-columns: 210px minmax(0, 1fr); max-width: 1290px; margin: 0 auto; }
+.home-main { min-width: 0; }
+.secnav { position: sticky; top: 0; align-self: start; padding: var(--s7) var(--s3) 0 var(--s5); max-height: 100dvh; overflow-y: auto; }
+.secnav ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--rule); }
+.secnav li a { display: block; padding: 7px 0 7px 14px; margin-left: -1px; border-left: 2px solid transparent; color: var(--muted); font-size: 15px; line-height: 1.3; }
+.secnav li a:hover { color: var(--ink); }
+.secnav li a[aria-current="location"] { color: var(--ink); font-weight: 600; border-left-color: var(--carbon); }
+@media (max-width: 1100px) { .home { display: block; } .secnav { display: none; } }
+
+/* Section heading with a Cite button beside it. */
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s4); }
+.sec-head h2 { margin-bottom: 0; }
+
+/* Cite */
+.cite { position: relative; display: inline-block; vertical-align: baseline; }
+.cite-btn { font-family: var(--f-body); font-size: 13px; font-weight: 600; padding: 3px 10px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); cursor: pointer; white-space: nowrap; }
+.cite-btn:hover, .cite-btn[aria-expanded="true"] { border-color: var(--ink); }
+.cite-btn span { color: var(--carbon); font-size: 15px; line-height: 0; }
+.cite-sm .cite-btn { font-size: 12px; padding: 1px 7px; }
+.cite-card { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; width: min(420px, 86vw); padding: 12px 14px; background: var(--panel);
+  border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--rule); display: block; font-size: 14px; line-height: 1.45; font-weight: 400; color: var(--ink); text-align: left; }
+.cite-text { display: block; user-select: all; word-break: break-word; }
+.cite-actions { display: flex; gap: 14px; align-items: center; margin-top: 10px; }
+.cite-actions button { font-size: 13px; padding: 3px 12px; background: var(--ink); color: var(--paper); border: 1px solid var(--ink); cursor: pointer; }
+.cite-actions a { font-size: 13px; color: var(--carbon); font-weight: 600; }
+.cite-card.cite-left { left: 0; right: auto; }
+.cite-card.cite-right { right: 0; left: auto; }
