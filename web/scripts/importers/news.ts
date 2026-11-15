@@ -1,0 +1,49 @@
+// News quotes: GDELT DOC 2.0 API and Google News RSS. For each person and lab, find recent articles that mention
+// them alongside AI-policy terms, fetch the article, extract attributed quotes, store as pending.
+import "../env.ts";
+import Parser from "rss-parser";
+import { q } from "../../src/lib/db.ts";
+import { startRun, endRun, politeFetch, sleep } from "../lib/ingest.ts";
+import { fetchText, ingestDocument, POLICY_TERMS } from "../lib/text.ts";
+
+const timespan = process.argv.find((a) => a.startsWith("--timespan="))?.slice(11) ?? "2d";
+const parser = new Parser();
+
+async function gdelt(name: string) {
+  const query = `"${name}" (regulation OR legislation OR "AI policy" OR congress OR lawmakers)`;
+  const u = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(query)}&mode=artlist&format=json&maxrecords=25&timespan=${timespan}&sourcelang=english`;
+  const res = await politeFetch(u);
+  if (!res.ok) return [];
+  try { return ((await res.json()).articles ?? []).map((a: any) => ({ url: a.url, date: `${a.seendate.slice(0, 4)}-${a.seendate.slice(4, 6)}-${a.seendate.slice(6, 8)}`, title: a.title })); }
+  catch { return []; }
+}
+async function gnews(name: string) {
+  const feed = await parser.parseURL(`https://news.google.com/rss/search?q=${encodeURIComponent(`"${name}" AI regulation when:${timespan}`)}&hl=en-US&gl=US&ceid=US:en`).catch(() => null);
+  // Items without a published date are skipped rather than dated today.
+  return (feed?.items ?? []).filter((i) => i.link && i.pubDate && !isNaN(Date.parse(i.pubDate))).map((i) => ({ url: i.link!, date: new Date(i.pubDate!).toISOString().slice(0, 10), title: i.title ?? "" }));
+}
+
+export async function run() {
+  const runId = await startRun("news");
+  let added = 0;
+  const seen = new Set<string>();
+  try {
+    const actors = await q<{ id: string; name: string }>(`SELECT id, name FROM nodes WHERE type IN ('person','lab')`);
+    for (const a of actors) {
+      const arts = [...(await gdelt(a.name)), ...(await gnews(a.name))];
+      for (const art of arts) {
+        if (!art.url || seen.has(art.url)) continue;
+        seen.add(art.url);
+        const page = await fetchText(art.url);
+        // Google News links are redirects; keep only articles that resolve to the publisher's own URL.
+        if (!page || /news\.google\.com/.test(page.finalUrl) || !POLICY_TERMS.test(page.text)) continue;
+        added += await ingestDocument({ text: page.text, url: page.finalUrl, date: art.date, platform: new URL(page.finalUrl).hostname.replace(/^www\./, ""),
+          kind: "quote", origin: "importer:news" });
+      }
+      await sleep(1500);
+    }
+    await endRun(runId, true, added);
+  } catch (e) { await endRun(runId, false, added, String(e)); throw e; }
+  return added;
+}
+if (import.meta.url === `file://${process.argv[1]}`) { console.log("news added", await run()); process.exit(0); }

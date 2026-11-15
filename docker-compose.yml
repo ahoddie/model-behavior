@@ -1,0 +1,24 @@
+# Local only. Nothing here is exposed beyond 127.0.0.1.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: mb
+      POSTGRES_PASSWORD: mb_local_only
+      POSTGRES_DB: model_behavior
+    ports: ["127.0.0.1:5433:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+  search:
+    image: getmeili/meilisearch:v1.12
+    environment:
+      MEILI_MASTER_KEY: mb_local_master_key
+      MEILI_ENV: development
+      MEILI_NO_ANALYTICS: "true"
+    ports: ["127.0.0.1:7700:7700"]
+    volumes:
+      - meili:/meili_data
+volumes:
+  pgdata:
+  meili:
