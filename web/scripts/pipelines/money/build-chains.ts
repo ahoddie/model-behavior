@@ -82,7 +82,10 @@ async function main() {
     if (t.sched === "A" && (/^SA(11|12)/.test(t.line_code) || otherReceipt) && amt > 0) {
       // Who gave? 1) the curated link for this very line, 2) the donor committee's id, 3) resolve(), 4) a new node for large gifts.
       let from: string | null = null;
-      const lk = (linkKey.get(`${t.node_id}|${t.source_url}|${amt}`) ?? []).find((l) => dayDiff(l.d, t.tx_date) <= 7);
+      // Several curated links can share filing, amount and date (a couple giving equal sums, sister PACs): pick the one whose party matches this line's name.
+      const nameHit = (l: any, other: string) => { const n = byId.get(other)?.name.toLowerCase() ?? ""; const last = (t.entity_type === "IND" ? t.name.split(",")[0] : core(t.name)).toLowerCase(); const first = t.entity_type === "IND" ? (t.name.split(",")[1] ?? "").trim().toLowerCase().split(" ")[0] : ""; return !!last && (n.includes(last) || core(n).toLowerCase().includes(last)) && (!first || n.includes(first)); };
+      const cands = (linkKey.get(`${t.node_id}|${t.source_url}|${amt}`) ?? []).filter((l) => dayDiff(l.d, t.tx_date) <= 7);
+      const lk = t.other_committee_id && nodeByFec.has(t.other_committee_id) ? undefined : (cands.length > 1 ? cands.find((l) => nameHit(l, l.from_id)) : cands[0]);
       if (process.env.DEBUG_EDGE && t.name.toLowerCase().includes(process.env.DEBUG_EDGE)) console.log("DBG", t.name, t.node_id, t.source_url, amt, t.tx_date, !!lk, linkKey.get(`${t.node_id}|${t.source_url}|${amt}`)?.length);
       if (lk) from = lk.from_id;
       else if (t.entity_type !== "IND" && orgIndex.has(core(t.name)) && core(t.name).length > 3) from = orgIndex.get(core(t.name))!;
@@ -122,7 +125,8 @@ async function main() {
       stats.disclosed_lines++;
     } else if (t.sched === "B" && /^SB(23|29)/.test(t.line_code) && amt > 0) {
       let to: string | null = null;
-      const lk = links.find((l) => l.from_id === t.node_id && l.source_url === t.source_url && Math.abs(l.amount - amt) < 0.01 && dayDiff(l.d, t.tx_date) <= 7);
+      const bc = links.filter((l) => l.from_id === t.node_id && l.source_url === t.source_url && Math.abs(l.amount - amt) < 0.01 && dayDiff(l.d, t.tx_date) <= 7);
+      const lk = t.other_committee_id && nodeByFec.has(t.other_committee_id) ? undefined : (bc.length > 1 ? bc.find((l) => core(byId.get(l.to_id)?.name ?? "").includes(core(t.name)) || core(t.name).includes(core(byId.get(l.to_id)?.name ?? "x"))) : bc[0]);
       if (lk) to = lk.to_id;
       else if (t.entity_type !== "IND" && orgIndex.has(core(t.name)) && core(t.name).length > 3) to = orgIndex.get(core(t.name))!;
       else if (t.other_committee_id && nodeByFec.has(t.other_committee_id)) to = nodeByFec.get(t.other_committee_id)!;
@@ -224,14 +228,12 @@ async function persist(edges: Map<string, Edge>, byId: Map<string, any>) {
     for (const e of nexts) walk(e.to, [...path, e], new Set([...seen, e.to]));
   };
   for (const r of roots) walk(r, [], new Set([r]));
-  // Undisclosed-rooted variants: for each root with an undisclosed placeholder, also emit paths starting at the placeholder.
-  const undisc = all.filter((e) => e.basis === "undisclosed");
-  const full: Edge[][] = [];
-  for (const p of paths) {
-    const first = p[0].from!;
-    const u = undisc.find((x) => x.to === first);
-    full.push(p);
-    if (u) full.push([u, ...p]);
+  // Undisclosed-rooted chains: start at each "Undisclosed donors" placeholder and walk on through the opaque entity.
+  const full: Edge[][] = [...paths];
+  for (const u of all.filter((e) => e.basis === "undisclosed")) {
+    const before = paths.length;
+    walk(u.to, [u], new Set([u.to]));
+    full.push(...paths.splice(before));
   }
   // Standalone undisclosed -> c4 chains with no downstream path are impossible here (they exist because of downstream edges).
   const keyOf = (p: Edge[]) => p.map((e) => `${e.from ?? "U"}>${e.to}${e.basis[0]}`).join("|");
