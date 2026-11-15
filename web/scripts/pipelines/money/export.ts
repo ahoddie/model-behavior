@@ -8,7 +8,7 @@ import { resolve } from "node:path";
 import { REPO } from "../../env.ts";
 import { q, pool } from "../../../src/lib/db.ts";
 
-// One row per distinct edge, from the money_edges view (db/migrations/193_money_edges.sql).
+// One row per distinct edge, from the money_edges view (db/migrations/193, over money_hops_shown since 196).
 export const CHAIN_EDGES = `SELECT * FROM money_edges`;
 
 export async function moneyFlowExport(start: string, depth = 4) {

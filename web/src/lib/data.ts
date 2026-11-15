@@ -424,7 +424,7 @@ export async function approvedConflictFlags(id: string): Promise<ApprovedFlag[]>
 // One row per distinct pair of parties. Amounts are pool-level totals of the filed lines between the pair: a chain does not trace one
 // donor's dollars through a PAC (the filings never say which receipt funded which spend). Undisclosed hops have from_id
 // "undisclosed:<entity id>", the name "Undisclosed donors" and a null amount: never a person, never a guessed donor.
-// The grouping lives in the money_edges view (db/migrations/193_money_edges.sql), shared with scripts/pipelines/money/export.ts.
+// The grouping lives in the money_edges view (db/migrations/193, over money_hops_shown since 196), shared with scripts/pipelines/money/export.ts.
 const CHAIN_EDGES = `SELECT * FROM money_edges`;
 
 // Same shape as moneyFlows() so the existing <MoneyFlow> component can draw it, plus basis/archive_url/n_lines.
