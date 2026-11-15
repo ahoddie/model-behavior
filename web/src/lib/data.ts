@@ -411,5 +411,4 @@ export async function getMergedInto(id: string): Promise<string | null> {
     cur = r[0].kept_id;
   }
   return cur === id ? null : cur;
->>>>>>> master
 }
