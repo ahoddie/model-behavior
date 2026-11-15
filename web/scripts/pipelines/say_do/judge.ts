@@ -73,5 +73,10 @@ Question: a reader compares the two versions. Is the organization bound by less 
 - unclear: cannot tell.`;
   const q2 = await llmJson<{ reason: string; answer: string }>({ promptVersion: "sd-commit-v2", system: SYSTEM, user: q2u, schema: SCHEMA(["less_bound", "same_or_more", "unclear"]), maxTokens: 220 });
   const a2: Judged = { answer: q2.data.answer, reason: q2.data.reason, meta: q2.meta };
-  return { flag: a2.answer === "less_bound", kind: a1.answer as "removed" | "weakened", q1: a1, q2: a2 };
+  const kind = a1.answer as "removed" | "weakened";
+  // Precision check in code: a "weakened" call needs visible weakening in the words (new hedges, or the firm wording gone).
+  const hedgeWords = (t: string) => (t.match(/\b(may|might|could|depend|where appropriate|as appropriate|reasonabl|if feasible|to the extent|generally|typically|certain|except)\w*/gi) ?? []).length;
+  const firm = (t: string) => /\b(will not|won't|never|prohibit|must not|shall not|do not|does not)\b/i.test(t);
+  const visible = kind === "removed" || hedgeWords(after) > hedgeWords(before) || (firm(before) && !firm(after));
+  return { flag: a2.answer === "less_bound" && visible, kind, q1: a1, q2: a2 };
 }
