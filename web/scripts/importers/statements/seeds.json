@@ -1,0 +1,59 @@
+{
+  "_note": "own = the person's personal site (feed links on it count); bio = an official org bio page (only social profile links near the person's name count)",
+  "own": {
+    "jack-clark": [
+      "https://jack-clark.net/"
+    ],
+    "sam-altman": [
+      "https://blog.samaltman.com/"
+    ],
+    "dario-amodei": [
+      "https://www.darioamodei.com/"
+    ],
+    "reid-hoffman": [
+      "https://www.reidhoffman.org/"
+    ],
+    "garry-tan": [
+      "https://garryslist.org/",
+      "https://www.garrytan.com/"
+    ],
+    "jaan-tallinn": [
+      "https://jaan.info/"
+    ],
+    "eric-schmidt": [
+      "https://www.ericschmidt.com/"
+    ],
+    "dean-ball": [
+      "https://www.hyperdimensional.co/"
+    ],
+    "samuel-hammond": [
+      "https://www.secondbest.ca/"
+    ],
+    "dan-hendrycks": [
+      "https://danhendrycks.com/"
+    ],
+    "max-tegmark": [
+      "https://space.mit.edu/home/tegmark/"
+    ],
+    "mustafa-suleyman": [
+      "https://mustafa-suleyman.ai/"
+    ],
+    "marc-andreessen": [
+      "https://pmarca.substack.com/"
+    ],
+    "joe-lonsdale": [
+      "https://www.joelonsdale.com/"
+    ]
+  },
+  "bio": {
+    "ben-horowitz": [
+      "https://a16z.com/author/ben-horowitz/"
+    ],
+    "vinod-khosla": [
+      "https://www.khoslaventures.com/team/vinod-khosla"
+    ],
+    "adam-thierer": [
+      "https://www.rstreet.org/people/adam-thierer/"
+    ]
+  }
+}

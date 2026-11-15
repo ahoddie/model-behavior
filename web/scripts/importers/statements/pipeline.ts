@@ -116,7 +116,7 @@ function cleanSummary(s: string, name: string, paraphrased: boolean, a: Analysis
 }
 
 // ---- units from docs -------------------------------------------------------------------------------------------------------------
-const nameRe = (n: string) => new RegExp(`\\b${n.replace(/\s*\(.*?\)/g, "").trim().split(/\s+/).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+")}\\b`);
+export const nameRe = (n: string) => new RegExp(`\\b${n.replace(/\s*\(.*?\)/g, "").trim().split(/\s+/).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+")}\\b`);
 const QUOTED = /[“"]([^”"\n]{25,600})[”"]/g;
 const ATTRIB_VERB = /\b(?:said|says|told|argued|argues|wrote|writes|warned|warns|urged|urges|called|calls|testified|supports?|supported|opposes?|opposed|backs?|backed|favors?|favored|lobbied|pushed|pushing|pledged|criticized|criticizes|praised|endorsed|has said|has argued|believes?|wants?|wanted|proposed|proposes|advocat\w+)\b/;
 
@@ -244,7 +244,8 @@ export async function alreadyDone(doc: Doc, p: Person): Promise<boolean> {
 export async function processDoc(doc: Doc, opts: { dryRun?: boolean } = {}): Promise<DocResult> {
   const res: DocResult = { stored: 0, duplicates: 0, dropped: 0, seen: false };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(doc.date) || !/^https?:\/\/\S+$/.test(doc.url)) return res;     // no date or URL, no row
-  const owners = doc.author ? [doc.author] : doc.turns ? [...new Map(doc.turns.map((t) => [t.person.id, t.person])).values()] : doc.people ?? [];
+  // Articles: only people the text actually names are owners (avoids a database lookup per watchlist person per article).
+  const owners = doc.author ? [doc.author] : doc.turns ? [...new Map(doc.turns.map((t) => [t.person.id, t.person])).values()] : (doc.people ?? []).filter((p) => nameRe(p.name).test(doc.text));
   // Cheap exit: nothing in the doc passes the prefilter, so record ids only and stop.
   if (!passesPrefilter(doc.text)) {
     if (!opts.dryRun) for (const p of owners) await markSeen(seenKey(doc, p), doc.source, "irrelevant");

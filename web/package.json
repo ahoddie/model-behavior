@@ -20,7 +20,12 @@
     "typecheck": "tsc --noEmit",
     "logos": "tsx scripts/logos.ts",
     "validate": "tsx scripts/validate.ts",
-    "tag-filings": "tsx scripts/tag-filings.ts"
+    "tag-filings": "tsx scripts/tag-filings.ts",
+    "statements:run": "tsx scripts/importers/statements/run.ts",
+    "statements:watchlist": "tsx scripts/importers/statements/watchlist.ts",
+    "statements:handles": "tsx scripts/importers/statements/handles.ts",
+    "statements:firehose": "tsx scripts/importers/statements/firehose.ts",
+    "statements:eval": "tsx scripts/importers/statements/eval/run-eval.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
