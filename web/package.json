@@ -28,7 +28,18 @@
     "er:revert": "tsx scripts/pipelines/er/apply.ts revert",
     "er:ids": "tsx scripts/pipelines/er/ids-api.ts",
     "er:eval": "tsx scripts/pipelines/er/eval.ts",
-    "er:wikidata": "tsx scripts/pipelines/er/wikidata.ts"
+    "er:wikidata": "tsx scripts/pipelines/er/wikidata.ts",
+    "money:fec-api": "tsx scripts/pipelines/money/fecapi.ts",
+    "money:fec-files": "tsx scripts/pipelines/money/fecfiles.ts",
+    "money:load-fec": "tsx scripts/pipelines/money/loadfec.ts",
+    "money:build": "tsx scripts/pipelines/money/build-chains.ts --reset",
+    "money:reconcile": "tsx scripts/pipelines/money/reconcile.ts",
+    "money:ads": "tsx scripts/pipelines/money/ads.ts",
+    "money:facts": "tsx scripts/pipelines/money/facts.ts",
+    "money:export": "tsx scripts/pipelines/money/export.ts",
+    "money:totals": "tsx scripts/pipelines/money/totals.ts",
+    "money:spotcheck": "tsx scripts/pipelines/money/spotcheck.ts",
+    "money:archive": "tsx scripts/pipelines/money/archive-hops.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
