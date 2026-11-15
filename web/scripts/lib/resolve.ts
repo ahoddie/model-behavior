@@ -1,17 +1,8 @@
 // resolve(): the single way any workstream turns a name or external ID into a node id (CONTRACTS.md §2).
-// THIS IS THE STUB. Workstream B (entity resolution) replaces the body of resolve() with the real resolver and must keep
-// these exported types and signatures unchanged.
-//
-// Stub behavior, deliberately conservative:
-//   1. external ID match (entity_external_ids, then nodes.external_ids)   -> confidence 1, not provisional
-//   2. alias match (entity_aliases.alias_norm), same type family           -> confidence 0.9
-//   3. exact normalized name match on a non-person node of the same type   -> confidence 0.8
-//   4. exact normalized name match on a person                             -> confidence 0.5, provisional (never a merge:
-//      names alone don't identify people; callers should hold such items in review)
-//   5. otherwise a new provisional id ent_<type>_<slug>_<shortid>, deterministic for (type, normalized name, ids)
+// resolve() now delegates to Workstream B's resolver (pipelines/er/resolver.ts). Exported names and types are unchanged.
+// Matching order: external ID, then scored alias/name match (people need two independent matching attributes beyond the name).
 // resolve() never writes nodes: the caller inserts a node (with its source URL) only when it has one.
 import { createHash } from "node:crypto";
-import { q } from "../../src/lib/db.ts";
 
 export type EntityType = "lab" | "person" | "investor" | "think_tank" | "pac" | "nonprofit" | "funder" | "bill" | "race" | "rule" | "lawmaker" | "agency";
 
@@ -45,23 +36,9 @@ export function provisionalId(input: ResolveInput) {
 }
 
 export async function resolve(input: ResolveInput): Promise<ResolveResult> {
-  for (const [system, value] of Object.entries(input.externalIds ?? {})) {
-    if (!value) continue;
-    const [hit] = await q<{ node_id: string }>(`SELECT node_id FROM entity_external_ids WHERE system=$1 AND value=$2`, [system, value]);
-    if (hit) return { id: hit.node_id, provisional: false, exists: true, matchedBy: "external_id", confidence: 1 };
-    const [legacy] = await q<{ id: string }>(`SELECT id FROM nodes WHERE external_ids->>$1 = $2 LIMIT 2`, [system, value]);
-    if (legacy) return { id: legacy.id, provisional: false, exists: true, matchedBy: "external_id", confidence: 1 };
-  }
-  const n = normName(input.name);
-  const fam = family(input.type);
-  const aliases = await q<{ node_id: string }>(`SELECT DISTINCT a.node_id FROM entity_aliases a JOIN nodes x ON x.id=a.node_id WHERE a.alias_norm=$1 AND x.type = ANY($2)`, [n, fam]);
-  if (aliases.length === 1 && input.type !== "person") return { id: aliases[0].node_id, provisional: false, exists: true, matchedBy: "alias", confidence: 0.9 };
-  const named = (await q<{ id: string; name: string }>(`SELECT id, name FROM nodes WHERE type = ANY($1)`, [fam])).filter((r) => normName(r.name) === n || normName(r.name.replace(/\s*\([^)]*\)\s*$/, "")) === n);
-  if (named.length === 1) {
-    if (input.type === "person") return { id: named[0].id, provisional: true, exists: true, matchedBy: "person_name_only", confidence: 0.5 };
-    return { id: named[0].id, provisional: false, exists: true, matchedBy: "name", confidence: 0.8 };
-  }
-  return { id: provisionalId(input), provisional: true, exists: false, matchedBy: "new", confidence: 0 };
+  // Workstream B: the real resolver lives in pipelines/er (external IDs, aliases, scored name matching, the two-attribute rule for people).
+  const { realResolve } = await import("../pipelines/er/resolver.ts");
+  return realResolve(input, provisionalId);
 }
 
 // Batch helper with the same semantics.

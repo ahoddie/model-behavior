@@ -25,7 +25,15 @@
     "statements:watchlist": "tsx scripts/importers/statements/watchlist.ts",
     "statements:handles": "tsx scripts/importers/statements/handles.ts",
     "statements:firehose": "tsx scripts/importers/statements/firehose.ts",
-    "statements:eval": "tsx scripts/importers/statements/eval/run-eval.ts"
+    "statements:eval": "tsx scripts/importers/statements/eval/run-eval.ts",
+    "er:seed-ids": "tsx scripts/pipelines/er/seed-ids.ts",
+    "er:watchlist": "tsx scripts/pipelines/er/watchlist.ts",
+    "er:resolve-batch": "tsx scripts/pipelines/er/batch.ts",
+    "er:apply": "tsx scripts/pipelines/er/apply.ts apply",
+    "er:revert": "tsx scripts/pipelines/er/apply.ts revert",
+    "er:ids": "tsx scripts/pipelines/er/ids-api.ts",
+    "er:eval": "tsx scripts/pipelines/er/eval.ts",
+    "er:wikidata": "tsx scripts/pipelines/er/wikidata.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

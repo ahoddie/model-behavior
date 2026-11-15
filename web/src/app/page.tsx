@@ -6,15 +6,18 @@ import StanceBar from "@/components/StanceBar";
 import { fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
 import Src from "@/components/Src";
 import Skyline from "@/components/Skyline";
+import SectionNav from "@/components/SectionNav";
+import CiteButton from "@/components/CiteButton";
+import { sourceName } from "@/lib/format";
 
-const QUESTIONS = [
-  ["money", "Where is the money going?"],
-  ["issues", "What do they care about?"],
-  ["stances", "Where do they stand?"],
-  ["trend", "How has that changed?"],
-  ["words", "What are they saying?"],
-  ["map", "How is it all connected?"],
-] as const;
+const SECTIONS = [
+  { id: "money", label: "Where the money goes", title: "Where is the money going?" },
+  { id: "issues", label: "What they care about", title: "What do they care about?" },
+  { id: "stances", label: "Where they stand", title: "Where do they stand?" },
+  { id: "trend", label: "How it has changed", title: "How has that changed?" },
+  { id: "words", label: "What they say", title: "What are they saying?" },
+  { id: "map", label: "How it connects", title: "How is it all connected?" },
+];
 
 const SIDES = [["support", "Supported"], ["mixed", "Mixed or conditional"], ["oppose", "Opposed"]] as const;
 const sideOf = (s: string) => (s === "support" ? "support" : s === "oppose" ? "oppose" : "mixed");
@@ -25,15 +28,15 @@ export default async function Home(props: PageProps<"/">) {
   // Old links to the map (/?focus=…, /?view=time) still work.
   if (typeof sp.focus === "string" || sp.view === "time") redirect(`/map?${new URLSearchParams(sp as Record<string, string>)}`);
   const [{ counts, givers, recipients, stances, byYear, quotes }, analysis, lobbying] = await Promise.all([getHome(), getAnalysis(), getLobbyingByIssue()]);
+  const asOf = fmtDate(new Date().toISOString().slice(0, 10));
   const maxGive = Math.max(1, ...givers.map((g: any) => g.total));
   const maxGet = Math.max(1, ...recipients.map((g: any) => g.total));
   const maxYear = Math.max(1, ...byYear.map((y: any) => y.support + y.mixed + y.oppose));
 
   return (
     <div className="home">
-      <nav className="qbar" aria-label="Questions this page answers">
-        {QUESTIONS.map(([id, q]) => <a key={id} href={`#${id}`}>{q}</a>)}
-      </nav>
+      <SectionNav items={SECTIONS} />
+      <div className="home-main">
 
       <header className="home-intro">
         <h1 className="home-title">How Silicon Valley shapes AI <span className="title-last">policy<Skyline className="skyline" /></span></h1>
@@ -44,7 +47,7 @@ export default async function Home(props: PageProps<"/">) {
       </header>
 
       <section id="money" className="home-sec">
-        <h2>Where is the money going?</h2>
+        <div className="sec-head"><h2>Where is the money going?</h2><CiteButton kind="page" title="Where is the money going?" path="/#money" asOf={asOf} /></div>
         <p className="sec-lede">
           Political money given directly by the labs, people, investors and funders tracked here: contributions to candidates, PACs and parties, and
           grants to advocacy groups. That comes to {fmtMoney(counts.direct)} on record so far. Money that a PAC passes on is not counted again.
@@ -76,7 +79,7 @@ export default async function Home(props: PageProps<"/">) {
       </section>
 
       {analysis && <section id="issues" className="home-sec">
-        <h2>What do they care about?</h2>
+        <div className="sec-head"><h2>What do they care about?</h2><CiteButton kind="page" title="What do they care about?" path="/#issues" asOf={asOf} /></div>
         <p className="sec-lede">
           An open-source model running on our own machine read {analysis.meta.used.toLocaleString()} quotes in which an actor states their own view, and
           noted which policy issues each one addresses. Each issue is written as a plain statement, and the model judged whether the quote agrees or
@@ -104,7 +107,7 @@ export default async function Home(props: PageProps<"/">) {
       </section>}
 
       <section id="stances" className="home-sec">
-        <h2>Where do they stand?</h2>
+        <div className="sec-head"><h2>Where do they stand?</h2><CiteButton kind="page" title="Where do they stand?" path="/#stances" asOf={asOf} /></div>
         <p className="sec-lede">
           The bills, executive orders and rules with the most public positions for and against from the actors tracked here. Each name shows that actor&apos;s latest stated position and links to
           where they said it. A conditional position means support only if the bill is changed, or support for parts of it.
@@ -132,7 +135,7 @@ export default async function Home(props: PageProps<"/">) {
       </section>
 
       <section id="trend" className="home-sec">
-        <h2>How has that changed?</h2>
+        <div className="sec-head"><h2>How has that changed?</h2><CiteButton kind="page" title="How has that changed?" path="/#trend" asOf={asOf} /></div>
         <p className="sec-lede">
           Public positions on bills and rules each year, counted across every actor and bill. This is a count of statements on record, not a measure of
           opinion: years with more coverage show more statements.
@@ -157,24 +160,25 @@ export default async function Home(props: PageProps<"/">) {
       </section>
 
       <section id="words" className="home-sec">
-        <h2>What are they saying?</h2>
+        <div className="sec-head"><h2>What are they saying?</h2><CiteButton kind="page" title="What are they saying?" path="/#words" asOf={asOf} /></div>
         <p className="sec-lede">The most recent public statements on record, quoted word for word.</p>
         <ul className="record">{quotes.map((f: any) => (
           <li key={f.id}><div className="when">{fmtDate(f.date)}</div>
-            <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /></p>
+            <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /> <CiteButton small kind="quote" speaker={f.name} quote={f.excerpt} date={fmtDate(f.date)} url={f.url} archive={f.archive_url} outlet={sourceName(f.url)} /></p>
               <p className="note"><Link href={`/node/${f.node_id}`}>{f.name}</Link>{f.target_name && <> · on {f.target_id ? <Link href={`/node/${f.target_id}`}>{f.target_name}</Link> : f.target_name}</>}</p></div></li>
         ))}</ul>
         <p className="more"><Link href="/search">Search every statement</Link></p>
       </section>
 
       <section id="map" className="home-sec">
-        <h2>How is it all connected?</h2>
+        <div className="sec-head"><h2>How is it all connected?</h2><CiteButton kind="page" title="How is it all connected?" path="/#map" asOf={asOf} /></div>
         <p className="sec-lede">
           The map puts every actor, the groups their money and positions pass through, and the elections, bills and rules it reaches side by side. Use
           Overall to see everything at once, or Timeline to watch it build month by month.
         </p>
         <p className="more"><Link href="/map">Open the map</Link></p>
       </section>
+      </div>
     </div>
   );
 }
