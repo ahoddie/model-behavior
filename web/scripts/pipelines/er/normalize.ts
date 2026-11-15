@@ -24,7 +24,7 @@ export function agencyKey(name: string): string {
   if (m) s = `department of ${m[1]}`;
   s = base(s);
   for (const [r, t] of ABBR) s = s.replace(r, t);
-  s = s.replace(/\b(the|united states|us|white house|federal)\b/g, " ").replace(/\b(of|and|for)\b/g, " ").replace(/\s+/g, " ").trim();
+  s = s.replace(/\b(the|united states|us|white house|federal|office)\b/g, " ").replace(/\b(of|and|for)\b/g, " ").replace(/\s+/g, " ").trim();
   return s.replace(/ /g, "");
 }
 /** Acronym in trailing parentheses, if any: "Federal Trade Commission (FTC)" -> "ftc". */

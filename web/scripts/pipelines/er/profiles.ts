@@ -32,6 +32,9 @@ export async function loadStore(force = false, maxAgeMs = 30_000): Promise<Store
     const p: Profile = { id: n.id, type: n.type, name: n.name, names: [n.name], ids: {}, employers: [], cityStates: [], zips: [], handles: [], domains: [], titles: [], cluster: n.cluster };
     const bare = n.name.replace(/\s*\([^)]*\)\s*$/, "");
     if (bare !== n.name) p.names.push(bare);
+    // "The White House (Executive Office of the President)": a long parenthetical is an alternate full name, not an acronym
+    const paren = n.name.match(/\(([^)]{12,})\)/)?.[1];
+    if (paren && paren.trim().split(/\s+/).length >= 3 && !/^(now|formerly|fpp|super)/i.test(paren)) p.names.push(paren.trim());
     for (const [k, v] of Object.entries(n.external_ids ?? {})) for (const m of legacyToSystems(n.type, k, v)) {
       if (m.system) (p.ids[m.system] ??= []).push(m.value);
       if (m.handle) p.handles.push(normHandle(m.handle)!);

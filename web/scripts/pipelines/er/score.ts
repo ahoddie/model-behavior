@@ -123,7 +123,8 @@ function scoreOrg(a: Profile, b: Profile, strong: string[]): PairResult {
   }
   // containment ("Anthropic" vs "Anthropic Institute" is NOT a merge, so containment only goes to review with the judge deciding)
   const sa = [...ka][0] ?? "", sb = [...kb][0] ?? "";
-  if (sa.length >= 5 && sb.length >= 5 && (sa.includes(sb) || sb.includes(sa))) return R(0.55, "review", null, "n/a", groups, [], "one normalized name contains the other");
+  const short = sa.length <= sb.length ? sa : sb;
+  if (a.type !== "agency" && short.length >= 8 && (sa.includes(sb) || sb.includes(sa))) return R(0.55, "review", null, "n/a", groups, [], "one normalized name contains the other");
   if (groups.length >= 2) return R(0.6, "review", null, "n/a", groups, [], "shares website and handle");
   return R(0, "reject", null, "n/a", groups, [], "no shared id and names differ");
 }
