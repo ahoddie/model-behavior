@@ -544,3 +544,38 @@ export async function getTopics(): Promise<TopicRow[]> {
       agree: actors.filter((a) => a.avg > 0), neutral: actors.filter((a) => a.avg === 0), disagree: actors.filter((a) => a.avg < 0) };
   });
 }
+
+// ── Read-only view APIs (data/CONTRACTS.md §9). Reviewed rows and public records only. ──
+const cut25 = (s: string | null) => { if (!s) return s; const w = s.split(/\s+/); return w.length > 25 ? w.slice(0, 25).join(" ") + " …" : s; };
+export async function viewIssueQuarterly(issue?: string) {
+  "use cache";
+  cached();
+  const args = issue ? [issue] : [];
+  const st = await q<any>(`
+    WITH s AS (SELECT e.key AS issue, e.value::int AS v, fi.id, fi.node_id, fi.excerpt, fi.url, fi.archive_url, fi.date
+      FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues) e
+      WHERE ${GOOD} AND fi.status='approved' AND fi.date IS NOT NULL ${issue ? "AND e.key=$1" : ""})
+    SELECT issue, to_char(date_trunc('quarter', date), 'YYYY"Q"Q') AS quarter,
+      count(*) FILTER (WHERE v>0)::int AS agree, count(*) FILTER (WHERE v<0)::int AS disagree, count(*) FILTER (WHERE v=0)::int AS neutral,
+      (array_agg(json_build_object('feed_id', id, 'node_id', node_id, 'quote', excerpt, 'reading', v, 'machine_label', true, 'date', date::text, 'source_url', url, 'archive_url', archive_url) ORDER BY date DESC))[1:3] AS examples
+    FROM s GROUP BY 1, 2`, args);
+  const fl = await q<any>(`
+    SELECT i AS issue, coalesce(replace(f.period, ' ', ''), to_char(date_trunc('quarter', f.filed_date), 'YYYY"Q"Q')) AS quarter, count(DISTINCT f.id)::int AS n
+    FROM ${FILING_TAGS} t JOIN filings f ON t.source_kind='filing' AND f.id=t.source_id, unnest(t.issues) i
+    WHERE f.filing_type='LDA' ${issue ? "AND i=$1" : ""} GROUP BY 1, 2`, args);
+  const key = (r: any) => `${r.issue}|${r.quarter}`;
+  const m = new Map<string, any>();
+  for (const r of st) m.set(key(r), { issue: r.issue, quarter: r.quarter, statements: { agree: r.agree, disagree: r.disagree, neutral: r.neutral }, lobbying_filings: 0,
+    examples: (r.examples ?? []).map((x: any) => ({ ...x, quote: cut25(x.quote) })) });
+  for (const r of fl) { if (!r.quarter) continue; const o = m.get(key(r)) ?? { issue: r.issue, quarter: r.quarter, statements: { agree: 0, disagree: 0, neutral: 0 }, lobbying_filings: 0, examples: [] }; o.lobbying_filings = r.n; m.set(key(r), o); }
+  return [...m.values()].sort((a, b) => a.issue.localeCompare(b.issue) || a.quarter.localeCompare(b.quarter));
+}
+export async function viewWordingSources(billId: string) {
+  "use cache";
+  cached();
+  const [t] = await q<{ ok: boolean }>(`SELECT to_regclass('prov_matches') IS NOT NULL AS ok`);
+  if (!t?.ok) return [];
+  const rows = await q<any>(`SELECT id::int, bill_clause, bill_version, bill_date::text, bill_url, bill_archive_url, source_clause, source_title, source_author_id,
+      source_date::text, source_url, source_archive_url, similarity, kind FROM prov_matches WHERE bill_node_id=$1 AND status='approved' ORDER BY similarity DESC`, [billId]);
+  return rows.map((r: any) => ({ ...r, bill_clause: cut25(r.bill_clause), source_clause: cut25(r.source_clause) }));
+}
