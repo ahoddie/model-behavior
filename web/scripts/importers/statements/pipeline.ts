@@ -136,32 +136,40 @@ export async function buildUnits(doc: Doc): Promise<Unit[]> {
     for (const w of wins) out.push({ person: doc.author, attribution: "direct", text: w, quoteSource: w });
     return out;
   }
-  // Articles: find each watchlist person's quotes and attributed paraphrases.
-  const people = (doc.people ?? []).filter((p) => nameRe(p.name).test(doc.text));
-  if (!people.length) return out;
-  const sents = sentences(doc.text);
-  const mentions = (s: string) => people.filter((p) => nameRe(p.name).test(s) || new RegExp(`\\b${p.name.replace(/\s*\(.*?\)/g, "").trim().split(/\s+/).at(-1)}\\b`).test(s));
+  // Articles: find each watchlist person's quotes and attributed paraphrases. Quoted spans need the model to say who spoke.
   let speakerCalls = 0;
+  for (const c of newsCandidates(doc.text, (doc.people ?? []))) {
+    if (c.attribution === "paraphrased") { out.push({ person: c.names[0], attribution: "paraphrased", text: c.text, quoteSource: "" }); continue; }
+    if (speakerCalls++ >= 8) continue;
+    const sp = await J.speaker(c.text, c.quote!, c.names.map((p) => p.name));
+    const person = c.names.find((p) => p.name === sp.name);
+    // The model names a speaker; code confirms that person is actually named in the passage.
+    if (person) out.push({ person, attribution: "quoted", text: c.text, quoteSource: doc.text, quote: c.quote, speakerCheck: true });
+  }
+  return out;
+}
+
+export type NewsCand = { names: Person[]; attribution: "quoted" | "paraphrased"; text: string; quote?: string };
+/** The deterministic half of article reading: windows around quoted spans and attributed sentences that name a watchlist person. */
+export function newsCandidates(text: string, people: Person[]): NewsCand[] {
+  const named = people.filter((p) => nameRe(p.name).test(text));
+  if (!named.length) return [];
+  const sents = sentences(text);
+  const mentions = (s: string) => named.filter((p) => nameRe(p.name).test(s) || new RegExp(`\\b${p.name.replace(/\s*\(.*?\)/g, "").trim().split(/\s+/).at(-1)}\\b`).test(s));
+  const out: NewsCand[] = [];
   for (let i = 0; i < sents.length; i++) {
     const s = sents[i];
     const window = sents.slice(Math.max(0, i - 1), i + 2).join(" ");
-    const spans = [...s.matchAll(QUOTED)].map((m) => m[1].trim());
     const near = mentions(window);
     if (!near.length) continue;
+    const spans = [...s.matchAll(QUOTED)].map((m) => m[1].trim());
     if (spans.length) {
-      for (const span of spans.slice(0, 2)) {
-        if (!passesPrefilter(span + " " + window) || speakerCalls >= 8) continue;
-        speakerCalls++;
-        const sp = await J.speaker(window, span, near.map((p) => p.name));
-        const person = near.find((p) => p.name === sp.name);
-        // The model names a speaker; code confirms that person is actually named in the passage.
-        if (person && mentions(window).some((p) => p.id === person.id)) out.push({ person, attribution: "quoted", text: window, quoteSource: doc.text, quote: span, speakerCheck: true });
-      }
+      for (const span of spans.slice(0, 2)) if (passesPrefilter(span + " " + window)) out.push({ names: near, attribution: "quoted", text: window, quote: span });
     } else if (ATTRIB_VERB.test(s) && passesPrefilter(s)) {
       for (const p of mentions(s).filter((p) => nameRe(p.name).test(s))) {
-        // paraphrase only when the person is the grammatical subject near an attribution verb (name, then verb within 80 chars)
+        // paraphrase only when the person is named and an attribution verb follows within 140 characters
         const at = s.search(nameRe(p.name));
-        if (at >= 0 && ATTRIB_VERB.test(s.slice(at, at + 140))) out.push({ person: p, attribution: "paraphrased", text: [sents[i - 1], s].filter(Boolean).join(" ").slice(-900), quoteSource: "" });
+        if (at >= 0 && ATTRIB_VERB.test(s.slice(at, at + 140))) out.push({ names: [p], attribution: "paraphrased", text: [sents[i - 1], s].filter(Boolean).join(" ").slice(-900) });
       }
     }
   }
