@@ -93,7 +93,7 @@ export async function getProfile(id: string) {
   cached();
   const s = await getNodeSummary(id);
   if (!s) return null;
-  const [feed, filings, links] = await Promise.all([q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, t.name AS target_name FROM feed_items f LEFT JOIN nodes t ON t.id=f.target_id
+  const [feed, filings, links] = await Promise.all([q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, coalesce(t.name, f.context) AS target_name FROM feed_items f LEFT JOIN nodes t ON t.id=f.target_id
                              WHERE f.node_id=$1 AND f.status='approved' ORDER BY f.date DESC, f.id DESC`, [id]),
   q<any>(`SELECT *, pdate(filed_date, filed_prec) AS filed_date, amount::float8 AS amount FROM filings WHERE node_id=$1
                                 ORDER BY coalesce(filed_date, to_date(substring(period from '\\d{4}'), 'YYYY')) DESC NULLS LAST, id DESC`, [id]),
@@ -279,7 +279,7 @@ export async function getHome() {
     FROM (SELECT l.date_start d, l.stance st FROM links l JOIN nodes a ON a.id=l.from_id WHERE l.type='position' AND l.stance IS NOT NULL AND a.type NOT IN ('lawmaker','agency')
           UNION ALL SELECT fi.date, fi.stance FROM feed_items fi JOIN nodes a ON a.id=fi.node_id WHERE fi.status='approved' AND fi.stance IS NOT NULL AND a.type NOT IN ('lawmaker','agency')) x
     WHERE d IS NOT NULL AND d >= '2019-01-01' GROUP BY 1 ORDER BY 1`);
-  const quotes = await q<any>(`SELECT fi.id, fi.excerpt, pdate(fi.date, fi.date_prec) AS date, fi.url, fi.archive_url, fi.platform, n.id AS node_id, n.name, t.id AS target_id, t.name AS target_name
+  const quotes = await q<any>(`SELECT fi.id, fi.excerpt, pdate(fi.date, fi.date_prec) AS date, fi.url, fi.archive_url, fi.platform, n.id AS node_id, n.name, t.id AS target_id, coalesce(t.name, fi.context) AS target_name
     FROM feed_items fi JOIN nodes n ON n.id=fi.node_id LEFT JOIN nodes t ON t.id=fi.target_id
     WHERE fi.status='approved' AND fi.excerpt IS NOT NULL AND fi.kind NOT IN ('donation','policy change','filing') AND n.type NOT IN ('lawmaker','agency') AND fi.date IS NOT NULL
     ORDER BY fi.date DESC, fi.id DESC LIMIT 12`);
