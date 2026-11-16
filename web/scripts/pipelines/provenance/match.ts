@@ -17,7 +17,7 @@ const arg = (f: string, d?: string) => (args.includes(f) ? args[args.indexOf(f) 
 
 type TextRow = { id: number; bill_node_id: string | null; version: string | null; source_kind: string; title: string; author_id: string | null; text_date: string; url: string; archive_url: string | null; text_path: string; n_words: number };
 const texts = await q<TextRow>(`SELECT id, bill_node_id, version, source_kind, title, author_id, text_date::text, url, archive_url, text_path, n_words FROM prov_texts ORDER BY text_date, id`);
-const byId = new Map(texts.map((t) => [t.id, t]));
+const byId = new Map(texts.map((t) => [Number(t.id), t]));
 
 // ------------------------------------------------------------------------------------------------------------------------
 if (has("--candidates")) {
@@ -143,6 +143,20 @@ if (has("--llm")) {
 }
 
 // ------------------------------------------------------------------------------------------------------------------------
+if (has("--unstore-filtered")) {
+  // Remove our own pending matches that the deterministic filters reject (they were asked about before pruning ran).
+  const ms = await q<any>(`SELECT m.id, c.bill_text, c.src_text, c.bill_text_id, c.src_text_id FROM prov_matches m JOIN prov_cands c ON c.match_id = m.id WHERE m.status='pending'`);
+  let n = 0;
+  for (const m of ms) {
+    const b = byId.get(Number(m.bill_text_id))!, s = byId.get(Number(m.src_text_id))!;
+    if (isBoilerplate(m.bill_text, m.src_text) || sourceMentionsBill(s, b.bill_node_id!)) {
+      await pool.query(`DELETE FROM review_queue WHERE source_workstream='provenance' AND kind='wording_match' AND ref_table='prov_matches' AND ref_id=$1 AND status='pending'`, [String(m.id)]);
+      await pool.query(`UPDATE prov_cands SET match_id=NULL WHERE match_id=$1`, [m.id]);
+      await pool.query(`DELETE FROM prov_matches WHERE id=$1`, [m.id]); n++;
+    }
+  }
+  console.log({ removed: n });
+}
 if (has("--store")) {
   const f = join(EVAL_DIR, "thresholds.json");
   if (!existsSync(f)) throw new Error("run provenance:eval first: data/eval/provenance/thresholds.json is missing");
@@ -152,6 +166,7 @@ if (has("--store")) {
   for (const r of rows) {
     const b = byId.get(Number(r.bill_text_id))!, s = byId.get(Number(r.src_text_id))!;
     if (!(s.text_date < b.text_date) || !b.bill_node_id) continue;
+    if (isBoilerplate(r.bill_text, r.src_text) || sourceMentionsBill(s, b.bill_node_id)) continue;
     let kind: "verbatim" | "light_edit" | "paraphrase" = r.relation === "word_for_word" ? "verbatim" : r.relation === "lightly_edited" ? "light_edit" : "paraphrase";
     if (kind === "verbatim" && r.containment < th.min_containment_verbatim) kind = "light_edit";            // code check on the model's word
     if (kind === "light_edit" && r.containment < 0.3 && r.shingle_jaccard < 0.2) kind = "paraphrase";
