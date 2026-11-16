@@ -11,6 +11,11 @@
   --idea: #8C877A;
   --flag: #55534B;
   --carbon-on-ink: #8E93F5;
+  --hover: #fff;
+  --mixed: #B9B3A3;
+  --logo-bg: #FAF8F2;
+  --blend: multiply;
+  color-scheme: light;
 
   --f-display: var(--font-display), "Archivo Narrow", "Arial Narrow", sans-serif;
   --f-body: var(--font-body), "Literata", Georgia, serif;
@@ -19,6 +24,24 @@
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
   --radius: 2px;
   --focus: 0 0 0 2px var(--panel), 0 0 0 4px var(--position);
+}
+
+/* Dark: the same newsprint, inverted. Set by the header switch (ThemeToggle) or the device setting. */
+:root[data-theme="dark"] {
+  --paper: #131316;
+  --panel: #1C1C21;
+  --ink: #ECE8DC;
+  --carbon: #979CFF;
+  --money: #D4AC52;
+  --muted: #A9A598;
+  --rule: #34343C;
+  --idea: #7F7B6F;
+  --flag: #A9A598;
+  --carbon-on-ink: #2A2FB5;
+  --hover: #27272E;
+  --mixed: #5A574E;
+  --blend: screen;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -121,7 +144,7 @@ svg.map { display: block; cursor: grab; touch-action: pan-y; }
 svg.map:active { cursor: grabbing; }
 .coltitle { font-family: var(--f-display); font-stretch: 70%; font-weight: 900; font-size: 22px; fill: var(--ink); }
 .colrule { stroke: var(--ink); stroke-width: 1; }
-.edge { fill: none; stroke-linecap: round; transition: opacity .2s; mix-blend-mode: multiply; }
+.edge { fill: none; stroke-linecap: round; transition: opacity .2s; mix-blend-mode: var(--blend); }
 .edge-money { stroke: var(--money); }
 .edge-person { stroke: var(--ink); }
 .edge-idea { stroke: var(--idea); stroke-dasharray: 1.5 4; }
@@ -130,7 +153,7 @@ svg.map:active { cursor: grabbing; }
 .item { cursor: pointer; outline: none; transition: opacity .2s; }
 .item rect { fill: var(--panel); stroke: var(--ink); stroke-width: 1; }
 .item:focus-visible rect, .item:focus-visible .hlabel { stroke: var(--position); stroke-width: 2.5; }
-.item:hover rect { fill: #fff; }
+.item:hover rect { fill: var(--hover); }
 .item-cluster rect { stroke-width: 1.5; }
 .clabel { font-family: var(--f-display); font-stretch: 75%; font-weight: 800; font-size: 14px; fill: var(--ink); }
 .csub, .namt, .nsub, .morelabel { font-family: var(--f-body); font-size: 10.5px; fill: var(--muted); }
@@ -358,7 +381,7 @@ em, i, cite, address, dfn, var { font-style: normal; }
 .legend-row { display: flex; gap: var(--s5); flex-wrap: wrap; font-size: 15px; margin-bottom: var(--s3); }
 .sw { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; margin-right: 4px; }
 .sw-support { background: var(--carbon); }
-.sw-mixed { background: #B9B3A3; }
+.sw-mixed { background: var(--mixed); }
 .sw-oppose { background: var(--money); }
 .years { list-style: none; margin: 0; padding: 0; }
 .years li { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 4px 14px; align-items: center; padding: 6px 0; border-top: 1px solid var(--rule); }
@@ -434,6 +457,7 @@ button.linkish { color: var(--carbon); font-weight: 500; }
 .iss-facts { font-size: 15px; margin: 6px 0 0; max-width: 72ch; }
 .stancebar { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .sb-word { font-weight: 700; font-size: 15px; }
+.sb-num { font-weight: 400; color: var(--muted); margin-left: 4px; }
 .sb-line { display: inline-flex; align-items: center; gap: 8px; }
 .sb-end { font-size: 12px; color: var(--muted); }
 .sb-track { position: relative; width: 160px; height: 2px; background: var(--rule); }
@@ -477,8 +501,8 @@ svg.map:active { cursor: default; }
 .item rect.hit { fill: transparent; stroke: none; }
 .item:hover rect.hit { fill: transparent; }
 .item-header:hover .hlabel, .item-header:hover .chev { fill: var(--carbon); }
-.item-node:hover .nrow { fill: #fff; stroke: var(--ink) !important; }
-.item-cluster:hover rect { fill: #fff; stroke-width: 2; }
+.item-node:hover .nrow { fill: var(--hover); stroke: var(--ink) !important; }
+.item-cluster:hover rect { fill: var(--hover); stroke-width: 2; }
 .nlabel { font-size: 13.5px; }
 .chev { font-size: 22px; font-weight: 400; }
 .item.sel:hover .nrow, .item.sel .nrow { fill: var(--ink); stroke: var(--ink) !important; }
@@ -638,3 +662,9 @@ a:hover > .bmark .mk-dot, a:hover > .lockup .mk-dot, .bmark.press .mk-dot { tran
 @media (max-width: 700px) { .bk-stage, .bk-type { grid-template-columns: 1fr; } }
 .bk-files { list-style: none; padding: 0; margin: var(--s4) 0; columns: 2; font-size: 15px; }
 .bk-files li { padding: 3px 0; }
+
+/* Theme switch: show the moon in light mode and the sun in dark. Logos keep a light tile so dark artwork stays visible. */
+.themebtn { cursor: pointer; }
+.themebtn .i-sun, :root[data-theme="dark"] .themebtn .i-moon { display: none; }
+:root[data-theme="dark"] .themebtn .i-sun { display: block; }
+img.mark { background: var(--logo-bg); }

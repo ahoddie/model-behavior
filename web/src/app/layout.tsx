@@ -4,6 +4,7 @@ import Link from "@/components/Link";
 import { Suspense } from "react";
 import LastUpdated from "@/components/LastUpdated";
 import HeaderSearch from "@/components/HeaderSearch";
+import ThemeToggle, { THEME_SCRIPT } from "@/components/ThemeToggle";
 import { Lockup } from "@/components/Logo";
 import { SITE_NAME } from "@/lib/brand";
 import "./globals.css";
@@ -19,8 +20,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <a className="skip" href="#main">Skip to content</a>
         <header className="masthead">
           <span className="brand"><Link href="/" className="wordmark" aria-label={`${SITE_NAME} home`}><Lockup /></Link><span className="beta" title="Work in progress: data and features are still being checked">Beta</span></span>
@@ -35,6 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/data" className="iconbtn" aria-label="Open data: downloads, methodology, corrections" title="Open data">
               <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2.5 13.5h11" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </Link>
+            <ThemeToggle />
             <HeaderSearch />
           </div>
         </header>

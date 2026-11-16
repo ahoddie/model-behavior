@@ -7,12 +7,12 @@ export default function StanceBar({ value }: { value: number | null }) {
   const pct = ((value + 2) / 4) * 100;
   const words = stanceWords(value);
   return (
-    <span className="stancebar" role="img" aria-label={`${words}: on a line from disagree to agree`}>
-      <span className="sb-word">{words}</span>
+    <span className="stancebar" role="img" aria-label={`${words}, ${value > 0 ? "+" : value < 0 ? "minus " : ""}${Math.abs(value).toFixed(1)} on a scale from −2 (disagree strongly) to +2 (agree strongly)`}>
+      <span className="sb-word">{words} <span className="sb-num">{value > 0 ? "+" : value < 0 ? "−" : ""}{Math.abs(value).toFixed(1)}</span></span>
       <span className="sb-line">
-        <span className="sb-end">Disagree</span>
+        <span className="sb-end">Disagree −2</span>
         <span className="sb-track" aria-hidden><span className="sb-mid" /><span className="sb-dot" style={{ left: `${pct}%` }} /></span>
-        <span className="sb-end">Agree</span>
+        <span className="sb-end">+2 Agree</span>
       </span>
     </span>
   );
