@@ -83,40 +83,39 @@ export default async function Home() {
       <section id="money" className="home-sec">
         <div className="sec-head"><h2>Where is the money going?</h2><CiteButton kind="page" title="Where is the money going?" path="/#money" asOf={asOf} /></div>
         <p className="sec-lede">
-          {fmtMoney(counts.direct)} given directly by the labs, people, investors, and funders tracked here to candidates, PACs, parties, and advocacy
-          groups. Lobbying is separate: {counts.filings.toLocaleString()} filings.
+          {fmtMoney(counts.direct)} given directly to candidates, PACs, parties, and advocacy groups. Lobbying is separate: {counts.filings.toLocaleString()} filings.
         </p>
         <figure className="chart">
-          <figcaption className="chart-head"><h3>Who gave the most</h3></figcaption>
-          <RankChart label="The ten largest givers, by dollars given directly" unit="given directly" fmt={fmtMoney}
+          <figcaption className="chart-head"><h3>Top givers</h3></figcaption>
+          <RankChart label="The ten largest givers, by dollars given directly" unit="given" fmt={fmtMoney}
             rows={givers.map((g: any) => ({ id: g.id, name: g.name, value: g.total,
               label: <><Link href={`/node/${g.id}`}>{g.name}</Link> <span className="rc-kind">({TYPE_LABEL[g.type]})</span></>,
               note: `${g.recipients} ${g.recipients === 1 ? "recipient" : "recipients"}` }))} />
         </figure>
         <figure className="chart">
-          <figcaption className="chart-head"><h3>Who received the most</h3></figcaption>
+          <figcaption className="chart-head"><h3>Top recipients</h3></figcaption>
           <RankChart label="The ten largest recipients, by dollars received from the givers tracked here" unit="received" fmt={fmtMoney}
             rows={recipients.map((r: any) => ({ id: r.id, name: r.name, value: r.total,
               label: <><Link href={`/node/${r.id}`}>{r.name}</Link> <span className="rc-kind">({TYPE_LABEL[r.type]})</span></>,
               note: `From ${r.top_givers}${r.givers > 3 ? ` and ${r.givers - 3} more` : ""}` }))} />
         </figure>
-        <p className="more"><Link href="/money">Trace any giver&apos;s money step by step</Link></p>
+        <p className="more"><Link href="/money">Trace the money</Link></p>
       </section>
 
       {analysis && <section id="issues" className="home-sec">
         <div className="sec-head"><h2>What do they care about?</h2><CiteButton kind="page" title="What do they care about?" path="/#issues" asOf={asOf} /></div>
         <p className="sec-lede">
-          {analysis.meta.used.toLocaleString()} quotes, sorted by the policy statements they speak to, and whether speakers tend to agree or disagree.
+          {analysis.meta.used.toLocaleString()} quotes, sorted by issue and by whether the speaker agrees.
           {" "}<Link href="/data?view=methodology#analysis">How this works</Link>.
         </p>
         <div className="grid2 chart-pair">
           <figure className="chart">
-            <figcaption className="chart-head"><h3>Issues with the most statements</h3></figcaption>
+            <figcaption className="chart-head"><h3>Statements by issue</h3></figcaption>
             <RankChart label="Policy issues, by number of public statements" unit="statements"
               rows={analysis.issues.filter((i) => i.statements > 0).map((i) => ({ id: i.id, name: i.label, value: i.statements, label: i.label }))} />
           </figure>
           <figure className="chart">
-            <figcaption className="chart-head"><h3>Issues with the most lobbying filings</h3></figcaption>
+            <figcaption className="chart-head"><h3>Lobbying filings by issue</h3></figcaption>
             <RankChart label="Policy issues, by number of lobbying filings that name them" unit="filings"
               rows={analysis.issues.filter((i) => lobbying[i.id]).map((i) => ({ id: i.id, name: i.label, value: lobbying[i.id].filings, label: i.label }))
                 .sort((a, b) => b.value - a.value)} />
@@ -131,22 +130,21 @@ export default async function Home() {
             </div>
             <Who sides={who[i.id]} topicId={topics.find((t) => t.issue_id === i.id)?.id} />
             <p className="iss-facts">
-              {i.statements} {i.statements === 1 ? "statement" : "statements"} from {i.actors} {i.actors === 1 ? "actor" : "actors"}: {i.plus} agree, {i.minus} disagree, {i.neutral} mention it without taking a side.
-              {i.money > 0 && <> {fmtMoney(i.money)} went to groups that speak on it, for or against, most from {i.money_givers.map((g, k) => <span key={g.id}>{k > 0 && (k === i.money_givers.length - 1 ? " and " : ", ")}<Link href={`/node/${g.id}`}>{g.name}</Link></span>)}.</>}
-              {lobbying[i.id] && <> {lobbying[i.id].filings.toLocaleString()} lobbying {lobbying[i.id].filings === 1 ? "filing" : "filings"} from {lobbying[i.id].actors} {lobbying[i.id].actors === 1 ? "actor" : "actors"} touch this issue.</>}
+              {i.statements} {i.statements === 1 ? "statement" : "statements"} from {i.actors} {i.actors === 1 ? "actor" : "actors"}: {i.plus} agree, {i.minus} disagree, {i.neutral} neutral.
+              {i.money > 0 && <> {fmtMoney(i.money)} to groups that speak on it, mostly from {i.money_givers.map((g, k) => <span key={g.id}>{k > 0 && (k === i.money_givers.length - 1 ? " and " : ", ")}<Link href={`/node/${g.id}`}>{g.name}</Link></span>)}.</>}
+              {lobbying[i.id] && <> {lobbying[i.id].filings.toLocaleString()} lobbying {lobbying[i.id].filings === 1 ? "filing" : "filings"} from {lobbying[i.id].actors} {lobbying[i.id].actors === 1 ? "actor" : "actors"}.</>}
             </p>
           </li>
         ))}</ul>
         <p className="note">
-          {fmtMoney(analysis.cover.assigned)} of {fmtMoney(analysis.cover.total)} in direct giving went to groups with enough public statements to place by
-          issue. Most of the rest went to candidates and party committees.
+          {fmtMoney(analysis.cover.assigned)} of {fmtMoney(analysis.cover.total)} in direct giving went to groups with enough statements to place by issue. Most of the rest went to candidates and parties.
         </p>
       </section>}
 
       <section id="stances" className="home-sec">
         <div className="sec-head"><h2>Where do they stand?</h2><CiteButton kind="page" title="Where do they stand?" path="/#stances" asOf={asOf} /></div>
         <p className="sec-lede">
-          The bills, executive orders, and rules with the most public positions. Each name links to where that actor said it.
+          The bills, orders, and rules with the most public positions. Each name links to its source.
         </p>
         {stances.map((t: any) => (
           <article key={t.id} className="stance">
@@ -178,7 +176,7 @@ export default async function Home() {
       <section id="trend" className="home-sec">
         <div className="sec-head"><h2>How has that changed?</h2><CiteButton kind="page" title="How has that changed?" path="/#trend" asOf={asOf} /></div>
         <p className="sec-lede">
-          Public positions on bills and rules, by year. Years with more coverage show more statements.
+          Public positions on bills and rules, by year. Later years have more coverage.
         </p>
         <div className="legend-row">
           <span><i className="sw sw-support" aria-hidden /> Supported</span>
@@ -190,7 +188,7 @@ export default async function Home() {
 
       <section id="words" className="home-sec">
         <div className="sec-head"><h2>What are they saying?</h2><CiteButton kind="page" title="What are they saying?" path="/#words" asOf={asOf} /></div>
-        <p className="sec-lede">The most recent public statements on record, quoted word for word.</p>
+        <p className="sec-lede">The latest public statements, word for word.</p>
         <ul className="record">{quotes.map((f: any) => (
           <li key={f.id}><div className="when">{fmtDate(f.date)}</div>
             <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /> <CiteButton small kind="quote" speaker={f.name} quote={f.excerpt} date={fmtDate(f.date)} url={f.url} archive={f.archive_url} outlet={sourceName(f.url)} /></p>
@@ -202,7 +200,7 @@ export default async function Home() {
       <section id="map" className="home-sec">
         <div className="sec-head"><h2>How is it all connected?</h2><CiteButton kind="page" title="How is it all connected?" path="/#map" asOf={asOf} /></div>
         <p className="sec-lede">
-          Every actor, the groups their money and positions pass through, and the elections, bills, and rules they reach.
+          Who funds whom, and the elections, bills, and rules it reaches.
         </p>
         <p className="more"><Link href="/map">Open the network</Link></p>
       </section>

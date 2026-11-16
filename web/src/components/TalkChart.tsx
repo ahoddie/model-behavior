@@ -28,9 +28,9 @@ export default function TalkChart({ issues, all, byActor }: { issues: TalkIssue[
   const detail = who && (
     <div className="rc-topics">
       <p className="rc-topics-head">{topics.length
-        ? <>Where {who.name} takes a side, by issue</>
-        : <>None of {who.name}&apos;s statements has been sorted to an issue yet.</>}
-        {" "}<Link href={`/node/${who.id}`}>Open profile</Link></p>
+        ? <>Breakdown by issue</>
+        : <>No statements sorted by issue yet.</>}
+        {" "}<Link href={`/node/${who.id}`}>Profile</Link></p>
       {topics.length > 0 && <ul>{topics.map((t) => (
         <li key={t.id}>
           <span className="rc-topic-name">{t.label}</span>
@@ -49,15 +49,15 @@ export default function TalkChart({ issues, all, byActor }: { issues: TalkIssue[
       {issue ? <>
         <p className="chart-sub">“{issue.positive}”</p>
         <div className="legend-row">
-          <span><i className="sw sw-support" aria-hidden /> Agrees, on average</span>
-          <span><i className="sw sw-oppose" aria-hidden /> Disagrees, on average</span>
+          <span><i className="sw sw-support" aria-hidden /> Agrees</span>
+          <span><i className="sw sw-oppose" aria-hidden /> Disagrees</span>
         </div>
-        <RankChart label={`Actors with the most statements on ${issue.label}`} unit="statements that take a side"
+        <RankChart label={`Actors with the most statements on ${issue.label}`} unit="sided statements"
           rows={actors.map((a) => ({ id: a.id, name: `${a.name}, ${a.agree ? "agrees" : "disagrees"}`, value: a.n, tone: a.agree ? "support" : "oppose", label: name(a) }))}
           selected={open} onSelect={toggle} detail={detail} />
-        {issue.topicId && <p className="more"><Link href={`/topics#${issue.topicId}`}>See everyone, with their quotes</Link></p>}
+        {issue.topicId && <p className="more"><Link href={`/topics#${issue.topicId}`}>See all quotes</Link></p>}
       </> : <>
-        <p className="chart-sub">Quoted statements on record, on any issue. Click a bar to see which issues that actor speaks on, or pick an issue to see who agrees and who disagrees.</p>
+        <p className="chart-sub">Click a bar for that actor's issues, or pick an issue.</p>
         <RankChart label="Actors with the most quoted statements on record" unit="statements"
           rows={actors.map((a) => ({ id: a.id, name: a.name, value: a.n, label: name(a) }))}
           selected={open} onSelect={toggle} detail={detail} />
