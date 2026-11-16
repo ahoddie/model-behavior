@@ -13,6 +13,7 @@ import FollowForm from "@/components/FollowForm";
 import TargetView from "@/components/TargetView";
 import ProfileHead from "@/components/ProfileHead";
 import Src from "@/components/Src";
+import KnownRecord from "@/components/KnownRecord";
 
 const TABS = [["record", "Record"], ["feed", "All statements"], ["positions", "Positions table"], ["money", "Filings"], ["people", "People"], ["connections", "Connections"], ["flags", "Said and did"]] as const;
 
@@ -33,7 +34,13 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
   const head = await getTarget(id);
   if (!head) { const to = await getMergedInto(id); if (to) permanentRedirect(`/node/${encodeURIComponent(to)}`); notFound(); }
   const coverage = await getCoverage(id);
-  if (TARGET_TYPES.includes(head.node.type)) return <TargetView t={head} coverage={coverage} />;
+  if (TARGET_TYPES.includes(head.node.type)) {
+    const empty = !head.keyFacts.length && !head.facts.length && !head.pushes.length && !head.statements.length && !head.candidates.length;
+    return <>
+      <TargetView t={head} coverage={coverage} />
+      {empty && <div className="page"><KnownRecord node={head.node} /></div>}
+    </>;
+  }
 
   const [pr, actorIssues, lobbyIssues, flags] = await Promise.all([getProfile(id), getActorIssues(id), getActorLobbyingIssues(id), approvedConflictFlags(id)]);
   const p = pr!;
@@ -47,6 +54,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
   const positionLinks = p.links.filter((l: any) => l.type === "position");
   const stanceFeed = p.feed.filter((f: any) => f.stance);
   const href = (t: string, extra = "") => `/node/${id}?tab=${t}${extra}`;
+  const noRecords = !p.keyFacts.length && !p.facts.length && !p.feed.length && !p.filings.length && !p.links.length && !lobbyIssues.length && !flags.length;
 
   return (
     <div className="page">
@@ -56,6 +64,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
       <CoverageLine c={coverage} />
       {p.facts.length > 0 && <ul className="facts">{p.facts.map((f, i) => <li key={i}><Linked parts={(f as any).parts} text={f.text} /> <Src url={f.url} /></li>)}</ul>}
       <FollowForm nodeId={id} />
+      {noRecords && <KnownRecord node={p.node} />}
 
       <nav className="tabs" aria-label="Profile sections">
         {TABS.map(([t, label]) => <Link key={t} href={href(t)} scroll={false} aria-current={tab === t ? "page" : undefined}>{label}{t === "flags" && flags.length ? ` (${flags.length})` : ""}</Link>)}
