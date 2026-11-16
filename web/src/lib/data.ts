@@ -308,7 +308,12 @@ export async function targetSides() {
 
 // ── Analysis (machine-classified; see scripts/analyze.ts and the methodology page) ──
 // Labels used: the newest label per statement, own-voice only, confidence ≥ 0.6.
-const LABELS = `(SELECT DISTINCT ON (sl.feed_id) sl.* FROM statement_labels sl ORDER BY sl.feed_id, sl.labeled_at DESC)`;
+// The model's issue tags are kept only where the keyword rules (statement_issue_rules, scripts/tag-issues-rules.ts) find the
+// same issue: 74% precision on the v5 check set, against 25% for the model alone. The model still gives the direction.
+const LABELS = `(SELECT DISTINCT ON (sl.feed_id) sl.*,
+    (SELECT coalesce(jsonb_object_agg(e.key, e.value), '{}'::jsonb) FROM jsonb_each(sl.issues) e WHERE e.key = ANY(r.issues)) AS issues_ok
+  FROM statement_labels sl LEFT JOIN statement_issue_rules r ON r.feed_id = sl.feed_id
+  ORDER BY sl.feed_id, sl.labeled_at DESC)`;
 const GOOD = `l.own_voice AND l.confidence >= 0.6`;  // qualified: feed_items also has a confidence column
 export type IssueRow = { id: string; label: string; description: string; positive: string; statements: number; actors: number; avg: number | null;
   plus: number; minus: number; neutral: number; money: number; money_givers: { id: string; name: string; total: number }[] };
@@ -321,7 +326,7 @@ export async function getAnalysis() {
   if (!meta?.labeled) return null;
   // Per issue: how many statements address it, from how many actors, and the spread of stances.
   const issues = await q<any>(`
-    WITH s AS (SELECT fi.node_id, e.key AS issue, e.value::int AS v FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues) e WHERE ${GOOD})
+    WITH s AS (SELECT fi.node_id, e.key AS issue, e.value::int AS v FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues_ok) e WHERE ${GOOD})
     SELECT a.id, a.label, a.description, a.positive, count(s.issue)::int AS statements, count(DISTINCT s.node_id)::int AS actors,
       round(avg(s.v) FILTER (WHERE s.v <> 0), 2)::float8 AS avg,
       count(*) FILTER (WHERE s.v > 0)::int AS plus, count(*) FILTER (WHERE s.v < 0)::int AS minus, count(*) FILTER (WHERE s.v = 0)::int AS neutral
@@ -329,7 +334,7 @@ export async function getAnalysis() {
   // Money by issue: each recipient's issue mix comes from its own labeled statements (at least 2). A gift is split across
   // the recipient's issues in proportion to how often it speaks on each. Gifts to recipients without enough statements stay unassigned.
   const money = await q<any>(`
-    WITH s AS (SELECT fi.node_id, e.key AS issue FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues) e WHERE ${GOOD}),
+    WITH s AS (SELECT fi.node_id, e.key AS issue FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues_ok) e WHERE ${GOOD}),
     mix AS (SELECT node_id, issue, count(*)::float8 / sum(count(*)) OVER (PARTITION BY node_id) AS share FROM s GROUP BY 1, 2),
     enough AS (SELECT node_id FROM s GROUP BY 1 HAVING count(*) >= 2),
     gifts AS (SELECT l.from_id, l.to_id, l.amount::float8 AS amount FROM links_shown l JOIN nodes f ON f.id=l.from_id
@@ -337,7 +342,7 @@ export async function getAnalysis() {
     SELECT m.issue, g.from_id, f.name, sum(g.amount * m.share)::float8 AS total
     FROM gifts g JOIN enough e ON e.node_id=g.to_id JOIN mix m ON m.node_id=g.to_id JOIN nodes f ON f.id=g.from_id GROUP BY 1, 2, 3`);
   const [cover] = await q<any>(`
-    WITH s AS (SELECT fi.node_id FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues) e WHERE ${GOOD}),
+    WITH s AS (SELECT fi.node_id FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues_ok) e WHERE ${GOOD}),
     enough AS (SELECT node_id FROM s GROUP BY 1 HAVING count(*) >= 2)
     SELECT coalesce(sum(l.amount) FILTER (WHERE l.to_id IN (SELECT node_id FROM enough)),0)::float8 AS assigned, coalesce(sum(l.amount),0)::float8 AS total
     FROM links_shown l JOIN nodes f ON f.id=l.from_id WHERE l.type='money' AND l.amount > 0 AND coalesce(l.subtype,'') <> 'lobbying' AND f.type IN ${SOURCE_TYPES}`);
@@ -357,7 +362,7 @@ export async function getActorIssues(id: string) {
   return q<any>(`
     SELECT a.id, a.label, a.positive, round(avg(e.value::int) FILTER (WHERE e.value::int <> 0), 1)::float8 AS avg, count(*)::int AS n,
       json_agg(json_build_object('feed_id', fi.id, 'v', e.value::int, 'excerpt', fi.excerpt, 'url', fi.url, 'date', pdate(fi.date, fi.date_prec), 'reason', l.reason) ORDER BY fi.date DESC) AS items
-    FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues) e JOIN issue_areas a ON a.id=e.key
+    FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues_ok) e JOIN issue_areas a ON a.id=e.key
     WHERE fi.node_id=$1 AND fi.status='approved' AND ${GOOD}
     GROUP BY a.id ORDER BY count(*) DESC, a.sort`, [id]);
 }
@@ -535,7 +540,7 @@ export async function getTopics(): Promise<TopicRow[]> {
      WHERE tl.answer IS NOT NULL AND fi.status='approved'
     UNION ALL
     SELECT t.id, fi.node_id, e.value::int, 'quote', fi.excerpt, fi.url, fi.archive_url, pdate(fi.date, fi.date_prec)::text, NULL
-      FROM topics t JOIN ${LABELS} l ON true JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues) e
+      FROM topics t JOIN ${LABELS} l ON true JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues_ok) e
      WHERE t.issue_id IS NOT NULL AND e.key=t.issue_id AND fi.status='approved' AND ${GOOD}
     UNION ALL
     SELECT p.topic_id, p.node_id, p.answer::int, 'letter', p.quote, p.source_url, p.archive_url, p.date::text, p.document_name
@@ -563,7 +568,7 @@ export async function viewIssueQuarterly(issue?: string) {
   const args = issue ? [issue] : [];
   const st = await q<any>(`
     WITH s AS (SELECT e.key AS issue, e.value::int AS v, fi.id, fi.node_id, fi.excerpt, fi.url, fi.archive_url, fi.date
-      FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues) e
+      FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues_ok) e
       WHERE ${GOOD} AND fi.status='approved' AND fi.date IS NOT NULL ${issue ? "AND e.key=$1" : ""})
     SELECT issue, to_char(date_trunc('quarter', date), 'YYYY"Q"Q') AS quarter,
       count(*) FILTER (WHERE v>0)::int AS agree, count(*) FILTER (WHERE v<0)::int AS disagree, count(*) FILTER (WHERE v=0)::int AS neutral,
