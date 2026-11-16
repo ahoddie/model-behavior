@@ -43,7 +43,7 @@ export default function ProfileHead({ node, keyFacts, kicker, logoSource, citePa
         <div>
           <h1>{node.name}</h1>
           {node.descriptor && <p className="lede">{node.descriptor} <Src url={node.source_url} /></p>}
-          <p className="profile-meta">{kicker ?? TYPE_LABEL[node.type]}{citePath && <> <CiteButton small kind="page" title={node.name} path={citePath} asOf={fmtDate(new Date().toISOString().slice(0, 10))} /></>}</p>
+          <p className="profile-meta">{kicker ?? TYPE_LABEL[node.type]}{citePath && <> <CiteButton small kind="page" title={node.name} path={citePath} /></>}</p>
         </div>
       </div>
       <KeyFacts facts={keyFacts} />

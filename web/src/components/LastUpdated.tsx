@@ -5,7 +5,7 @@ import { RECORD_TAG } from "@/lib/data";
 // Newest write to the record (research loads, importers, review edits), from the changelog.
 export default async function LastUpdated() {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("record");
   cacheTag(RECORD_TAG);
   const [r] = await q<{ at: string | null }>(`SELECT max(at)::text AS at FROM changelog`);
   if (!r?.at) return null;

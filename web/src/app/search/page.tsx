@@ -1,5 +1,7 @@
-import { connection } from "next/server";
-import Link from "next/link";
+import { Suspense } from "react";
+import { cacheLife, cacheTag } from "next/cache";
+import { RECORD_TAG } from "@/lib/data";
+import Link from "@/components/Link";
 import { Meilisearch } from "meilisearch";
 import { q } from "@/lib/db";
 import { fmtMoney, fmtDate } from "@/lib/format";
@@ -22,7 +24,10 @@ function collapse(hits: Hit[]): Hit[] {
   return out;
 }
 
+// Cached per query under the record tag, so a repeated or prefetched search is answered from memory.
 async function search(term: string, kind: string): Promise<{ hits: Hit[]; engine: string }> {
+  "use cache";
+  cacheLife("record"); cacheTag(RECORD_TAG);
   try {
     const ms = new Meilisearch({ host: process.env.MEILI_HOST ?? "http://127.0.0.1:7700", apiKey: process.env.MEILI_KEY });
     const r = await ms.index("everything").search<Hit>(term, { limit: 60, filter: kind ? [`kind = "${kind}"`] : undefined });
@@ -40,20 +45,35 @@ async function search(term: string, kind: string): Promise<{ hits: Hit[]; engine
   }
 }
 
-export default async function Search(props: PageProps<"/search">) {
-  await connection();
-  const sp = await props.searchParams;
-  const term = typeof sp.q === "string" ? sp.q.trim() : "";
-  const kind = typeof sp.kind === "string" ? sp.kind : "";
-  const hits = term ? collapse((await search(term, kind)).hits) : [];
+export default function Search(props: PageProps<"/search">) {
   return (
     <div className="page">
       <h1>Search the record</h1>
+      <Suspense fallback={<SearchForm term="" kind="" />}>
+        <Results sp={props.searchParams} />
+      </Suspense>
+    </div>
+  );
+}
+
+function SearchForm({ term, kind }: { term: string; kind: string }) {
+  return (
       <form className="filters" action="/search" role="search">
         <input type="search" name="q" defaultValue={term} placeholder="Name, bill, quote or filing" aria-label="Search" style={{ minWidth: 320 }} />
         <Select label="In" name="kind" defaultValue={kind ?? ""} options={[{ value: "", label: "Everything" }, { value: "node", label: "People and orgs" }, { value: "feed", label: "Statements" }, { value: "filing", label: "Filings" }]} />
         <button type="submit">Search</button>
       </form>
+  );
+}
+
+async function Results({ sp: spP }: { sp: PageProps<"/search">["searchParams"] }) {
+  const sp = await spP;
+  const term = typeof sp.q === "string" ? sp.q.trim() : "";
+  const kind = typeof sp.kind === "string" ? sp.kind : "";
+  const hits = term ? collapse((await search(term, kind)).hits) : [];
+  return (
+    <>
+      <SearchForm term={term} kind={kind} />
       {term && <p className="mono muted">{hits.length} results</p>}
       <ul className="feed">
         {hits.map((h) => (
@@ -68,6 +88,6 @@ export default async function Search(props: PageProps<"/search">) {
           </li>
         ))}
       </ul>
-    </div>
+    </>
   );
 }

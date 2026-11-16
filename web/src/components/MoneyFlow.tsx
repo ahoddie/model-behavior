@@ -1,5 +1,5 @@
 // Layered flow from one starting point: each column is one step further along the money.
-import Link from "next/link";
+import Link from "@/components/Link";
 import { fmtMoney } from "@/lib/format";
 
 type Flow = { from_id: string; to_id: string; from_name: string; to_name: string; amount: number | null; d: number; source_url: string; stance: string | null };

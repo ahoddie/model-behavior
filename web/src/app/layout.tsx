@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Archivo, Literata, JetBrains_Mono } from "next/font/google";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { Suspense } from "react";
 import LastUpdated from "@/components/LastUpdated";
 import HeaderSearch from "@/components/HeaderSearch";

@@ -1,6 +1,4 @@
-import { connection } from "next/server";
-import { redirect } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { getHome, getAnalysis, getLobbyingByIssue } from "@/lib/data";
 import StanceBar from "@/components/StanceBar";
 import { fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
@@ -22,13 +20,11 @@ const SECTIONS = [
 const SIDES = [["support", "Supported"], ["mixed", "Mixed or conditional"], ["oppose", "Opposed"]] as const;
 const sideOf = (s: string) => (s === "support" ? "support" : s === "oppose" ? "oppose" : "mixed");
 
-export default async function Home(props: PageProps<"/">) {
-  await connection();
-  const sp = await props.searchParams;
-  // Old links to the map (/?focus=…, /?view=time) still work.
-  if (typeof sp.focus === "string" || sp.view === "time") redirect(`/map?${new URLSearchParams(sp as Record<string, string>)}`);
-  const [{ counts, givers, recipients, stances, byYear, quotes }, analysis, lobbying] = await Promise.all([getHome(), getAnalysis(), getLobbyingByIssue()]);
-  const asOf = fmtDate(new Date().toISOString().slice(0, 10));
+// Built ahead of time from the cached record: a visit reads no request data and runs no query.
+// Old links to the map (/?focus=…, /?view=time) are redirected in next.config.ts.
+export default async function Home() {
+  const [{ counts, givers, recipients, stances, byYear, quotes, today }, analysis, lobbying] = await Promise.all([getHome(), getAnalysis(), getLobbyingByIssue()]);
+  const asOf = fmtDate(today);
   const maxGive = Math.max(1, ...givers.map((g: any) => g.total));
   const maxGet = Math.max(1, ...recipients.map((g: any) => g.total));
   const maxYear = Math.max(1, ...byYear.map((y: any) => y.support + y.mixed + y.oppose));
@@ -149,7 +145,7 @@ export default async function Home(props: PageProps<"/">) {
           const tot = y.support + y.mixed + y.oppose;
           return (
             <li key={y.y}>
-              <span className="yr">{y.y}{y.y === new Date().getFullYear() && <span className="muted" style={{ fontWeight: 400 }}>, so far</span>}</span>
+              <span className="yr">{y.y}{y.y === Number(today.slice(0, 4)) && <span className="muted" style={{ fontWeight: 400 }}>, so far</span>}</span>
               <span className="stack" style={{ width: `${(tot / maxYear) * 100}%` }} aria-hidden>
                 <i className="sw-support" style={{ flex: y.support }} /><i className="sw-mixed" style={{ flex: y.mixed }} /><i className="sw-oppose" style={{ flex: y.oppose }} />
               </span>

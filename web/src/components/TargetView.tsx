@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/Link";
 import { fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
 import FollowForm from "./FollowForm";
 import ProfileHead from "./ProfileHead";

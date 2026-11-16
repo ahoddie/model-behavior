@@ -1,5 +1,4 @@
-import { connection } from "next/server";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { getTopics, type TopicActor } from "@/lib/data";
 import { fmtDate } from "@/lib/format";
 import Src from "@/components/Src";
@@ -39,7 +38,6 @@ function Column({ title, actors }: { title: string; actors: TopicActor[] }) {
 }
 
 export default async function Topics() {
-  await connection();
   const topics = await getTopics();
   return (
     <div className="home">

@@ -1,6 +1,6 @@
 // Compact profile of the "Start from" actor on /money: name, type and cluster, descriptor, sourced key facts
 // and a link to the full profile. No money totals: the select above already shows them.
-import Link from "next/link";
+import Link from "@/components/Link";
 import { getNodeSummary } from "@/lib/data";
 import { TYPE_LABEL, clusterName } from "@/lib/format";
 import { KeyFacts } from "./ProfileHead";

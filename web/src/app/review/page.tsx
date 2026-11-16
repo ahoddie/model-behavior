@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { headers } from "next/headers";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { q } from "@/lib/db";
 import { decide, bulk, runImporter, decideQueued } from "./actions";
 import Select from "@/components/Select";

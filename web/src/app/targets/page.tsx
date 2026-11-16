@@ -1,5 +1,5 @@
-import { connection } from "next/server";
-import Link from "next/link";
+import { Suspense } from "react";
+import Link from "@/components/Link";
 import { listTargets, targetSides } from "@/lib/data";
 import { fmtMoney, clusterName, landsRank } from "@/lib/format";
 import Select from "@/components/Select";
@@ -21,12 +21,29 @@ function Names({ side }: { side?: Side }) {
   return <>{shown.map((a, i) => <span key={a.id}>{i > 0 && ", "}<Link href={`/node/${a.id}`}>{a.name}</Link></span>)}{side.n > shown.length && <span className="muted"> and {side.n - shown.length} more</span>}</>;
 }
 
+type Sp = PageProps<"/targets">["searchParams"];
+const load = () => Promise.all([listTargets(), targetSides()]);
+
+// Only the choice of tab and cycle waits for the URL. Awaited here, outside the boundary, the cached list is stored with the
+// prebuilt page; the same call inside the boundary is answered from that copy, so no tab runs a query.
 export default async function Targets({ searchParams }: PageProps<"/targets">) {
-  await connection();
-  const sp = await searchParams;
+  await load();
+  return (
+    <div className="page">
+      <h1>Lands on</h1>
+      <p className="lede">The bills, rules, elections and agencies that the money, lobbying and positions reach.</p>
+      <Suspense fallback={<p className="mono muted" role="status">Loading the record…</p>}>
+        <Listing sp={searchParams} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function Listing({ sp: spP }: { sp: Sp }) {
+  const sp = await spP;
+  const [ts, sides] = await load();
   const kind = (KINDS.find(([k]) => k === sp.kind) ?? KINDS[0]);
   const want = typeof sp.cycle === "string" ? sp.cycle : "";
-  const [ts, sides] = await Promise.all([listTargets(), targetSides()]);
   const inKind = ts.filter((t) => kind[2](t.grp));
   const cycles = [...new Set(ts.map((t) => cycleOf(t.grp)).filter(Boolean) as string[])].sort().reverse();
   const groups = [...new Set(inKind.map((t) => t.grp as string))]
@@ -34,9 +51,7 @@ export default async function Targets({ searchParams }: PageProps<"/targets">) {
     .sort((a, b) => landsRank(a) - landsRank(b));
 
   return (
-    <div className="page">
-      <h1>Lands on</h1>
-      <p className="lede">The bills, rules, elections and agencies that the money, lobbying and positions reach.</p>
+    <>
       <nav className="tabs" aria-label="Kinds">
         {KINDS.map(([k, label, test]) => (
           <Link key={k} href={`/targets?kind=${k}`} scroll={false} aria-current={kind[0] === k ? "page" : undefined}>
@@ -82,6 +97,6 @@ export default async function Targets({ searchParams }: PageProps<"/targets">) {
           </section>
         );
       })}
-    </div>
+    </>
   );
 }

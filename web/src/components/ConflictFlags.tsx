@@ -1,6 +1,6 @@
 // "Said and did" tab: reviewed flags where a statement and an action point different ways. Each flag shows both sides with
 // their sources. Wording is the stored neutral sentence; the model's rationale is never shown here.
-import Link from "next/link";
+import Link from "@/components/Link";
 import Src from "@/components/Src";
 import { fmtDate } from "@/lib/format";
 import type { ApprovedFlag, FlagEvidence } from "@/lib/data";

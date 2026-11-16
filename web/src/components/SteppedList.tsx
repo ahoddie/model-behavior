@@ -1,7 +1,7 @@
 "use client";
 // Mobile view of the map: pick a node, see where it goes, keep tapping.
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/Link";
 import type { GNode, GLink } from "@/lib/data";
 import { clusterName, fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
 

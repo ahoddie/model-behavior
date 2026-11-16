@@ -3,10 +3,12 @@ import { cacheLife, cacheTag } from "next/cache";
 import { q } from "./db";
 import { buildLinker, type Part } from "./linkify";
 
-// Every public read is cached for a few minutes under one tag. Writes clear it: review actions call
-// updateTag("record"); importers and the loader POST to /api/revalidate (localhost only).
+// Every public read is cached under one tag with the "record" profile (next.config.ts): served from cache, refreshed in
+// the background once it is a minute old. Writes clear it: review actions call updateTag("record"); importers and the
+// loader POST to /api/revalidate (localhost only). Pages await these outside <Suspense> so the result is built into the
+// page at build time and a visit needs no database query.
 export const RECORD_TAG = "record";
-function cached() { cacheLife("minutes"); cacheTag(RECORD_TAG); }
+function cached() { cacheLife("record"); cacheTag(RECORD_TAG); }
 
 export type GNode = { id: string; type: string; name: string; descriptor: string | null; cluster: string; source_url: string; issues: string[]; first_date: string | null };
 export type GLink = { id: number; from: string; to: string; type: "money" | "person" | "idea" | "position"; subtype: string | null; amount: number | null;
@@ -273,7 +275,9 @@ export async function getHome() {
     FROM feed_items fi JOIN nodes n ON n.id=fi.node_id LEFT JOIN nodes t ON t.id=fi.target_id
     WHERE fi.status='approved' AND fi.excerpt IS NOT NULL AND fi.kind NOT IN ('donation','policy change','filing') AND n.type NOT IN ('lawmaker','agency') AND fi.date IS NOT NULL
     ORDER BY fi.date DESC, fi.id DESC LIMIT 12`);
-  return { counts, givers, recipients, stances, byYear, quotes };
+  // The date this overview was computed, read inside the cache so the page itself has no clock to wait on.
+  const today = new Date().toISOString().slice(0, 10);
+  return { counts, givers, recipients, stances, byYear, quotes, today };
 }
 
 // Lands on: each target's latest stated position per actor, grouped into sides, so a row says who stood where.
@@ -499,6 +503,8 @@ export async function moneyAds(node: string, limit = 50) {
 
 // Where a merged-away id now lives, following chains of applied merges. Null if the id was never merged.
 export async function getMergedInto(id: string): Promise<string | null> {
+  "use cache";
+  cached();
   let cur = id;
   for (let i = 0; i < 5; i++) {
     const r = await q<{ kept_id: string }>(`SELECT kept_id FROM merge_log WHERE action='merge' AND status='applied' AND reverted_at IS NULL AND merged_id=$1 ORDER BY applied_at DESC LIMIT 1`, [cur]);
@@ -578,4 +584,35 @@ export async function viewWordingSources(billId: string) {
   const rows = await q<any>(`SELECT id::int, bill_clause, bill_version, bill_date::text, bill_url, bill_archive_url, source_clause, source_title, source_author_id,
       source_date::text, source_url, source_archive_url, similarity, kind FROM prov_matches WHERE bill_node_id=$1 AND status='approved' ORDER BY similarity DESC`, [billId]);
   return rows.map((r: any) => ({ ...r, bill_clause: cut25(r.bill_clause), source_clause: cut25(r.source_clause) }));
+}
+
+// ── Small reads that used to run on every request ──
+export async function allNodeIds(): Promise<string[]> {
+  "use cache";
+  cached();
+  // Best-connected first, so a build or warm-up that is cut short has covered the profiles people open most.
+  return (await q<{ id: string }>(`SELECT n.id FROM nodes n ORDER BY (SELECT count(*) FROM links l WHERE l.from_id=n.id OR l.to_id=n.id) DESC, n.id`)).map((r) => r.id);
+}
+
+export async function getOpenData() {
+  "use cache";
+  cached();
+  const [counts] = await q<any>(`SELECT (SELECT count(*) FROM nodes)::int nodes, (SELECT count(*) FROM links)::int links, (SELECT count(*) FROM feed_items WHERE status='approved')::int feed_items,
+    (SELECT count(*) FROM filings)::int filings, (SELECT count(*) FROM facts)::int facts,
+    (SELECT count(*) FROM archives WHERE archive_url IS NOT NULL)::int archived, (SELECT count(DISTINCT url) FROM url_checks)::int checked`);
+  const changes = await q<any>(`SELECT id, at::text, action, table_name, row_ref, actor FROM changelog ORDER BY id DESC LIMIT 300`);
+  const corrections = await q<any>(`SELECT id, at::text, what_changed, url FROM corrections ORDER BY id DESC LIMIT 500`);
+  const runs = await q<any>(`SELECT DISTINCT ON (importer) importer, started_at::text, ok, added, message FROM import_runs ORDER BY importer, started_at DESC`);
+  return { counts, changes, corrections, runs };
+}
+
+// Everything the header's name lookup matches against, so a keystroke filters in memory instead of querying.
+export async function getNameIndex() {
+  "use cache";
+  cached();
+  const nodes = await q<{ id: string; name: string; type: string; descriptor: string | null; weight: number }>(
+    `SELECT id, name, type, descriptor, (SELECT count(*)::int FROM links l WHERE l.from_id=n.id OR l.to_id=n.id) AS weight FROM nodes n`);
+  const aliases = await q<{ node_id: string; alias: string }>(`SELECT node_id, alias FROM entity_aliases`);
+  const merged = await q<{ merged_id: string; kept_id: string }>(`SELECT merged_id, kept_id FROM merge_log WHERE action='merge' AND status='applied' AND reverted_at IS NULL`);
+  return { nodes, aliases, merged };
 }

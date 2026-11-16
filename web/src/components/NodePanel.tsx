@@ -1,7 +1,7 @@
 "use client";
 import Linked from "./Linked";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/Link";
 import type { GNode, GLink } from "@/lib/data";
 import { fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
 import { Mark, KeyFacts } from "./ProfileHead";

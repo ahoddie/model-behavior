@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/Link";
 import type { Part } from "@/lib/linkify";
 
 // A sentence with tracked actors' names linked to their profiles.

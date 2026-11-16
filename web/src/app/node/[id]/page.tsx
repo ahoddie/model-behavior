@@ -1,10 +1,10 @@
-import { connection } from "next/server";
+import { Suspense } from "react";
 import CiteButton from "@/components/CiteButton";
 import { sourceName } from "@/lib/format";
 import Linked from "@/components/Linked";
-import Link from "next/link";
+import Link from "@/components/Link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { getProfile, getTarget, getCoverage, getActorIssues, getActorLobbyingIssues, getMergedInto, approvedConflictFlags, TARGET_TYPES } from "@/lib/data";
+import { getProfile, getTarget, getCoverage, getActorIssues, getActorLobbyingIssues, getMergedInto, approvedConflictFlags, allNodeIds, TARGET_TYPES } from "@/lib/data";
 import ConflictFlags from "@/components/ConflictFlags";
 import StanceBar from "@/components/StanceBar";
 import CoverageLine from "@/components/CoverageLine";
@@ -27,10 +27,17 @@ const byDate = (a: any, b: any) => String(b.date ?? "").localeCompare(String(a.d
 
 const ANSWER_WORDS = ["disagrees strongly", "disagrees", "mentions it without taking a side", "agrees", "agrees strongly"];
 
+// Every profile is built ahead of time, and one added later is built on its first visit and kept.
+export async function generateStaticParams() {
+  return (await allNodeIds()).map((id) => ({ id }));
+}
+
+const loadActor = (id: string) => Promise.all([getProfile(id), getActorIssues(id), getActorLobbyingIssues(id), approvedConflictFlags(id)]);
+
+// Only the choice of tab and filter waits for the URL. Awaited here, outside the boundary, the profile's cached reads are stored
+// with the prebuilt page; the same calls inside the boundary are answered from that copy, so no tab or filter runs a query.
 export default async function NodePage(props: PageProps<"/node/[id]">) {
-  await connection();
   const { id } = await props.params;
-  const sp = await props.searchParams;
   const head = await getTarget(id);
   if (!head) { const to = await getMergedInto(id); if (to) permanentRedirect(`/node/${encodeURIComponent(to)}`); notFound(); }
   const coverage = await getCoverage(id);
@@ -42,18 +49,8 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
     </>;
   }
 
-  const [pr, actorIssues, lobbyIssues, flags] = await Promise.all([getProfile(id), getActorIssues(id), getActorLobbyingIssues(id), approvedConflictFlags(id)]);
+  const [pr, , lobbyIssues, flags] = await loadActor(id);
   const p = pr!;
-  const tab = (typeof sp.tab === "string" ? sp.tab : "record") as (typeof TABS)[number][0];
-  const kind = typeof sp.kind === "string" ? sp.kind : "";
-  const issue = typeof sp.issue === "string" ? sp.issue : "";
-  const feed = p.feed.filter((f: any) => (!kind || f.kind === kind) && (!issue || f.issues.includes(issue)));
-  const kinds = [...new Set(p.feed.map((f: any) => f.kind))] as string[];
-  const issues = [...new Set(p.feed.flatMap((f: any) => f.issues))] as string[];
-  const personLinks = p.links.filter((l: any) => l.type === "person");
-  const positionLinks = p.links.filter((l: any) => l.type === "position");
-  const stanceFeed = p.feed.filter((f: any) => f.stance);
-  const href = (t: string, extra = "") => `/node/${id}?tab=${t}${extra}`;
   const noRecords = !p.keyFacts.length && !p.facts.length && !p.feed.length && !p.filings.length && !p.links.length && !lobbyIssues.length && !flags.length;
 
   return (
@@ -65,7 +62,30 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
       {p.facts.length > 0 && <ul className="facts">{p.facts.map((f, i) => <li key={i}><Linked parts={(f as any).parts} text={f.text} /> <Src url={f.url} /></li>)}</ul>}
       <FollowForm nodeId={id} />
       {noRecords && <KnownRecord node={p.node} />}
+      <Suspense fallback={<p className="mono muted" role="status">Loading the record…</p>}>
+        <Tabs sp={props.searchParams} id={id} />
+      </Suspense>
+    </div>
+  );
+}
 
+async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams"]; id: string }) {
+  const sp = await spP;
+  const [pr, actorIssues, lobbyIssues, flags] = await loadActor(id);
+  const p = pr!;
+  const tab = (typeof sp.tab === "string" ? sp.tab : "record") as (typeof TABS)[number][0];
+  const kind = typeof sp.kind === "string" ? sp.kind : "";
+  const issue = typeof sp.issue === "string" ? sp.issue : "";
+  const feed = p.feed.filter((f: any) => (!kind || f.kind === kind) && (!issue || f.issues.includes(issue)));
+  const kinds = [...new Set(p.feed.map((f: any) => f.kind))] as string[];
+  const issues = [...new Set(p.feed.flatMap((f: any) => f.issues))] as string[];
+  const personLinks = p.links.filter((l: any) => l.type === "person");
+  const positionLinks = p.links.filter((l: any) => l.type === "position");
+  const stanceFeed = p.feed.filter((f: any) => f.stance);
+  const href = (t: string, extra = "") => `/node/${id}?tab=${t}${extra}`;
+
+  return (
+    <>
       <nav className="tabs" aria-label="Profile sections">
         {TABS.map(([t, label]) => <Link key={t} href={href(t)} scroll={false} aria-current={tab === t ? "page" : undefined}>{label}{t === "flags" && flags.length ? ` (${flags.length})` : ""}</Link>)}
       </nav>
@@ -217,6 +237,6 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
       })}
 
       {tab === "flags" && <ConflictFlags flags={flags} />}
-    </div>
+    </>
   );
 }

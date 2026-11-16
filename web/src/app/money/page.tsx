@@ -1,6 +1,6 @@
-import { connection } from "next/server";
-import Link from "next/link";
-import { moneyFlows, moneyStarts, moneyChainFlows, moneyChainStarts } from "@/lib/data";
+import { Suspense } from "react";
+import Link from "@/components/Link";
+import { moneyFlows, moneyStarts, moneyChainFlows, moneyChainStarts, getNodeSummary } from "@/lib/data";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import MoneyFlow from "@/components/MoneyFlow";
 import Select from "@/components/Select";
@@ -28,16 +28,33 @@ function mergeFlows(links: any[], chain: any[]) {
   return [...filed, ...links.filter((l) => !filed.some((c) => same(l, c)))];
 }
 
+const loadStarts = async () => mergeStarts(await moneyStarts(), await moneyChainStarts());
+const flowsFrom = async (start: string) => mergeFlows(await moneyFlows(start), await moneyChainFlows(start));
+
+// Only the choice of starting point waits for the URL. Awaited here, outside the boundary, the cached list of starting points
+// and the trace from the largest giver (what /money opens on) are stored with the prebuilt page; the same calls inside the
+// boundary are answered from that copy. Other starting points are cached on first use and after each site start (lib/warm).
 export default async function Money(props: PageProps<"/money">) {
-  await connection();
-  const sp = await props.searchParams;
-  const starts = mergeStarts(await moneyStarts(), await moneyChainStarts());
-  const start = typeof sp.from === "string" ? sp.from : starts[0]?.id;
-  const flows = start ? mergeFlows(await moneyFlows(start), await moneyChainFlows(start)) : [];
-  const name = starts.find((s) => s.id === start)?.name ?? start;
+  const first = (await loadStarts())[0]?.id as string | undefined;
+  if (first) await Promise.all([flowsFrom(first), isUndisclosed(first) ? null : getNodeSummary(first)]);
   return (
     <div className="page wide">
       <h1>Follow the money</h1>
+      <Suspense fallback={<p className="mono muted" role="status">Loading the record…</p>}>
+        <Trace sp={props.searchParams} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function Trace({ sp: spP }: { sp: PageProps<"/money">["searchParams"] }) {
+  const sp = await spP;
+  const starts = await loadStarts();
+  const start: string | undefined = typeof sp.from === "string" ? sp.from : starts[0]?.id;
+  const flows = start ? await flowsFrom(start) : [];
+  const name = starts.find((s) => s.id === start)?.name ?? start;
+  return (
+    <>
       <form className="filters" action="/money">
         <Select label="Start from" name="from" defaultValue={start} wide submitOnChange options={starts.map((s) => ({ value: s.id, label: `${s.name} (${fmtMoney(s.out)})` }))} />
         <noscript><button type="submit">Trace</button></noscript>
@@ -56,6 +73,6 @@ export default async function Money(props: PageProps<"/money">) {
         <p className="muted">A step marked “filed with the FEC” adds up every filed line between the two parties.</p>
         <p className="muted">Later steps show everything the next committee spent, not only {name}&apos;s share of it. Money is fungible inside a committee; the filings don&apos;t say whose dollar paid for which ad.</p>
       </>}
-    </div>
+    </>
   );
 }

@@ -1,22 +1,29 @@
-import { connection } from "next/server";
-import Link from "next/link";
-import { q } from "@/lib/db";
+import { Suspense } from "react";
+import Link from "@/components/Link";
+import { getOpenData } from "@/lib/data";
 import { fmtDate } from "@/lib/format";
 import Src from "@/components/Src";
 
+// Only the choice of tab waits for the URL. Awaited here, outside the boundary, the cached tables are stored with the prebuilt
+// page; the same call inside the boundary is answered from that copy, so no tab runs a query.
 export default async function OpenData(props: PageProps<"/data">) {
-  await connection();
-  const sp = await props.searchParams;
-  const view = typeof sp.view === "string" ? sp.view : "download";
-  const counts = (await q<any>(`SELECT (SELECT count(*) FROM nodes)::int nodes, (SELECT count(*) FROM links)::int links, (SELECT count(*) FROM feed_items WHERE status='approved')::int feed_items,
-    (SELECT count(*) FROM filings)::int filings, (SELECT count(*) FROM facts)::int facts,
-    (SELECT count(*) FROM archives WHERE archive_url IS NOT NULL)::int archived, (SELECT count(DISTINCT url) FROM url_checks)::int checked`))[0];
-  const changes = view === "changelog" ? await q<any>(`SELECT c.*, c.at::text FROM changelog c ORDER BY id DESC LIMIT 300`) : [];
-  const corrections = view === "corrections" ? await q<any>(`SELECT *, at::text FROM corrections ORDER BY id DESC LIMIT 500`) : [];
-  const runs = view === "methodology" ? await q<any>(`SELECT DISTINCT ON (importer) importer, started_at::text, ok, added, message FROM import_runs ORDER BY importer, started_at DESC`) : [];
+  await getOpenData();
   return (
     <div className="page">
       <h1>Open data</h1>
+      <Suspense fallback={<p className="mono muted" role="status">Loading the record…</p>}>
+        <Sections sp={props.searchParams} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function Sections({ sp }: { sp: PageProps<"/data">["searchParams"] }) {
+  const { view: v } = await sp;
+  const { counts, changes, corrections, runs } = await getOpenData();
+  const view = typeof v === "string" ? v : "download";
+  return (
+    <>
       <nav className="tabs" aria-label="Open data sections">
         {[["download", "Download"], ["methodology", "Methodology"], ["corrections", "Corrections"]].map(([v, l]) =>
           <Link key={v} href={`/data?view=${v}`} scroll={false} aria-current={view === v ? "page" : undefined}>{l}</Link>)}
@@ -47,17 +54,17 @@ export default async function OpenData(props: PageProps<"/data">) {
         </dl>
         <h2>Importers</h2>
         <table className="data-table"><thead><tr><th>Importer</th><th>Last run</th><th>OK</th><th className="num">Added</th><th>Note</th></tr></thead><tbody>
-          {runs.map((r) => <tr key={r.importer}><td className="mono">{r.importer}</td><td className="mono">{r.started_at.slice(0, 16)}</td><td>{r.ok ? "yes" : r.ok === false ? "no" : "running"}</td><td className="num">{r.added}</td><td>{r.message}</td></tr>)}
+          {runs.map((r: any) => <tr key={r.importer}><td className="mono">{r.importer}</td><td className="mono">{r.started_at.slice(0, 16)}</td><td>{r.ok ? "yes" : r.ok === false ? "no" : "running"}</td><td className="num">{r.added}</td><td>{r.message}</td></tr>)}
         </tbody></table>
       </div>}
 
       {view === "changelog" && <table className="data-table"><thead><tr><th>When</th><th>Action</th><th>Table</th><th>Row</th><th>By</th></tr></thead><tbody>
-        {changes.map((c) => <tr key={c.id}><td className="mono">{c.at.slice(0, 16)}</td><td>{c.action}</td><td className="mono">{c.table_name}</td>
+        {changes.map((c: any) => <tr key={c.id}><td className="mono">{c.at.slice(0, 16)}</td><td>{c.action}</td><td className="mono">{c.table_name}</td>
           <td className="mono">{c.table_name === "nodes" ? <Link href={`/node/${c.row_ref}`}>{c.row_ref}</Link> : c.row_ref}</td><td className="mono">{c.actor}</td></tr>)}
       </tbody></table>}
 
       {view === "corrections" && (corrections.length === 0 ? <p className="muted">No corrections yet.</p> :
-        <ul className="feed">{corrections.map((c) => <li key={c.id}><div className="when">{fmtDate(c.at)}</div><div>{c.what_changed} <Src url={c.url} /></div></li>)}</ul>)}
-    </div>
+        <ul className="feed">{corrections.map((c: any) => <li key={c.id}><div className="when">{fmtDate(c.at)}</div><div>{c.what_changed} <Src url={c.url} /></div></li>)}</ul>)}
+    </>
   );
 }
