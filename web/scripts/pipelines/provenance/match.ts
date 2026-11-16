@@ -4,6 +4,7 @@
 //   --store                 apply data/eval/provenance/thresholds.json, insert prov_matches (pending) and enqueue each for review
 // Only a source dated strictly before the bill version can be a source; a bill never matches its own earlier versions.
 import { q, pool, readText, EVAL_DIR } from "./lib.ts";
+import { isBoilerplate, sourceMentionsBill } from "./filters.ts";
 import { splitClauses, words, shingles, overlap, wc, excerpt, STOP } from "./clauses.ts";
 import { llmJson } from "../../lib/llm.ts";
 import { enqueue } from "../../lib/review.ts";
@@ -96,6 +97,16 @@ if (has("--candidates")) {
   console.log("score buckets (0.2 wide):", JSON.stringify(dist));
 }
 
+if (has("--prune")) {
+  const rows = await q<any>(`SELECT c.id, c.bill_text, c.src_text, c.bill_text_id, c.src_text_id FROM prov_cands c WHERE c.relation IS NULL`);
+  let n = 0;
+  for (const r of rows) {
+    const b = byId.get(Number(r.bill_text_id))!, s = byId.get(Number(r.src_text_id))!;
+    if (isBoilerplate(r.bill_text, r.src_text) || (b.bill_node_id && sourceMentionsBill(s, b.bill_node_id))) { await pool.query(`DELETE FROM prov_cands WHERE id=$1`, [r.id]); n++; }
+  }
+  console.log(`pruned ${n} of ${rows.length} unscored candidates (boilerplate or commentary on the bill itself)`);
+}
+
 // ------------------------------------------------------------------------------------------------------------------------
 const SYSTEM = `You compare two passages and decide whether the later passage's wording was taken from the earlier one.
 You judge wording only. Same topic or the same kind of rule is not enough: the later passage must reuse the earlier passage's specific words, phrases, definitions, numbers or sentence structure.
@@ -113,7 +124,9 @@ if (has("--llm")) {
   const minScore = Number(arg("--min-score", "0"));
   const ids: number[] | null = has("--ids") ? (JSON.parse(readFileSync(join(EVAL_DIR, "pairs.json"), "utf8")) as { id: number }[]).map((p) => p.id) : null;
   const rows = await q<{ id: number; bill_text: string; src_text: string; score: number }>(
-    `SELECT id, bill_text, src_text, score FROM prov_cands WHERE relation IS NULL AND score >= $2 AND ($3::bigint[] IS NULL OR id = ANY($3)) ORDER BY ${has("--spread") ? "md5(id::text)" : "score DESC"} LIMIT $1`, [limit, minScore, ids]);
+    `SELECT id, bill_text, src_text, score FROM (
+       SELECT c.*, row_number() OVER (PARTITION BY bill_text_id, src_text_id ORDER BY score DESC) AS rk FROM prov_cands c WHERE relation IS NULL AND score >= $2 AND ($3::bigint[] IS NULL OR id = ANY($3))) x
+     WHERE rk <= $4 ORDER BY ${has("--spread") ? "md5(id::text)" : "score DESC"} LIMIT $1`, [limit, minScore, ids, Number(arg("--cap-per-pair", "1000000"))]);
   console.log(`${rows.length} candidates to ask about`);
   let n = 0;
   for (const r of rows) {
