@@ -438,14 +438,8 @@ export async function approvedConflictFlags(id: string): Promise<ApprovedFlag[]>
 // One row per distinct pair of parties. Amounts are pool-level totals of the filed lines between the pair: a chain does not trace one
 // donor's dollars through a PAC (the filings never say which receipt funded which spend). Undisclosed hops have from_id
 // "undisclosed:<entity id>", the name "Undisclosed donors" and a null amount: never a person, never a guessed donor.
-const CHAIN_EDGES = `
-  SELECT coalesce(h.from_id, 'undisclosed:' || h.to_id) AS from_id, h.to_id, h.hop_basis,
-         coalesce(f.name, 'Undisclosed donors') AS from_name, t.name AS to_name, t.type AS to_type,
-         max(h.amount)::float8 AS amount, min(h.source_url) AS source_url, min(h.archive_url) AS archive_url, max(h.date)::text AS date,
-         (SELECT max(CASE x.support_oppose WHEN 'S' THEN 'support' WHEN 'O' THEN 'oppose' END) FROM money_x_hop_txns ht JOIN money_x_fec_tx x ON x.id=ht.tx_id WHERE ht.hop_id = (array_agg(h.id))[1]) AS stance,
-         (SELECT count(*)::int FROM money_x_hop_txns ht WHERE ht.hop_id = (array_agg(h.id))[1]) AS n_lines
-    FROM money_hops_shown h JOIN nodes t ON t.id=h.to_id LEFT JOIN nodes f ON f.id=h.from_id
-   GROUP BY 1, 2, 3, 4, 5, 6, (CASE WHEN h.hop_basis='disclosed' THEN coalesce((SELECT max(x.support_oppose) FROM money_x_hop_txns ht JOIN money_x_fec_tx x ON x.id=ht.tx_id WHERE ht.hop_id=h.id), '') ELSE '' END)`;
+// The grouping lives in the money_edges view (db/migrations/193, over money_hops_shown since 196), shared with scripts/pipelines/money/export.ts.
+const CHAIN_EDGES = `SELECT * FROM money_edges`;
 
 // Same shape as moneyFlows() so the existing <MoneyFlow> component can draw it, plus basis/archive_url/n_lines.
 // `start` may be an actor id or "undisclosed:<entity id>" to start from an Undisclosed-donors placeholder.
