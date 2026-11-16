@@ -8,12 +8,18 @@ type KeyFact = { label: string; text: string; url: string };
 const ORGS = new Set(["lab", "investor", "funder", "think_tank", "nonprofit", "pac", "agency"]);
 
 export function Mark({ node, size = 56 }: { node: { name: string; type: string; logo_url?: string | null }; size?: number }) {
+  const sm = size <= 28 ? " mark-sm" : "";
   if (node.logo_url) {
-    // eslint-disable-next-line @next/next/no-img-element -- hot-linked from the org's own site, sizes vary
-    return <img className="mark" src={node.logo_url} alt="" width={size} height={size} referrerPolicy="no-referrer" loading="lazy" />;
+    // eslint-disable-next-line @next/next/no-img-element -- the org's own icon, saved under /logos; sizes vary
+    return <img className={`mark${sm}`} src={node.logo_url} alt="" width={size} height={size} referrerPolicy="no-referrer" loading="lazy" />;
   }
   const initials = node.name.replace(/\(.*?\)/g, "").split(/\s+/).filter((w) => /^[A-Za-z0-9]/.test(w)).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-  return <span className={`mark mark-blank${ORGS.has(node.type) ? "" : " mark-person"}`} style={{ width: size, height: size }} aria-hidden>{initials}</span>;
+  return <span className={`mark mark-blank${sm}${ORGS.has(node.type) ? "" : " mark-person"}`} style={{ width: size, height: size, ...(sm ? { fontSize: Math.round(size * 0.45) } : {}) }} aria-hidden>{initials}</span>;
+}
+
+// A name with its mark in front, for lists and tables.
+export function Named({ node, size = 20, children }: { node: { name: string; type: string; logo_url?: string | null }; size?: number; children: React.ReactNode }) {
+  return <span className="named"><Mark node={node} size={size} />{children}</span>;
 }
 
 export function KeyFacts({ facts, compact }: { facts: KeyFact[]; compact?: boolean }) {

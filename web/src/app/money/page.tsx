@@ -1,11 +1,13 @@
 import { Suspense } from "react";
 import Link from "@/components/Link";
-import { moneyFlows, moneyStarts, moneyChainFlows, moneyChainStarts, getNodeSummary } from "@/lib/data";
+import { moneyFlows, moneyStarts, moneyChainFlows, moneyChainStarts, getNodeSummary, nodeMarks } from "@/lib/data";
+import { Named } from "@/components/ProfileHead";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import MoneyFlow from "@/components/MoneyFlow";
 import Select from "@/components/Select";
 import Src from "@/components/Src";
 import ActorSummary from "@/components/ActorSummary";
+import RandomStart from "@/components/RandomStart";
 
 // Two sources of money steps: curated links (research, grants, filings already loaded) and the filed FEC chains built by the
 // money pipeline. When both describe the same gift (same two parties, same amount), the filed hop is kept: it carries the
@@ -27,6 +29,12 @@ function mergeFlows(links: any[], chain: any[]) {
     (fec(l.source_url) || l.amount == null || c.amount == null || Math.abs(l.amount - c.amount) <= Math.max(1, 0.01 * c.amount));
   return [...filed, ...links.filter((l) => !filed.some((c) => same(l, c)))];
 }
+
+// The filing text repeats the From and To columns; keep only how the filing names the giver.
+const shortNote = (n: string | null) => {
+  const m = n?.match(/^FEC Schedule A individual contribution to .+?; contributor listed as (.+?), employer (.+?), [^,]+\.$/);
+  return m ? `Filed as ${m[1]}, employer ${m[2]}` : n;
+};
 
 const loadStarts = async () => mergeStarts(await moneyStarts(), await moneyChainStarts());
 const flowsFrom = async (start: string) => mergeFlows(await moneyFlows(start), await moneyChainFlows(start));
@@ -53,21 +61,24 @@ async function Trace({ sp: spP }: { sp: PageProps<"/money">["searchParams"] }) {
   const start: string | undefined = typeof sp.from === "string" ? sp.from : starts[0]?.id;
   const flows = start ? await flowsFrom(start) : [];
   const name = starts.find((s) => s.id === start)?.name ?? start;
+  const marks = await nodeMarks([...new Set(flows.flatMap((f) => [f.from_id, f.to_id]).filter((i) => i && !isUndisclosed(i)))]);
+  const who = (id: string, nm: string) => marks[id] ? <Named node={marks[id]}><Link href={`/node/${id}`}>{nm}</Link></Named> : nm;
   return (
     <>
       <form className="filters" action="/money">
-        <Select label="Start from" name="from" defaultValue={start} wide submitOnChange options={starts.map((s) => ({ value: s.id, label: `${s.name} (${fmtMoney(s.out)})` }))} />
+        <Select key={start} label="Start from" name="from" defaultValue={start} wide submitOnChange options={starts.map((s) => ({ value: s.id, label: `${s.name} (${fmtMoney(s.out)})` }))} />
+        <RandomStart ids={starts.filter((s) => !isUndisclosed(s.id)).map((s) => s.id)} current={start} />
         <noscript><button type="submit">Trace</button></noscript>
       </form>
       {start && !isUndisclosed(start) ? <ActorSummary id={start} /> : null}
       {flows.length === 0 ? <p className="muted">No sourced money leaves this starting point.</p> : <>
         <MoneyFlow start={start!} flows={flows} />
         <h2>Every dollar, step by step</h2>
-        <table className="data-table"><thead><tr><th>Step</th><th>From</th><th>To</th><th className="num">Amount</th><th>Date</th><th>Detail</th></tr></thead><tbody>
+        <table className="data-table money-steps"><thead><tr><th>Step</th><th>From</th><th>To</th><th className="num">Amount</th><th>Date</th><th>Detail</th></tr></thead><tbody>
           {flows.sort((a, b) => a.d - b.d || (b.amount ?? 0) - (a.amount ?? 0)).map((f, i) => (
-            <tr key={i}><td className="mono">{f.d}</td><td>{isUndisclosed(f.from_id) ? f.from_name : <Link href={`/node/${f.from_id}`}>{f.from_name}</Link>}</td><td><Link href={`/node/${f.to_id}`}>{f.to_name}</Link></td>
-              <td className="num">{fmtMoney(f.amount) || "not listed"} <Src url={f.source_url} archive={f.archive_url} /></td>
-              <td className="mono">{fmtDate(f.date_start)}</td><td>{f.subtype}{f.stance ? ` (${f.stance})` : ""}{f.note ? ` · ${f.note}` : ""}</td></tr>
+            <tr key={i}><td className="mono">{f.d}</td><td className="nw">{who(f.from_id, f.from_name)}</td><td className="nw">{who(f.to_id, f.to_name)}</td>
+              <td className="num nw">{fmtMoney(f.amount) || "not listed"} <Src url={f.source_url} archive={f.archive_url} /></td>
+              <td className="nw">{fmtDate(f.date_start)}</td><td>{f.subtype}{f.stance ? ` (${f.stance})` : ""}{f.note ? <span className="step-note">{shortNote(f.note)}</span> : null}</td></tr>
           ))}
         </tbody></table>
         <p className="muted">A step marked “filed with the FEC” adds up every filed line between the two parties.</p>

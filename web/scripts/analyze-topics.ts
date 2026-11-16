@@ -8,17 +8,26 @@ import { pool, q } from "../src/lib/db.ts";
 import { llmJson } from "./lib/llm.ts";
 import { notifySite } from "./lib/ingest.ts";
 
-export const PROMPT_VERSION = "topics-v1";
+export const PROMPT_VERSION = "topics-v2";  // v2: the quote must state the side itself; inference is "not about this"
 const arg = (f: string) => { const i = process.argv.indexOf(f); return i > 0 ? process.argv[i + 1] : undefined; };
 const ONLY = arg("--topic");
 const REDO = process.argv.includes("--redo");
 const ANSWER: Record<string, number | null> = { "agrees strongly": 2, "agrees": 1, "takes no clear side": 0, "disagrees": -1, "disagrees strongly": -2, "not about this": null };
 
-const SYSTEM = `You read one short quote and one statement. Say whether the speaker, in this quote, agrees or disagrees with the statement.
-Answer from the quote alone. Describing a risk counts as agreeing that the risk is real; calling a risk overblown counts as disagreeing.
-If the quote is about something else, answer "not about this". Give a short reason first.
+const SYSTEM = `You read one short quote and one statement. Say whether the speaker, in this quote, takes a side on the statement.
+Answer from the words of the quote alone. Do not infer a view the quote does not state.
+"agrees" and "disagrees" need the quote itself to assert or reject what the statement says. Use "strongly" only for emphatic or unqualified wording.
+Answer "not about this" when:
+- the quote is about a different subject, even if it shares a word with the statement;
+- the quote only mentions the subject, or proposes a policy, without saying whether the statement is true;
+- you would have to guess what the speaker believes from what they propose or criticize.
+Answer "takes no clear side" only when the quote discusses the statement directly and weighs both sides.
+Give a short reason first, quoting the words that decide it.
 Example: statement "Cars should have speed limiters." quote "Speed limiters would save thousands of lives." -> agrees.
-Example: statement "Cars should have speed limiters." quote "Limiters are a solution in search of a problem." -> disagrees.`;
+Example: statement "Cars should have speed limiters." quote "Limiters are a solution in search of a problem." -> disagrees.
+Example: statement "Cars could cause mass casualties." quote "We need an international agency for road safety." -> not about this.
+Example: statement "Cars should have speed limiters." quote "Any rule should follow a study of the costs and benefits of driving." -> not about this.
+Example: statement "Cars could cause mass casualties." quote "The tire tax was based on scare stories and should stay dead." -> not about this.`;
 const SCHEMA = { type: "object", properties: { reason: { type: "string" }, answer: { type: "string", enum: Object.keys(ANSWER) } }, required: ["reason", "answer"] };
 
 const topics = await q<{ id: string; positive: string; keywords: string }>(

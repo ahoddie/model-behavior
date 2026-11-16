@@ -1,7 +1,7 @@
 "use client";
 import Select from "./Select";
 import NameSearch from "./NameSearch";
-import { Suspense, useEffect, useMemo, useRef, useState, useCallback, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 import * as d3 from "d3";
 import { landsRank, clusterName, fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
@@ -14,6 +14,8 @@ const COL_TITLES = ["The Valley", "Through", "Lands on"];
 const LINK_TYPES = ["money", "person", "idea", "position"] as const;
 const TOP_N = 10;
 const COL_W = 250, ROW_H = 32, CLUSTER_H = 48, MORE_H = 24, GAP = 10, TOP = 64;
+// How long the pointer must rest on a line before it lights up, so sweeping across the tangle changes nothing.
+const HOVER_MS = 90;
 
 function useMedia(query: string) {
   return useSyncExternalStore(
@@ -24,11 +26,22 @@ function useMedia(query: string) {
 }
 
 type Item = { key: string; kind: "cluster" | "node" | "more" | "colmore" | "header"; col: number; y: number; h: number; label: string; sub?: string;
-  cluster: string; nodeId?: string; count?: number; money?: number; hidden?: number };
+  cluster: string; nodeId?: string; members?: string[]; hidden?: number };
 type Edge = { key: string; from: Item; to: Item; type: string; amount: number; count: number; links: GLink[]; fromCluster: string; toCluster: string };
 
 // Reads ?view= and ?focus= in the browser and hands them to the map. It sits in its own <Suspense> so the map around it is
 // prebuilt as static HTML; a page that read the URL on the server could not be.
+type Score = Map<string, { money: number; count: number }>;
+function scoreOf(ls: GLink[]): Score {
+  const s: Score = new Map();
+  for (const l of ls) for (const id of [l.from, l.to]) {
+    const v = s.get(id) ?? { money: 0, count: 0 };
+    v.count++; if (l.type === "money" && l.subtype !== "lobbying") v.money += l.amount ?? 0;
+    s.set(id, v);
+  }
+  return s;
+}
+
 function FromUrl({ apply }: { apply: (view: string | null, focus: string | null) => void }) {
   const sp = useSearchParams();
   const view = sp.get("view"), focus = sp.get("focus");
@@ -62,8 +75,17 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
   const [selected, setSelected] = useState<string | null>(null);
   // No zoom or pan: a fixed scale keeps clicks reliable (d3-zoom swallowed any click with the slightest mouse movement).
   const k = 1;
-  const [hoverEdge, setHoverEdge] = useState<Edge | null>(null);
-  const [width, setWidth] = useState(1200);
+  const [hoverKey, setHoverKey] = useState<string | null>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hover = (key: string | null) => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setHoverKey(key), HOVER_MS);
+  };
+  useEffect(() => () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); }, []);
+  // The columns are placed from the stage's real width. Until it is measured the map is laid out at a stand-in width and
+  // kept invisible, so the prebuilt page never shows columns that then jump.
+  const [measured, setMeasured] = useState<number | null>(null);
+  const width = measured ?? 1200;
   const mobile = useMedia("(max-width: 767px)");
   // Timeline
   const months = useMemo(() => {
@@ -81,9 +103,14 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
 
-  useEffect(() => {
-    const ro = new ResizeObserver(([e]) => setWidth(Math.max(960, e.contentRect.width)));
-    if (wrap.current) ro.observe(wrap.current);
+  useLayoutEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const fit = (w: number) => setMeasured(Math.max(960, Math.round(w)));
+    const cs = getComputedStyle(el);
+    fit(el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+    const ro = new ResizeObserver(([e]) => fit(e.contentRect.width));
+    ro.observe(el);
     return () => ro.disconnect();
   }, [mobile]);
 
@@ -94,40 +121,40 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
   }, [playing, months.length, speed]);
 
   // ── Filtering ────────────────────────────────────────────────
-  const dateCut = mode === "timeline" ? `${months[monthIdx]}-31` : null;
-  const fLinks = useMemo(() => links.filter((l) => {
+  // Every filter except the timeline's date. The timeline only ever hides links from this set, never adds to it.
+  const baseLinks = useMemo(() => links.filter((l) => {
     if (!types.has(l.type)) return false;
     if (!byId.has(l.from) || !byId.has(l.to)) return false;
     const y = l.date_start ? Number(l.date_start.slice(0, 4)) : null;
     if (y && (y < yearFrom || y > yearTo)) return false;
-    if (dateCut && (!l.date_start || l.date_start > dateCut)) return false;
     if (minAmount > 0 && l.type === "money" && (l.amount ?? 0) < minAmount) return false;
     if (issue && !(byId.get(l.from)!.issues?.includes(issue) || byId.get(l.to)!.issues?.includes(issue))) return false;
     return true;
-  }), [links, types, yearFrom, yearTo, minAmount, issue, byId, dateCut]);
+  }), [links, types, yearFrom, yearTo, minAmount, issue, byId]);
+  // What the layout is built from. In the timeline that is the last month's picture, so every box keeps one place for the
+  // whole run and the months only change which boxes and lines are lit. Laying out from each month's own links instead
+  // re-sorted the boxes on every step.
+  const lastCut = `${months[months.length - 1]}-31`;
+  const layoutLinks = useMemo(() => mode === "timeline" ? baseLinks.filter((l) => l.date_start && l.date_start <= lastCut) : baseLinks, [mode, baseLinks, lastCut]);
+  // What is shown now: the layout's links, up to the timeline's month.
+  const dateCut = mode === "timeline" && monthIdx < months.length - 1 ? `${months[monthIdx]}-31` : null;
+  const fLinks = useMemo(() => dateCut ? layoutLinks.filter((l) => l.date_start! <= dateCut) : layoutLinks, [layoutLinks, dateCut]);
 
-  const nodeScore = useMemo(() => {
-    const s = new Map<string, { money: number; count: number }>();
-    for (const l of fLinks) for (const id of [l.from, l.to]) {
-      const v = s.get(id) ?? { money: 0, count: 0 };
-      v.count++; if (l.type === "money" && l.subtype !== "lobbying") v.money += l.amount ?? 0;
-      s.set(id, v);
-    }
-    return s;
-  }, [fLinks]);
-  const score = useCallback((id: string) => { const v = nodeScore.get(id); return v ? v.money / 1e6 + v.count : 0; }, [nodeScore]);
+  const layoutScore = useMemo(() => scoreOf(layoutLinks), [layoutLinks]);
+  const nodeScore = useMemo(() => fLinks === layoutLinks ? layoutScore : scoreOf(fLinks), [fLinks, layoutLinks, layoutScore]);
+  const score = useCallback((id: string) => { const v = layoutScore.get(id); return v ? v.money / 1e6 + v.count : 0; }, [layoutScore]);
 
   // Focus: everything within two steps of the selected node.
   const focus = useMemo(() => {
     if (!selected || !byId.has(selected)) return null;
     const hop = new Map<string, number>([[selected, 0]]);
-    for (let d = 1; d <= 2; d++) for (const l of fLinks) {
+    for (let d = 1; d <= 2; d++) for (const l of layoutLinks) {
       const a = hop.get(l.from), b = hop.get(l.to);
       if (a === d - 1 && !hop.has(l.to)) hop.set(l.to, d);
       if (b === d - 1 && !hop.has(l.from)) hop.set(l.from, d);
     }
     return hop;
-  }, [selected, fLinks, byId]);
+  }, [selected, layoutLinks, byId]);
 
   // ── Layout ───────────────────────────────────────────────────
   const { items, nodeItem, height } = useMemo(() => {
@@ -137,7 +164,7 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
     const clustersOut = k < 0.7 && !focus; // zoomed out: clusters only
     let maxY = 0;
     for (const col of colX) {
-      const inCol = [...nodeScore.keys()].map((id) => byId.get(id)!).filter((n) => COLUMN[n.type] === col && (!focus || focus.has(n.id)));
+      const inCol = [...layoutScore.keys()].map((id) => byId.get(id)!).filter((n) => COLUMN[n.type] === col && (!focus || focus.has(n.id)));
       const groups = d3.group(inCol, (n) => n.cluster);
       const clusters = [...groups.entries()].map(([c, ns]) => ({ c, ns: ns.sort((a, b) => score(b.id) - score(a.id)), w: d3.sum(ns, (n) => score(n.id)) }))
         .sort((a, b) => (col === 2 ? landsRank(a.c) - landsRank(b.c) : b.w - a.w));
@@ -146,15 +173,14 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
       let y = TOP;
       for (const { c, ns } of showClusters) {
         const key = `${col}:${c}`;
-        const money = d3.sum(ns, (n) => nodeScore.get(n.id)?.money ?? 0);
         const open = focus ? true : !clustersOut && expanded.has(key);
-        const head: Item = { key, kind: open ? "header" : "cluster", col, y, h: open ? 28 : CLUSTER_H, label: clusterName(c), cluster: c, count: ns.length, money };
+        const head: Item = { key, kind: open ? "header" : "cluster", col, y, h: open ? 28 : CLUSTER_H, label: clusterName(c), cluster: c, members: ns.map((n) => n.id) };
         items.push(head); y += head.h;
         if (!open) { for (const n of ns) nodeItem.set(n.id, head); y += GAP; continue; }
         const showAll = focus || moreOpen.has(key);
         const vis = showAll ? ns : ns.slice(0, TOP_N);
         for (const n of vis) {
-          const it: Item = { key: `n:${n.id}`, kind: "node", col, y, h: ROW_H, label: n.name, sub: n.descriptor ?? TYPE_LABEL[n.type], cluster: c, nodeId: n.id, money: nodeScore.get(n.id)?.money };
+          const it: Item = { key: `n:${n.id}`, kind: "node", col, y, h: ROW_H, label: n.name, sub: n.descriptor ?? TYPE_LABEL[n.type], cluster: c, nodeId: n.id };
           items.push(it); nodeItem.set(n.id, it); y += ROW_H;
         }
         if (ns.length > vis.length) {
@@ -171,13 +197,13 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
       maxY = Math.max(maxY, y);
     }
     return { items, nodeItem, height: maxY + 40 };
-  }, [nodeScore, byId, score, expanded, moreOpen, focus, k]);
+  }, [layoutScore, byId, score, expanded, moreOpen, focus, k]);
 
   const xOf = (col: number) => (col === 0 ? 40 : col === 1 ? width / 2 - COL_W / 2 : width - COL_W - 40);
 
-  const edges = useMemo(() => {
+  const bundle = useCallback((ls: GLink[]) => {
     const agg = new Map<string, Edge>();
-    for (const l of fLinks) {
+    for (const l of ls) {
       const a = nodeItem.get(l.from), b = nodeItem.get(l.to);
       if (!a || !b || a === b) continue;
       const key = `${a.key}|${b.key}|${l.type}`;
@@ -186,7 +212,11 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
       agg.set(key, e);
     }
     return [...agg.values()];
-  }, [fLinks, nodeItem, byId]);
+  }, [nodeItem, byId]);
+  // Line widths are scaled against the whole layout, so in the timeline a line thickens as its money arrives and no line
+  // changes width because some other line grew.
+  const layoutEdges = useMemo(() => bundle(layoutLinks), [bundle, layoutLinks]);
+  const edges = useMemo(() => fLinks === layoutLinks ? layoutEdges : bundle(fLinks), [bundle, fLinks, layoutLinks, layoutEdges]);
 
   const clusterCenter = useMemo(() => {
     const m = new Map<string, number>();
@@ -194,8 +224,8 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
     return m;
   }, [items]);
 
-  const maxMoney = d3.max(edges, (e) => e.amount) || 1;
-  const maxCount = d3.max(edges, (e) => e.count) || 1;
+  const maxMoney = d3.max(layoutEdges, (e) => e.amount) || 1;
+  const maxCount = d3.max(layoutEdges, (e) => e.count) || 1;
   const widthOf = (e: Edge) => e.type === "money" && e.amount > 0 ? 1.2 + 13 * Math.sqrt(e.amount / maxMoney) : 1 + 5 * Math.sqrt(e.count / maxCount);
 
   function pathOf(e: Edge) {
@@ -215,14 +245,14 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
   }
 
   const selItem = selected ? nodeItem.get(selected) : null;
-  const edgeTone = (e: Edge) => {
-    if (focus && selected) {
-      const touches = e.links.some((l) => l.from === selected || l.to === selected);
-      return touches ? 1 : 0.4;
-    }
-    if (hoverEdge) return hoverEdge.key === e.key ? 1 : 0.15;
-    return 0.75;
-  };
+  const hoverEdge = hoverKey ? edges.find((e) => e.key === hoverKey) ?? null : null;
+  // Which lines stand out. The stylesheet does the dimming from two class names, so lighting one line touches that line
+  // and the group, not every line on the map.
+  const lit = (e: Edge) => focus && selected ? e.links.some((l) => l.from === selected || l.to === selected) : hoverKey === e.key;
+  const drawn = edges.map((e) => ({ e, d: pathOf(e), w: widthOf(e) }));
+  // What a box shows comes from the links on screen now, which in the timeline is fewer than the layout holds.
+  const moneyOf = (ids: string[]) => d3.sum(ids, (id) => nodeScore.get(id)?.money ?? 0);
+  const activeOf = (ids: string[]) => ids.filter((id) => nodeScore.has(id)).length;
 
   const toggle = (set: Set<string>, v: string) => { const n = new Set(set); if (n.has(v)) n.delete(v); else n.add(v); return n; };
   const activate = (it: Item) => {
@@ -304,8 +334,8 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
         {filters}
       </div>
       {timeline}
-      <div className={`mapstage${focus ? " focused" : ""}`}>
-        <svg ref={svgRef} width={width} height={height} role="group" aria-label="Influence map: The Valley, Through, Lands on" className="map">
+      <div className={`mapstage${focus ? " focused" : ""}${mode === "timeline" ? " timeline" : ""}`}>
+        <svg ref={svgRef} width={width} height={height} style={measured === null ? { visibility: "hidden" } : undefined} role="group" aria-label="Influence map: The Valley, Through, Lands on" className="map">
           <g ref={gRef}>
             {COL_TITLES.map((t, i) => (
               <g key={t} transform={`translate(${xOf(i)},${TOP - 24})`}>
@@ -313,11 +343,12 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
                 <line x1="0" x2={COL_W} y1="8" y2="8" className="colrule" />
               </g>
             ))}
-            <g className="edges">
-              {edges.map((e) => (
-                <path key={e.key} d={pathOf(e)} className={`edge edge-${e.type}`} strokeWidth={widthOf(e)} style={{ opacity: edgeTone(e) }}
-                  onMouseEnter={() => setHoverEdge(e)} onMouseLeave={() => setHoverEdge(null)} />
-              ))}
+            <g className={`edges${focus ? " focusing" : hoverEdge ? " hovering" : ""}`}>
+              {drawn.map(({ e, d, w }) => <path key={e.key} d={d} className={`edge edge-${e.type}${lit(e) ? " lit" : ""}`} strokeWidth={w} />)}
+            </g>
+            {/* The pointer meets a wide, solid, invisible copy of each line: thin and dashed lines are as easy to hit as thick ones. */}
+            <g className="edgehits">
+              {drawn.map(({ e, d, w }) => <path key={e.key} d={d} className="edgehit" strokeWidth={Math.max(w + 6, 10)} onMouseEnter={() => hover(e.key)} onMouseLeave={() => hover(null)} />)}
             </g>
             {k >= 1.3 && edges.filter((e) => e.type === "money" && e.amount > 0 && e.from.kind === "node" && e.to.kind === "node").map((e) => (
               <text key={`t${e.key}`} className="edgeamt" x={(xOf(e.from.col) + COL_W + xOf(e.to.col)) / 2} y={(e.from.y + e.to.y) / 2 + 12} textAnchor="middle">{fmtMoney(e.amount)}</text>
@@ -326,16 +357,19 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
               const x = xOf(it.col);
               const isSel = it.nodeId && it.nodeId === selected;
               const hop = it.nodeId && focus ? focus.get(it.nodeId) : undefined;
+              const money = it.nodeId ? nodeScore.get(it.nodeId)?.money : it.members ? moneyOf(it.members) : 0;
+              const count = it.members ? activeOf(it.members) : 0;
+              const idle = it.nodeId ? !nodeScore.has(it.nodeId) : it.members ? count === 0 : false;
               return (
-                <g key={it.key} transform={`translate(${x},${it.y})`} className={`item item-${it.kind}${isSel ? " sel" : ""}${hop === 2 ? " hop2" : ""}`}
+                <g key={it.key} transform={`translate(${x},${it.y})`} className={`item item-${it.kind}${isSel ? " sel" : ""}${hop === 2 ? " hop2" : ""}${idle ? " idle" : ""}`}
                   role="button" tabIndex={0} aria-expanded={it.kind === "cluster" || it.kind === "header" ? it.kind === "header" : undefined}
                   aria-pressed={it.kind === "node" ? Boolean(isSel) : undefined}
-                  aria-label={it.kind === "node" ? `${it.label}${it.money ? `, ${fmtMoney(it.money)}` : ""}` : it.kind === "cluster" ? `${it.label}, ${it.count} names. Expand` : it.label}
+                  aria-label={it.kind === "node" ? `${it.label}${money ? `, ${fmtMoney(money)}` : ""}` : it.kind === "cluster" ? `${it.label}, ${count} ${count === 1 ? "name" : "names"}. Expand` : it.label}
                   onClick={() => activate(it)} onKeyDown={(e) => onKey(e, it)}>
                   {it.kind === "cluster" && <>
                     <rect width={COL_W} height={CLUSTER_H - 6} rx="2" />
                     <text x="12" y="18" className="clabel">{it.label}</text>
-                    <text x="12" y="33" className="csub">{it.count} {it.count === 1 ? "name" : "names"}{it.money ? ` · ${fmtMoney(it.money)}` : ""}</text>
+                    <text x="12" y="33" className="csub">{count} {count === 1 ? "name" : "names"}{money ? ` · ${fmtMoney(money)}` : ""}</text>
                     <text x={COL_W - 14} y="27" className="chev" textAnchor="end">+</text>
                   </>}
                   {it.kind === "header" && <>
@@ -349,7 +383,7 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
                     <rect width={COL_W} height={ROW_H - 4} rx="2" className="nrow" />
                     <circle cx="11" cy={(ROW_H - 4) / 2} r="3.5" className="dot" />
                     <text x="22" y={(ROW_H - 4) / 2 + 4.5} className="nlabel">{it.label.length > 30 ? it.label.slice(0, 29) + "…" : it.label}</text>
-                    {it.money ? <text x={COL_W - 10} y={(ROW_H - 4) / 2 + 4} className="namt" textAnchor="end">{fmtMoney(it.money)}</text> : null}
+                    {money ? <text x={COL_W - 10} y={(ROW_H - 4) / 2 + 4} className="namt" textAnchor="end">{fmtMoney(money)}</text> : null}
                     {k >= 1.3 && it.sub && <text x="20" y="31" className="nsub">{it.sub.slice(0, 46)}</text>}
                   </>}
                   {(it.kind === "more" || it.kind === "colmore") && <>

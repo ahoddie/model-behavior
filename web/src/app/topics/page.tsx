@@ -15,14 +15,15 @@ function Actor({ a }: { a: TopicActor }) {
   return (
     <li>
       <details>
-        <summary><Link href={`/node/${a.id}`}>{a.name}</Link> <span className="muted">{summary}</span></summary>
+        <summary><span className="topic-name">{a.name}</span> <span className="muted">{summary}</span></summary>
         <ul className="topic-evidence">{a.items.map((i, k) => (
           <li key={k}>
             <span className="mono muted">{fmtDate(i.date) || "Undated"}</span>{" "}
-            {i.kind === "letter" ? <>Signed {i.doc}: “{i.text}”</> : <>“{i.text}” <span className="muted">Model&apos;s reading: {ANSWER[i.v + 2]}.</span></>}
+            {i.kind === "letter" ? <>Signed {i.doc}: “{i.text}”</> : <>“{i.text}” <span className="muted">Read as: {ANSWER[i.v + 2]}.</span></>}
             {" "}<Src url={i.url} archive={i.archive_url} />
           </li>
         ))}</ul>
+        <Link className="topic-profile" href={`/node/${a.id}`}>Open full profile</Link>
       </details>
     </li>
   );
@@ -38,13 +39,14 @@ function Column({ title, actors }: { title: string; actors: TopicActor[] }) {
 }
 
 export default async function Topics() {
-  const topics = await getTopics();
+  // A topic with nothing confirmed yet is left off, so empty columns never read as "nobody holds this view".
+  const topics = (await getTopics()).filter((t) => t.agree.length + t.neutral.length + t.disagree.length > 0);
   return (
     <div className="home">
       <SectionNav items={topics.map((t) => ({ id: t.id, label: t.label }))} label="Stances" />
       <div className="home-main page">
         <h1>Stances</h1>
-        <p className="lede">Where people and organizations stand on notable topics, from their own quotes and the public letters they signed.</p>
+        <p className="lede">Where people and organizations stand on notable topics, from their own quotes and the public letters they signed. Every quote was checked by a person against the statement.</p>
         {topics.map((t) => (
           <section key={t.id} id={t.id} className="topic">
             <h2>{t.positive}</h2>

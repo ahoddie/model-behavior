@@ -93,3 +93,21 @@ export async function decideQueued(form: FormData) {
   await cleared();
   revalidatePath("/review");
 }
+
+// A reviewer's check of one machine reading for the Stances page. Confirmed readings appear there with the reviewer's answer.
+export async function decideStance(form: FormData) {
+  await localOnly();
+  const feed = Number(form.get("feed_id"));
+  const topic = String(form.get("topic_id"));
+  const confirmed = form.get("verdict") === "confirm";
+  const answer = Number(form.get("answer"));
+  const machine = Number(form.get("machine"));
+  const note = String(form.get("note") ?? "").trim() || null;
+  if (!feed || !topic) throw new Error("Missing quote or topic.");
+  if (confirmed && !(Number.isInteger(answer) && answer >= -2 && answer <= 2)) throw new Error("Pick a reading before confirming.");
+  await withActor((c) => c.query(`INSERT INTO stance_checks (feed_id, topic_id, verdict, answer, machine, note) VALUES ($1,$2,$3,$4,$5,$6)
+    ON CONFLICT (feed_id, topic_id) DO UPDATE SET verdict=$3, answer=$4, machine=$5, note=$6, reviewed_at=now()`,
+    [feed, topic, confirmed ? "confirmed" : "rejected", confirmed ? answer : null, Number.isInteger(machine) ? machine : null, note]));
+  revalidatePath("/review");
+  await cleared();
+}

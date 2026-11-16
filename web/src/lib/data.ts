@@ -65,6 +65,13 @@ async function nodeNames() {
   return q<{ id: string; name: string }>(`SELECT id, name FROM nodes`);
 }
 
+// Type and logo for a set of nodes, so a list can show each one's mark (logo, or the initials box).
+export async function nodeMarks(ids: string[]): Promise<Record<string, { name: string; type: string; logo_url: string | null }>> {
+  if (!ids.length) return {};
+  const rows = await q<any>(`SELECT id, name, type, logo_url FROM nodes WHERE id = ANY($1)`, [ids]);
+  return Object.fromEntries(rows.map((r: any) => [r.id, r]));
+}
+
 export async function getNodeSummary(id: string) {
   "use cache";
   cached();
@@ -271,7 +278,7 @@ export async function getHome() {
       SELECT fi.node_id, fi.target_id, fi.stance, fi.date, pdate(fi.date, fi.date_prec), fi.url
         FROM feed_items fi JOIN nodes t ON t.id=fi.target_id WHERE fi.status='approved' AND fi.stance IS NOT NULL AND t.type IN ('bill','rule')),
     latest AS (SELECT DISTINCT ON (actor, target) * FROM s ORDER BY actor, target, d DESC NULLS LAST)
-    SELECT t.id, t.name, t.descriptor, json_agg(json_build_object('id', a.id, 'name', a.name, 'stance', latest.stance, 'date', latest.date, 'url', latest.url) ORDER BY a.name) AS actors
+    SELECT t.id, t.name, t.descriptor, json_agg(json_build_object('id', a.id, 'name', a.name, 'type', a.type, 'logo_url', a.logo_url, 'stance', latest.stance, 'date', latest.date, 'url', latest.url) ORDER BY a.name) AS actors
     FROM latest JOIN nodes t ON t.id=latest.target JOIN nodes a ON a.id=latest.actor
     WHERE a.type NOT IN ('lawmaker','agency')
     GROUP BY t.id HAVING count(*) FILTER (WHERE latest.stance IN ('support','oppose')) >= 3 ORDER BY count(*) DESC, t.name LIMIT 8`);
@@ -285,9 +292,13 @@ export async function getHome() {
     FROM feed_items fi JOIN nodes n ON n.id=fi.node_id LEFT JOIN nodes t ON t.id=fi.target_id
     WHERE fi.status='approved' AND fi.excerpt IS NOT NULL AND fi.kind NOT IN ('donation','policy change','filing') AND n.type NOT IN ('lawmaker','agency') AND fi.date IS NOT NULL
     ORDER BY fi.date DESC, fi.id DESC LIMIT 12`);
+  // Who is quoted most: approved word-for-word statements per actor, on any subject.
+  const talkers = await q<any>(`SELECT n.id, n.name, n.type, count(*)::int AS n FROM feed_items fi JOIN nodes n ON n.id=fi.node_id
+    WHERE fi.status='approved' AND fi.excerpt IS NOT NULL AND fi.kind NOT IN ('donation','policy change','filing') AND n.type NOT IN ('lawmaker','agency')
+    GROUP BY n.id ORDER BY count(*) DESC, n.name LIMIT 15`);
   // The date this overview was computed, read inside the cache so the page itself has no clock to wait on.
   const today = new Date().toISOString().slice(0, 10);
-  return { counts, givers, recipients, stances, byYear, quotes, today };
+  return { counts, givers, recipients, stances, byYear, quotes, talkers, today };
 }
 
 // Lands on: each target's latest stated position per actor, grouped into sides, so a row says who stood where.
@@ -319,6 +330,25 @@ const LABELS = `(SELECT DISTINCT ON (sl.feed_id) sl.*,
 const GOOD = `l.own_voice AND l.confidence >= 0.6`;  // qualified: feed_items also has a confidence column
 export type IssueRow = { id: string; label: string; description: string; positive: string; statements: number; actors: number; avg: number | null;
   plus: number; minus: number; neutral: number; money: number; money_givers: { id: string; name: string; total: number }[] };
+
+// Per issue, each actor's average reading across their own sided statements (machine labels the rules agree with).
+// An actor counts as agreeing when the average is above zero, disagreeing below. Most statements first.
+export type IssueActor = { id: string; name: string; type: string; logo_url: string | null; avg: number; n: number };
+export async function getIssueActors(): Promise<Record<string, { agree: IssueActor[]; disagree: IssueActor[] }>> {
+  "use cache";
+  cached();
+  const rows = await q<any>(`
+    WITH s AS (SELECT fi.node_id, e.key AS issue, e.value::int AS v FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues_ok) e
+               WHERE ${GOOD} AND fi.status='approved' AND e.value::int <> 0)
+    SELECT s.issue, n.id, n.name, n.type, n.logo_url, avg(s.v)::float8 AS avg, count(*)::int AS n
+    FROM s JOIN nodes n ON n.id=s.node_id GROUP BY s.issue, n.id ORDER BY count(*) DESC, n.name`);
+  const out: Record<string, { agree: IssueActor[]; disagree: IssueActor[] }> = {};
+  for (const r of rows) {
+    const o = (out[r.issue] ??= { agree: [], disagree: [] });
+    if (r.avg > 0) o.agree.push(r); else if (r.avg < 0) o.disagree.push(r);
+  }
+  return out;
+}
 
 export async function getAnalysis() {
   "use cache";
@@ -526,28 +556,45 @@ export async function getMergedInto(id: string): Promise<string | null> {
 }
 
 // ── Notable topics (table `topics`) ──
-// Where each actor stands on each topic, from three kinds of evidence: quotes labeled on the topic itself (topic_labels),
-// quotes labeled on the issue a topic reuses (statement_labels via topics.issue_id), and public letters the person signed
-// (topic_positions). Quote readings are machine labels; a signature is the person's own public act.
+// Where each actor stands on each topic, from two kinds of evidence: quotes a person has checked (stance_checks) and public
+// letters the person signed (topic_positions). The model only proposes readings: topic_labels for topics with their own
+// question, statement_labels for topics that reuse an issue (topics.issue_id). A proposal reaches the page when a reviewer
+// confirms it on /review, with the reviewer's answer. A signature is the signer's own public act and needs no check.
 export type TopicEvidence = { kind: "quote" | "letter"; v: number; text: string; url: string; archive_url: string | null; date: string | null; doc?: string };
-export type TopicActor = { id: string; name: string; type: string; avg: number; items: TopicEvidence[] };
-export type TopicRow = { id: string; label: string; description: string; positive: string; agree: TopicActor[]; neutral: TopicActor[]; disagree: TopicActor[] };
+export type TopicActor = { id: string; name: string; type: string; logo_url: string | null; avg: number; items: TopicEvidence[] };
+export type TopicRow = { id: string; issue_id: string | null; label: string; description: string; positive: string; agree: TopicActor[]; neutral: TopicActor[]; disagree: TopicActor[] };
+
+// The model's newest reading per quote and topic, so a second prompt version replaces the first instead of counting twice.
+const STANCE_READINGS = `(
+  SELECT feed_id, topic_id, v, reason FROM (SELECT DISTINCT ON (tl.feed_id, tl.topic_id) tl.feed_id, tl.topic_id, tl.answer::int AS v, tl.reason
+    FROM topic_labels tl ORDER BY tl.feed_id, tl.topic_id, tl.labeled_at DESC) x WHERE v IS NOT NULL
+  UNION ALL
+  SELECT l.feed_id, t.id, e.value::int, l.reason FROM topics t JOIN ${LABELS} l ON true, jsonb_each_text(l.issues_ok) e
+   WHERE t.issue_id IS NOT NULL AND e.key=t.issue_id AND ${GOOD})`;
+
+// Machine readings no one has checked yet, for the review screen. Not cached: the reviewer needs the live queue.
+export type StanceQueueItem = { feed_id: number; topic_id: string; positive: string; v: number; reason: string | null; excerpt: string; url: string; archive_url: string | null; date: string | null; node_id: string; name: string };
+export async function getStanceQueue(): Promise<StanceQueueItem[]> {
+  return q<StanceQueueItem>(`
+    SELECT r.feed_id, r.topic_id, t.positive, r.v, r.reason, fi.excerpt, fi.url, fi.archive_url, pdate(fi.date, fi.date_prec)::text AS date, n.id AS node_id, n.name
+      FROM ${STANCE_READINGS} r JOIN topics t ON t.id=r.topic_id JOIN feed_items fi ON fi.id=r.feed_id JOIN nodes n ON n.id=fi.node_id
+      LEFT JOIN stance_checks c ON c.feed_id=r.feed_id AND c.topic_id=r.topic_id
+     WHERE c.feed_id IS NULL AND fi.status='approved' AND fi.excerpt IS NOT NULL
+     ORDER BY t.sort, n.name, fi.date DESC NULLS LAST`);
+}
+
 export async function getTopics(): Promise<TopicRow[]> {
   "use cache";
   cached();
   const topics = await q<any>(`SELECT id, label, description, positive, issue_id FROM topics ORDER BY sort`);
   const rows = await q<any>(`
-    SELECT t.id AS topic, fi.node_id, tl.answer::int AS v, 'quote' AS kind, fi.excerpt AS text, fi.url, fi.archive_url, pdate(fi.date, fi.date_prec)::text AS date, NULL AS doc
-      FROM topic_labels tl JOIN topics t ON t.id=tl.topic_id JOIN feed_items fi ON fi.id=tl.feed_id
-     WHERE tl.answer IS NOT NULL AND fi.status='approved'
-    UNION ALL
-    SELECT t.id, fi.node_id, e.value::int, 'quote', fi.excerpt, fi.url, fi.archive_url, pdate(fi.date, fi.date_prec)::text, NULL
-      FROM topics t JOIN ${LABELS} l ON true JOIN feed_items fi ON fi.id=l.feed_id, jsonb_each_text(l.issues_ok) e
-     WHERE t.issue_id IS NOT NULL AND e.key=t.issue_id AND fi.status='approved' AND ${GOOD}
+    SELECT c.topic_id AS topic, fi.node_id, c.answer::int AS v, 'quote' AS kind, fi.excerpt AS text, fi.url, fi.archive_url, pdate(fi.date, fi.date_prec)::text AS date, NULL AS doc
+      FROM stance_checks c JOIN feed_items fi ON fi.id=c.feed_id
+     WHERE c.verdict='confirmed' AND fi.status='approved' AND fi.excerpt IS NOT NULL
     UNION ALL
     SELECT p.topic_id, p.node_id, p.answer::int, 'letter', p.quote, p.source_url, p.archive_url, p.date::text, p.document_name
-      FROM topic_positions p`);
-  const nodes = new Map((await q<any>(`SELECT id, name, type FROM nodes WHERE id = ANY($1)`, [[...new Set(rows.map((r: any) => r.node_id))]])).map((n: any) => [n.id, n]));
+      FROM topic_positions p WHERE p.answer IS NOT NULL`);
+  const nodes = new Map((await q<any>(`SELECT id, name, type, logo_url FROM nodes WHERE id = ANY($1)`, [[...new Set(rows.map((r: any) => r.node_id))]])).map((n: any) => [n.id, n]));
   return topics.map((t: any) => {
     const by = new Map<string, TopicEvidence[]>();
     for (const r of rows.filter((r: any) => r.topic === t.id)) by.set(r.node_id, [...(by.get(r.node_id) ?? []), { kind: r.kind, v: r.v, text: r.text, url: r.url, archive_url: r.archive_url, date: r.date, doc: r.doc ?? undefined }]);
@@ -555,9 +602,9 @@ export async function getTopics(): Promise<TopicRow[]> {
       const sided = items.filter((i) => i.v !== 0);
       const avg = sided.length ? sided.reduce((a, i) => a + i.v, 0) / sided.length : 0;
       const n = nodes.get(id);
-      return { id, name: n.name, type: n.type, avg, items: items.sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? ""))) };
+      return { id, name: n.name, type: n.type, logo_url: n.logo_url, avg, items: items.sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? ""))) };
     }).sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
-    return { id: t.id, label: t.label, description: t.description, positive: t.positive,
+    return { id: t.id, issue_id: t.issue_id, label: t.label, description: t.description, positive: t.positive,
       agree: actors.filter((a) => a.avg > 0), neutral: actors.filter((a) => a.avg === 0), disagree: actors.filter((a) => a.avg < 0) };
   });
 }

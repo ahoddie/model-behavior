@@ -2,9 +2,11 @@ import { connection } from "next/server";
 import { headers } from "next/headers";
 import Link from "@/components/Link";
 import { q } from "@/lib/db";
-import { decide, bulk, runImporter, decideQueued } from "./actions";
+import { decide, bulk, runImporter, decideQueued, decideStance } from "./actions";
+import { getStanceQueue } from "@/lib/data";
 import Select from "@/components/Select";
 
+const READING = [{ value: "2", label: "agrees strongly" }, { value: "1", label: "agrees" }, { value: "0", label: "no clear side" }, { value: "-1", label: "disagrees" }, { value: "-2", label: "disagrees strongly" }];
 const IMPORTERS = ["lda", "fec", "propublica", "regulations", "congress", "openstates", "state-lobbying", "news", "social", "blogs", "transcripts"];
 
 export default async function Review(props: PageProps<"/review">) {
@@ -21,6 +23,7 @@ export default async function Review(props: PageProps<"/review">) {
   const queued = await q<any>(`SELECT * FROM review_queue WHERE status='pending' AND ($1='' OR source_workstream=$1)
     ORDER BY significance DESC, confidence DESC NULLS LAST, id LIMIT 100`, [ws]);
   const wsCounts = await q<{ source_workstream: string; n: number }>(`SELECT source_workstream, count(*)::int n FROM review_queue WHERE status='pending' GROUP BY 1 ORDER BY 2 DESC`);
+  const readings = await getStanceQueue();
   const runs = await q<any>(`SELECT importer, started_at::text, finished_at, ok, added FROM import_runs ORDER BY id DESC LIMIT 12`);
   return (
     <div className="page">
@@ -54,6 +57,28 @@ export default async function Review(props: PageProps<"/review">) {
             <div className="filters" style={{ marginTop: 8 }}>
               <label>Note <input type="text" name="note" style={{ width: 260 }} /></label>
               <button name="verdict" value="approve">Approve</button>
+              <button name="verdict" value="reject">Reject</button>
+            </div>
+          </form>
+        ))}
+      </section>}
+
+      {readings.length > 0 && <section id="stances" style={{ marginBottom: "var(--s5)" }}>
+        <h2>Stance readings ({readings.length})</h2>
+        <p className="note">A quote reaches the Stances page only after you confirm it here. Confirm only when the quote itself takes a side on the statement. Reject it when the side must be inferred or the quote is about something else.</p>
+        {readings.map((r) => (
+          <form key={`${r.feed_id}-${r.topic_id}`} action={decideStance} className="panel review-item">
+            <input type="hidden" name="feed_id" value={r.feed_id} />
+            <input type="hidden" name="topic_id" value={r.topic_id} />
+            <input type="hidden" name="machine" value={r.v} />
+            <p className="mono muted"><Link href={`/node/${r.node_id}`}>{r.name}</Link> · {r.date ?? "undated"} · <a href={r.url} target="_blank" rel="noreferrer">Open the source</a>{r.archive_url && <> · <a href={r.archive_url} target="_blank" rel="noreferrer">archived</a></>}</p>
+            <p><strong>Statement:</strong> {r.positive}</p>
+            <p>“{r.excerpt}”</p>
+            <p className="note">Model&apos;s reading: {READING.find((o) => o.value === String(r.v))?.label ?? r.v}.{r.reason ? ` ${r.reason}` : ""}</p>
+            <div className="filters" style={{ marginTop: 8 }}>
+              <Select label="Reading" name="answer" defaultValue={String(r.v)} options={READING} />
+              <label>Note <input type="text" name="note" style={{ width: 220 }} /></label>
+              <button name="verdict" value="confirm">Confirm</button>
               <button name="verdict" value="reject">Reject</button>
             </div>
           </form>
