@@ -56,7 +56,7 @@ export default async function Home() {
   const asOf = fmtDate(today);
   // The chart of who talks most about each statement: the 15 actors with the most sided statements, most-discussed issue first.
   const talk: TalkIssue[] = (analysis?.issues ?? []).map((i) => ({
-    id: i.id, label: i.label, positive: i.positive, topicId: topics.find((t) => t.issue_id === i.id)?.id,
+    id: i.id, label: i.label, positive: i.positive, topicId: topics.find((t) => t.issue_id === i.id && t.confirmed > 0)?.id,
     actors: [...(who[i.id]?.agree ?? []).map((a) => ({ ...a, agree: true })), ...(who[i.id]?.disagree ?? []).map((a) => ({ ...a, agree: false }))]
       .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)).slice(0, 15)
       .map((a) => ({ id: a.id, name: a.name, kind: TYPE_LABEL[a.type] ?? a.type, n: a.n, agree: a.agree })),
@@ -129,7 +129,7 @@ export default async function Home() {
               <h3>{i.positive}</h3>
               <StanceBar value={i.avg} />
             </div>
-            <Who sides={who[i.id]} topicId={topics.find((t) => t.issue_id === i.id)?.id} />
+            <Who sides={who[i.id]} topicId={topics.find((t) => t.issue_id === i.id && t.confirmed > 0)?.id} />
             <p className="iss-facts">
               {i.statements} {i.statements === 1 ? "statement" : "statements"} from {i.actors} {i.actors === 1 ? "actor" : "actors"}: {i.plus} agree, {i.minus} disagree, {i.neutral} neutral.
               {i.money > 0 && <> {fmtMoney(i.money)} to groups that speak on it, mostly from {i.money_givers.map((g, k) => <span key={g.id}>{k > 0 && (k === i.money_givers.length - 1 ? " and " : ", ")}<Link href={`/node/${g.id}`}>{g.name}</Link></span>)}.</>}

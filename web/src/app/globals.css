@@ -671,7 +671,9 @@ a[href^="http"]:hover::after { color: currentColor; }
 .topic-col summary .muted { font-size: 13px; }
 .topic-evidence { margin: 6px 0 8px; padding-left: 1em; font-size: 14px; }
 .topic-evidence li { margin-bottom: 6px; }
-@media (max-width: 800px) { .topic-cols { grid-template-columns: 1fr; } }
+.topic-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.topic-basis { font-size: 14px; margin: 4px 0 0; max-width: 70ch; }
+@media (max-width: 800px) { .topic-cols, .topic-cols-4 { grid-template-columns: 1fr; } }
 
 /* Race pages: the seat line, outside spending around a center axis, candidate totals. */
 .race-seat { display: flex; flex-wrap: wrap; gap: 0; margin: var(--s4) 0 var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); font-size: 15px; }

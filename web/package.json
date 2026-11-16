@@ -55,6 +55,7 @@
     "money:spotcheck": "tsx scripts/pipelines/money/spotcheck.ts",
     "money:archive": "tsx scripts/pipelines/money/archive-hops.ts",
     "analyze-topics": "tsx scripts/analyze-topics.ts",
+    "test:stance": "tsx --test scripts/test-stance.ts",
     "find-thin": "tsx scripts/find-thin.ts",
     "up": "./scripts/up.sh",
     "down": "colima stop"

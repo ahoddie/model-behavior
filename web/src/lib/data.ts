@@ -2,6 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { q } from "./db";
 import { buildLinker, type Part } from "./linkify";
+import { placeActor, countSharedQuotesOnce, newestFirst, type Side } from "./stance";
 
 // Every public read is cached under one tag with the "record" profile (next.config.ts): served from cache, refreshed in
 // the background once it is a minute old. Writes clear it: review actions call updateTag("record"); importers and the
@@ -560,9 +561,12 @@ export async function getMergedInto(id: string): Promise<string | null> {
 // letters the person signed (topic_positions). The model only proposes readings: topic_labels for topics with their own
 // question, statement_labels for topics that reuse an issue (topics.issue_id). A proposal reaches the page when a reviewer
 // confirms it on /review, with the reviewer's answer. A signature is the signer's own public act and needs no check.
-export type TopicEvidence = { kind: "quote" | "letter"; v: number; text: string; url: string; archive_url: string | null; date: string | null; doc?: string };
-export type TopicActor = { id: string; name: string; type: string; logo_url: string | null; avg: number; items: TopicEvidence[] };
-export type TopicRow = { id: string; issue_id: string | null; label: string; description: string; positive: string; agree: TopicActor[]; neutral: TopicActor[]; disagree: TopicActor[] };
+// Placement rules live in lib/stance.ts: the newest sided statement decides, and a quote shared by a person and their organization counts once.
+export type TopicEvidence = { kind: "quote" | "letter"; v: number; text: string; url: string; archive_url: string | null; date: string | null; doc?: string; speaker?: string };
+export type TopicActor = { id: string; name: string; type: string; logo_url: string | null; changed: boolean; items: TopicEvidence[] };
+export type TopicRow = { id: string; issue_id: string | null; label: string; description: string; positive: string;
+  agree: TopicActor[]; mixed: TopicActor[]; neutral: TopicActor[]; disagree: TopicActor[];
+  checked: number; confirmed: number; letters: string[] };  // quotes a reviewer has read on this topic, how many were confirmed, and the letters counted
 
 // The model's newest reading per quote and topic, so a second prompt version replaces the first instead of counting twice.
 const STANCE_READINGS = `(
@@ -594,18 +598,22 @@ export async function getTopics(): Promise<TopicRow[]> {
     UNION ALL
     SELECT p.topic_id, p.node_id, p.answer::int, 'letter', p.quote, p.source_url, p.archive_url, p.date::text, p.document_name
       FROM topic_positions p WHERE p.answer IS NOT NULL`);
-  const nodes = new Map((await q<any>(`SELECT id, name, type, logo_url FROM nodes WHERE id = ANY($1)`, [[...new Set(rows.map((r: any) => r.node_id))]])).map((n: any) => [n.id, n]));
+  const nodes = new Map<string, any>((await q<any>(`SELECT id, name, type, logo_url FROM nodes WHERE id = ANY($1)`, [[...new Set(rows.map((r: any) => r.node_id))]])).map((n: any) => [n.id, n]));
+  const checks = new Map((await q<any>(`SELECT topic_id, count(*)::int AS checked, count(*) FILTER (WHERE verdict='confirmed')::int AS confirmed FROM stance_checks GROUP BY 1`)).map((c: any) => [c.topic_id, c]));
   return topics.map((t: any) => {
+    const mine = countSharedQuotesOnce(rows.filter((r: any) => r.topic === t.id && nodes.has(r.node_id)), nodes);
     const by = new Map<string, TopicEvidence[]>();
-    for (const r of rows.filter((r: any) => r.topic === t.id)) by.set(r.node_id, [...(by.get(r.node_id) ?? []), { kind: r.kind, v: r.v, text: r.text, url: r.url, archive_url: r.archive_url, date: r.date, doc: r.doc ?? undefined }]);
-    const actors: TopicActor[] = [...by.entries()].filter(([id]) => nodes.has(id)).map(([id, items]) => {
-      const sided = items.filter((i) => i.v !== 0);
-      const avg = sided.length ? sided.reduce((a, i) => a + i.v, 0) / sided.length : 0;
+    for (const r of mine) by.set(r.node_id, [...(by.get(r.node_id) ?? []), { kind: r.kind, v: r.v, text: r.text, url: r.url, archive_url: r.archive_url, date: r.date, doc: r.doc ?? undefined, speaker: r.speaker }]);
+    const placed = [...by.entries()].map(([id, items]) => {
       const n = nodes.get(id);
-      return { id, name: n.name, type: n.type, logo_url: n.logo_url, avg, items: items.sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? ""))) };
-    }).sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
+      const { side, changed } = placeActor(items);
+      return { side, actor: { id, name: n.name, type: n.type, logo_url: n.logo_url, changed, items: newestFirst(items) } as TopicActor };
+    }).sort((a, b) => b.actor.items.length - a.actor.items.length || a.actor.name.localeCompare(b.actor.name));
+    const on = (s: Side) => placed.filter((p) => p.side === s).map((p) => p.actor);
     return { id: t.id, issue_id: t.issue_id, label: t.label, description: t.description, positive: t.positive,
-      agree: actors.filter((a) => a.avg > 0), neutral: actors.filter((a) => a.avg === 0), disagree: actors.filter((a) => a.avg < 0) };
+      agree: on("agree"), mixed: on("mixed"), neutral: on("neutral"), disagree: on("disagree"),
+      checked: checks.get(t.id)?.checked ?? 0, confirmed: checks.get(t.id)?.confirmed ?? 0,
+      letters: [...new Set(mine.filter((r: any) => r.kind === "letter").map((r: any) => r.doc as string))].sort() };
   });
 }
 
