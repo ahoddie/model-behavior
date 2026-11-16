@@ -1,6 +1,5 @@
 // Run importers on demand: `pnpm import` (all) or `pnpm import lda fec`.
-// After importing: archive new URLs (availability lookup only; full Save Page Now runs in `pnpm archive`),
-// refresh search, send digests.
+// After importing: refresh search and send digests. (New URLs are no longer archived, since 2026-11-16.)
 import "./env.ts";
 import { pool } from "../src/lib/db.ts";
 import { notifySite } from "./lib/ingest.ts";

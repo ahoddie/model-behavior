@@ -1,7 +1,7 @@
 // California bill status and history from leginfo's per-bill history page, read from its existing Wayback copy
 // (leginfo answers automated requests with a Cloudflare challenge, which we do not bypass). Nothing is saved to Wayback
 // and no bulk file is downloaded: one ~70 KB page per bill. Insert-only; an existing (node, text) pair is skipped.
-//   tsx scripts/thin/ca-bill-history.ts [--dry-run]
+//   tsx scripts/thin/ca-bill-history.ts [--dry-run] [--only=<node id>]
 import "../env.ts";
 import { pool, q } from "../../src/lib/db.ts";
 
@@ -27,14 +27,17 @@ function billId(node: string) {
   return `${start}${start + 1}0${m[1].toUpperCase()}${m[2]}`;
 }
 
-const bills = await q<{ id: string }>(`SELECT id FROM nodes WHERE type='bill' AND id LIKE 'ca-%' ORDER BY id`);
+const only = process.argv.find((a) => a.startsWith("--only="))?.slice(7);
+const bills = await q<{ id: string }>(`SELECT id FROM nodes WHERE type='bill' AND id LIKE 'ca-%' ${only ? "AND id=$1" : ""} ORDER BY id`, only ? [only] : []);
 let added = 0;
 for (const { id } of bills) {
   const bid = billId(id);
   if (!bid) { console.log("SKIP id", id); continue; }
   const url = `https://leginfo.legislature.ca.gov/faces/billHistoryClient.xhtml?bill_id=${bid}`;
-  const av = await (await get(`https://archive.org/wayback/available?url=${encodeURIComponent(url)}`))?.json().catch(() => null);
-  const snap: string | undefined = av?.archived_snapshots?.closest?.available ? av.archived_snapshots.closest.url.replace(/^http:/, "https:") : undefined;
+  // The snapshot index (CDX) lists every saved copy; the "available" lookup sometimes reports none when copies exist.
+  const cdx = await (await get(`https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(url)}&output=json&filter=statuscode:200`))?.json().catch(() => null);
+  const ts: string | undefined = Array.isArray(cdx) && cdx.length > 1 ? cdx[cdx.length - 1][1] : undefined;
+  const snap: string | undefined = ts ? `https://web.archive.org/web/${ts}/${url}` : undefined;
   if (!snap) { console.log("NO COPY", id); continue; }
   await sleep(4000);
   const raw = snap.replace(/\/web\/(\d{14})\//, "/web/$1id_/");

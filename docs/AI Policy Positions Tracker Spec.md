@@ -12,7 +12,7 @@ Build **Model Behavior**: an interactive map that traces how frontier labs, inve
 4. **Verbatim quotes are short:** 25 words or fewer, linked to the original.
 5. **Primary sources first:** filings, original posts, transcripts, the actor's own pages. Use news reports only when there's no primary source, and link the article.
 6. **Credit money to whoever gave it.** A person's money is never credited to their company unless the company itself gave it.
-7. **Archive every source URL** (Wayback Machine) and store the archive link.
+7. ~~Archive every source URL~~ Dropped on 2026-11-16: new sources are not archived. Existing archive links stay; `archive_url` is optional.
 8. **Do not deploy anywhere.** Run locally only.
 9. Log anything you looked for but couldn't source in `data/gaps.md`.
 
@@ -59,7 +59,7 @@ Bills, races and rules get **target pages**: everyone who pushed on that target,
 - **People:** Marc Andreessen, Ben Horowitz, Vinod Khosla, Reid Hoffman, Peter Thiel, Joe Lonsdale, Garry Tan, Chris Larsen, Greg & Anna Brockman, Sam Altman, Dario Amodei, Demis Hassabis, Mark Zuckerberg, Elon Musk, Jensen Huang, Satya Nadella, Sundar Pichai, Mustafa Suleyman, Eric Schmidt, David Sacks, Jaan Tallinn, Dustin Moskovitz. Add anyone else you find funding, testifying or campaigning on AI policy.
 - **Think tanks and advocacy groups:** Abundance Institute, R Street, Cato, AEI, Mercatus, Hoover, Foundation for American Innovation, Heritage, American Edge · Americans for Responsible Innovation, Center for AI Policy, Encode, Secure AI Project, FLI, CAIS Action Fund · IFP, CSET, CNAS, RAND, Brookings, CSIS · CDT, AI Now, EPIC, Public Citizen
 - **PACs and funders:** Leading the Future (Think Big, American Mission), Public First / Public First Action (Jobs and Democracy, Defending Our Values), Innovation Council Action, Abundant Future, company and executive PACs, Open Philanthropy, a16z
-- **Trade groups:** leave out, except five added by hand: NetChoice, Chamber of Progress, TechNet, CCIA and the U.S. Chamber of Commerce.
+- **Trade groups:** leave out, except two added by hand: Chamber of Progress and CCIA. NetChoice, TechNet, and the U.S. Chamber of Commerce were removed on 2026-11-16.
 - **Targets:** every bill, race, rule and lawmaker that an actor's money, lobbying or positions reach. Don't track lawmakers' own positions.
 
 ## 4. Four ways in (link types and where to find them)

@@ -1,6 +1,6 @@
 # Model Behavior
 
-A sourced, local-only map of how frontier labs, investors, tech leaders and think tanks push on U.S. AI policy. Every node, line, quote, amount and filing links to its source, and every source is archived on the Wayback Machine.
+A sourced, local-only map of how frontier labs, investors, tech leaders, and think tanks push on U.S. AI policy. Every node, line, quote, amount, and filing links to its source. Wayback copies stored before 2026-11-16 are kept and shown; new sources are no longer archived.
 
 Nothing here is deployed. Everything runs on this machine and binds to `localhost`.
 
@@ -21,9 +21,9 @@ pnpm dev                          # slower, but reloads as you edit code
 | Command | What it does |
 |---|---|
 | `pnpm import` | Run every importer now (or `pnpm import lda fec` for some) |
-| `pnpm scheduler` | Stay running; importers 05:00, archive 06:30, source audit 07:00, digests 07:30 |
+| `pnpm scheduler` | Stay running; importers 05:00, source audit 07:00, digests 07:30 |
 | `pnpm firehose` | Follow tracked Bluesky accounts live through Jetstream |
-| `pnpm archive` | Look up or create a Wayback copy of every source URL and store it on each row |
+| `pnpm archive` | Not run since 2026-11-16: look up or create a Wayback copy of every source URL and store it on each row |
 | `pnpm sources` | Fetch every source; re-check dead links, then delete rows whose source is gone and has no Wayback copy (logged as corrections); send quotes not found on their page back to review |
 | `pnpm digest` | Reindex search and send email digests to followers (to `data/outbox` if `SMTP_URL` is unset) |
 
