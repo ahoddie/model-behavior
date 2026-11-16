@@ -27,12 +27,15 @@ async function save(url: string) {
   }
   return null;
 }
+// --no-wayback: store without contacting Wayback, using an archive only if one is already on record.
+const noWayback = process.argv.includes("--no-wayback");
 const memo = new Map<string, string | null>();
 async function archiveFor(url: string, given?: string) {
   if (given && snap.test(given)) return given;
   if (memo.has(url)) return memo.get(url) ?? null;
   const hit = (await q<{ archive_url: string }>(`SELECT archive_url FROM archives WHERE url=$1 AND archive_url IS NOT NULL`, [url]))[0]?.archive_url
     ?? (await q<{ archive_url: string }>(`SELECT archive_url FROM facts WHERE url=$1 AND archive_url IS NOT NULL LIMIT 1`, [url]))[0]?.archive_url;
+  if (noWayback) { memo.set(url, hit ?? null); return hit ?? null; }
   let a = hit ?? (await available(url));
   if (!a && !dry) { a = await save(url); await sleep(6000); }
   memo.set(url, a ?? null);
@@ -45,7 +48,7 @@ for (const r of rows) {
   if ((await q(`SELECT 1 FROM nodes WHERE id=$1`, [r.node])).length === 0) { console.log("NO NODE", r.node); bad++; continue; }
   if ((await q(`SELECT 1 FROM facts WHERE node_id=$1 AND text=$2`, [r.node, text])).length) { dup++; continue; }
   const a = await archiveFor(r.url, r.archive);
-  if (!a) { console.log("NO ARCHIVE", r.url); noArchive++; continue; }
+  if (!a && !noWayback) { console.log("NO ARCHIVE", r.url); noArchive++; continue; }
   if (dry) { console.log("DRY", r.node, r.label ?? "-", text.slice(0, 90), "|", a); continue; }
   const res = await pool.query(
     `INSERT INTO facts (node_id,text,url,archive_url,label,sort) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (node_id,text) DO NOTHING`,
