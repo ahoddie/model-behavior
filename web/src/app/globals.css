@@ -15,6 +15,8 @@
   --mixed: #B9B3A3;
   --logo-bg: #FAF8F2;
   --blend: multiply;
+  --blend-ink: lighten;
+  --code-ink: #7C85E3;
   color-scheme: light;
 
   --f-display: var(--font-display), "Archivo Narrow", "Arial Narrow", sans-serif;
@@ -41,6 +43,8 @@
   --hover: #27272E;
   --mixed: #5A574E;
   --blend: screen;
+  --blend-ink: darken;
+  --code-ink: #2A2FB5;
   color-scheme: dark;
 }
 
@@ -495,6 +499,10 @@ em, i, cite, address, dfn, var { font-style: normal; }
 .home-title .title-last { display: flex; align-items: flex-end; gap: .25em; }
 .skyline { flex: 1; min-width: 0; height: .95em; color: var(--ink); margin-bottom: .02em; }
 @media (max-width: 520px) { .skyline { display: none; } }
+/* On hover, code is typed inside the letters and buildings (TitleCode). The blend keeps the letters' code on the ink only. */
+.home-title { position: relative; isolation: isolate; background: var(--paper); cursor: default; }
+.title-code { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; font-family: var(--f-mono); }
+.title-code-ink { mix-blend-mode: var(--blend-ink); }
 /* Tabs and filter links: no underline on hover; the hover shows as a light panel instead. */
 .tabs a:hover, .filters a:hover { text-decoration: none; }
 .tabs a:hover:not([aria-current="page"]) { background: color-mix(in srgb, var(--panel) 70%, transparent); }

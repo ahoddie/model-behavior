@@ -4,6 +4,7 @@ import StanceBar from "@/components/StanceBar";
 import { fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
 import Src from "@/components/Src";
 import Skyline from "@/components/Skyline";
+import TitleCode from "@/components/TitleCode";
 import SectionNav, { type NavIcon } from "@/components/SectionNav";
 import CiteButton from "@/components/CiteButton";
 import { Named } from "@/components/ProfileHead";
@@ -73,7 +74,7 @@ export default async function Home() {
       <div className="home-main">
 
       <header className="home-intro">
-        <h1 className="home-title">How Silicon Valley shapes AI <span className="title-last">policy<Skyline className="skyline" /></span></h1>
+        <h1 className="home-title">How Silicon Valley shapes AI <span className="title-last">policy<Skyline className="skyline" /></span><TitleCode /></h1>
         <p className="lede">
           Frontier labs, their founders and investors, and the funders and think tanks around them spend money and take public positions on U.S. AI
           policy. <Link href="/map">See the network.</Link>
