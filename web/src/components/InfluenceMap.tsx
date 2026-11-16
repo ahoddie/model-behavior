@@ -1,7 +1,8 @@
 "use client";
 import Select from "./Select";
 import NameSearch from "./NameSearch";
-import { useEffect, useMemo, useRef, useState, useCallback, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, useCallback, useSyncExternalStore } from "react";
+import { useSearchParams } from "next/navigation";
 import * as d3 from "d3";
 import { landsRank, clusterName, fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
 import type { GNode, GLink } from "@/lib/data";
@@ -26,8 +27,17 @@ type Item = { key: string; kind: "cluster" | "node" | "more" | "colmore" | "head
   cluster: string; nodeId?: string; count?: number; money?: number; hidden?: number };
 type Edge = { key: string; from: Item; to: Item; type: string; amount: number; count: number; links: GLink[]; fromCluster: string; toCluster: string };
 
-export default function InfluenceMap({ nodes, links, initialMode = "map", initialFocus }: { nodes: GNode[]; links: GLink[]; initialMode?: "map" | "timeline"; initialFocus?: string }) {
-  const [mode, setModeState] = useState(initialMode);
+// Reads ?view= and ?focus= in the browser and hands them to the map. It sits in its own <Suspense> so the map around it is
+// prebuilt as static HTML; a page that read the URL on the server could not be.
+function FromUrl({ apply }: { apply: (view: string | null, focus: string | null) => void }) {
+  const sp = useSearchParams();
+  const view = sp.get("view"), focus = sp.get("focus");
+  useEffect(() => { apply(view, focus); }, [view, focus]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: GLink[] }) {
+  const [mode, setModeState] = useState<"map" | "timeline">("map");
   // Keep the URL in step so a link to the time view (?view=time) opens it.
   const setMode = (m: "map" | "timeline") => {
     setModeState(m);
@@ -49,7 +59,7 @@ export default function InfluenceMap({ nodes, links, initialMode = "map", initia
   const [minAmount, setMinAmount] = useState(0);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [moreOpen, setMoreOpen] = useState<Set<string>>(new Set());
-  const [selected, setSelected] = useState<string | null>(initialFocus ?? null);
+  const [selected, setSelected] = useState<string | null>(null);
   // No zoom or pan: a fixed scale keeps clicks reliable (d3-zoom swallowed any click with the slightest mouse movement).
   const k = 1;
   const [hoverEdge, setHoverEdge] = useState<Edge | null>(null);
@@ -282,10 +292,14 @@ export default function InfluenceMap({ nodes, links, initialMode = "map", initia
     </div>
   );
 
-  if (mobile) return (<div className="mapwrap">{filters}{timeline}<SteppedList nodes={nodes} links={fLinks} initial={selected} /></div>);
+  // ?view=time opens the timeline and ?focus=id selects a name; a link to the map from elsewhere on the site lands here too.
+  const fromUrl = <Suspense fallback={null}><FromUrl apply={(view, focus) => { setModeState(view === "time" ? "timeline" : "map"); if (focus) setSelected(focus); }} /></Suspense>;
+  // SteppedList takes its starting name once, so a name arriving from the URL or the search box remounts it.
+  if (mobile) return (<div className="mapwrap">{fromUrl}{filters}{timeline}<SteppedList key={selected ?? ""} nodes={nodes} links={fLinks} initial={selected} /></div>);
 
   return (
     <div className="mapwrap" ref={wrap}>
+      {fromUrl}
       <div className="maptools">
         {filters}
       </div>

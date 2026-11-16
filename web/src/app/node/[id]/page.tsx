@@ -4,7 +4,7 @@ import { sourceName } from "@/lib/format";
 import Linked from "@/components/Linked";
 import Link from "@/components/Link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { getProfile, getTarget, getCoverage, getActorIssues, getActorLobbyingIssues, getMergedInto, approvedConflictFlags, allNodeIds, TARGET_TYPES } from "@/lib/data";
+import { getProfile, getTarget, getNodeSummary, getCoverage, getActorIssues, getActorLobbyingIssues, getMergedInto, approvedConflictFlags, allNodeIds, TARGET_TYPES } from "@/lib/data";
 import ConflictFlags from "@/components/ConflictFlags";
 import StanceBar from "@/components/StanceBar";
 import CoverageLine from "@/components/CoverageLine";
@@ -27,9 +27,11 @@ const byDate = (a: any, b: any) => String(b.date ?? "").localeCompare(String(a.d
 
 const ANSWER_WORDS = ["disagrees strongly", "disagrees", "mentions it without taking a side", "agrees", "agrees strongly"];
 
-// Every profile is built ahead of time, and one added later is built on its first visit and kept.
+// The build prebuilds only the two dozen best-connected profiles, so it takes seconds. Every other profile is built the
+// first time it is asked for, by a reader or by the background refresh (lib/warm) that runs when the site starts on a new
+// build, and Next keeps it on disk from then on (.next/server/route-cache), so it survives restarts.
 export async function generateStaticParams() {
-  return (await allNodeIds()).map((id) => ({ id }));
+  return (await allNodeIds()).slice(0, 24).map((id) => ({ id }));
 }
 
 const loadActor = (id: string) => Promise.all([getProfile(id), getActorIssues(id), getActorLobbyingIssues(id), approvedConflictFlags(id)]);
@@ -38,10 +40,11 @@ const loadActor = (id: string) => Promise.all([getProfile(id), getActorIssues(id
 // with the prebuilt page; the same calls inside the boundary are answered from that copy, so no tab or filter runs a query.
 export default async function NodePage(props: PageProps<"/node/[id]">) {
   const { id } = await props.params;
-  const head = await getTarget(id);
-  if (!head) { const to = await getMergedInto(id); if (to) permanentRedirect(`/node/${encodeURIComponent(to)}`); notFound(); }
-  const coverage = await getCoverage(id);
-  if (TARGET_TYPES.includes(head.node.type)) {
+  const summary = await getNodeSummary(id);
+  if (!summary) { const to = await getMergedInto(id); if (to) permanentRedirect(`/node/${encodeURIComponent(to)}`); notFound(); }
+  if (TARGET_TYPES.includes(summary.node.type)) {
+    const [t, coverage] = await Promise.all([getTarget(id), getCoverage(id)]);
+    const head = t!;
     const empty = !head.keyFacts.length && !head.facts.length && !head.pushes.length && !head.statements.length && !head.candidates.length;
     return <>
       <TargetView t={head} coverage={coverage} />
@@ -49,7 +52,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
     </>;
   }
 
-  const [pr, , lobbyIssues, flags] = await loadActor(id);
+  const [[pr, , lobbyIssues, flags], coverage] = await Promise.all([loadActor(id), getCoverage(id)]);
   const p = pr!;
   const noRecords = !p.keyFacts.length && !p.facts.length && !p.feed.length && !p.filings.length && !p.links.length && !lobbyIssues.length && !flags.length;
 

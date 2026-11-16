@@ -37,13 +37,13 @@ export const FACT_ORDER = ["Type", "Legal form", "Founded", "Founders", "Leader"
 export async function getGraph() {
   "use cache";
   cached();
-  const nodes = await q<GNode>(`
+  const [nodes, links] = await Promise.all([q<GNode>(`
     SELECT n.id, n.type, n.name, n.descriptor, ${LANDS_CLUSTER} AS cluster, n.source_url,
       coalesce((SELECT array_agg(DISTINCT i) FROM feed_items f, unnest(f.issues) i WHERE f.node_id=n.id AND f.status='approved'), '{}') AS issues,
       (SELECT min(d)::text FROM (SELECT min(date_start) d FROM links WHERE from_id=n.id OR to_id=n.id UNION ALL SELECT min(date) FROM feed_items WHERE node_id=n.id AND status='approved') x) AS first_date
     FROM nodes n
-    LEFT JOIN LATERAL (SELECT max(extract(year FROM coalesce(date_end, date_start)))::int AS y FROM links WHERE to_id=n.id OR from_id=n.id) ly ON true`);
-  const links = await q<GLink>(`
+    LEFT JOIN LATERAL (SELECT max(extract(year FROM coalesce(date_end, date_start)))::int AS y FROM links WHERE to_id=n.id OR from_id=n.id) ly ON true`),
+  q<GLink>(`
     -- note is left out: the map never shows it, and it is most of the payload. Profiles read it separately.
     SELECT id::int, from_id AS "from", to_id AS "to", type, subtype, amount::float8 AS amount, pdate(date_start, date_start_prec) AS date_start, pdate(date_end, date_end_prec) AS date_end, stance, NULL::text AS note, source_url
     FROM links_shown WHERE NOT (type='money' AND subtype='lobbying' AND amount IS NULL)
@@ -54,29 +54,37 @@ export async function getGraph() {
       (max(coalesce(date_end, date_start)) OVER (PARTITION BY from_id, to_id))::text,
       stance, NULL::text, source_url
     FROM links_shown WHERE type='money' AND subtype='lobbying' AND amount IS NULL
-    ORDER BY from_id, to_id, date_start DESC NULLS LAST)`);
+    ORDER BY from_id, to_id, date_start DESC NULLS LAST)`)]);
   return { nodes, links };
+}
+
+// Names of other tracked actors inside a note link to their profiles. One cached list serves every profile.
+async function nodeNames() {
+  "use cache";
+  cached();
+  return q<{ id: string; name: string }>(`SELECT id, name FROM nodes`);
 }
 
 export async function getNodeSummary(id: string) {
   "use cache";
   cached();
-  const [node] = await q<GNode & { external_ids: any; archive_url: string | null; logo_url: string | null; logo_source_url: string | null }>(`SELECT * FROM nodes WHERE id=$1`, [id]);
-  if (!node) return null;
   // Labeled facts (Founded, Leader, Website...) form the key-facts block; unlabeled ones are notes.
-  const keyFacts = await q<{ label: string; text: string; url: string }>(
-    `SELECT DISTINCT ON (label) label, text, url FROM facts WHERE node_id=$1 AND label IS NOT NULL ORDER BY label, id DESC`, [id]);
-  keyFacts.sort((a, b) => FACT_ORDER.indexOf(a.label) - FACT_ORDER.indexOf(b.label));
-  const raw = await q<{ text: string; url: string }>(`SELECT text, url FROM facts WHERE node_id=$1 AND label IS NULL ORDER BY id LIMIT 8`, [id]);
-  // Names of other tracked actors inside a note link to their profiles.
-  const link = buildLinker(await q<{ id: string; name: string }>(`SELECT id, name FROM nodes`));
-  const facts: { text: string; url: string; parts: Part[] }[] = raw.map((f) => ({ ...f, parts: link(f.text, id) }));
-  const stats = (await q<{ money_out: number; money_in: number; links: number; feed: number; filings: number }>(`
+  const [[node], keyFacts, raw, names, [stats]] = await Promise.all([
+    q<GNode & { external_ids: any; archive_url: string | null; logo_url: string | null; logo_source_url: string | null }>(`SELECT * FROM nodes WHERE id=$1`, [id]),
+    q<{ label: string; text: string; url: string }>(`SELECT DISTINCT ON (label) label, text, url FROM facts WHERE node_id=$1 AND label IS NOT NULL ORDER BY label, id DESC`, [id]),
+    q<{ text: string; url: string }>(`SELECT text, url FROM facts WHERE node_id=$1 AND label IS NULL ORDER BY id LIMIT 8`, [id]),
+    nodeNames(),
+    q<{ money_out: number; money_in: number; links: number; feed: number; filings: number }>(`
     SELECT (SELECT coalesce(sum(amount),0)::float8 FROM links_shown WHERE from_id=$1 AND type='money' AND subtype <> 'lobbying') AS money_out,
            (SELECT coalesce(sum(amount),0)::float8 FROM links_shown WHERE to_id=$1 AND type='money' AND subtype <> 'lobbying') AS money_in,
            (SELECT count(*)::int FROM links WHERE from_id=$1 OR to_id=$1) AS links,
            (SELECT count(*)::int FROM feed_items WHERE node_id=$1 AND status='approved') AS feed,
-           (SELECT count(*)::int FROM filings WHERE node_id=$1) AS filings`, [id]))[0];
+           (SELECT count(*)::int FROM filings WHERE node_id=$1) AS filings`, [id]),
+  ]);
+  if (!node) return null;
+  keyFacts.sort((a, b) => FACT_ORDER.indexOf(a.label) - FACT_ORDER.indexOf(b.label));
+  const link = buildLinker(names);
+  const facts: { text: string; url: string; parts: Part[] }[] = raw.map((f) => ({ ...f, parts: link(f.text, id) }));
   return { node, facts, keyFacts, stats };
 }
 
@@ -85,16 +93,16 @@ export async function getProfile(id: string) {
   cached();
   const s = await getNodeSummary(id);
   if (!s) return null;
-  const feed = await q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, t.name AS target_name FROM feed_items f LEFT JOIN nodes t ON t.id=f.target_id
-                             WHERE f.node_id=$1 AND f.status='approved' ORDER BY f.date DESC, f.id DESC`, [id]);
-  const filings = await q<any>(`SELECT *, pdate(filed_date, filed_prec) AS filed_date, amount::float8 AS amount FROM filings WHERE node_id=$1
-                                ORDER BY coalesce(filed_date, to_date(substring(period from '\\d{4}'), 'YYYY')) DESC NULLS LAST, id DESC`, [id]);
-  const links = await q<any>(`
+  const [feed, filings, links] = await Promise.all([q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, t.name AS target_name FROM feed_items f LEFT JOIN nodes t ON t.id=f.target_id
+                             WHERE f.node_id=$1 AND f.status='approved' ORDER BY f.date DESC, f.id DESC`, [id]),
+  q<any>(`SELECT *, pdate(filed_date, filed_prec) AS filed_date, amount::float8 AS amount FROM filings WHERE node_id=$1
+                                ORDER BY coalesce(filed_date, to_date(substring(period from '\\d{4}'), 'YYYY')) DESC NULLS LAST, id DESC`, [id]),
+  q<any>(`
     SELECT l.id::int, l.type, l.subtype, l.amount::float8 AS amount, pdate(l.date_start, l.date_start_prec) AS date_start, pdate(l.date_end, l.date_end_prec) AS date_end, l.stance, l.note, l.source_url,
       CASE WHEN l.from_id=$1 THEN 'out' ELSE 'in' END AS dir,
       o.id AS other_id, o.name AS other_name, o.type AS other_type, o.descriptor AS other_descriptor
     FROM links_shown l JOIN nodes o ON o.id = CASE WHEN l.from_id=$1 THEN l.to_id ELSE l.from_id END
-    WHERE l.from_id=$1 OR l.to_id=$1 ORDER BY l.date_start DESC NULLS LAST`, [id]);
+    WHERE l.from_id=$1 OR l.to_id=$1 ORDER BY l.date_start DESC NULLS LAST`, [id])]);
   return { ...s, feed, filings, links };
 }
 
@@ -176,13 +184,13 @@ export async function getTarget(id: string) {
   cached();
   const s = await getNodeSummary(id);
   if (!s) return null;
-  const pushes = await q<any>(`
+  const [pushes, statements, candidates] = await Promise.all([q<any>(`
     SELECT l.id::int, l.type, l.subtype, l.amount::float8 AS amount, pdate(l.date_start, l.date_start_prec) AS date_start, l.stance, l.note, l.source_url,
       a.id AS actor_id, a.name AS actor_name, a.type AS actor_type, a.cluster,
       (SELECT coalesce(sum(m.amount),0)::float8 FROM links_shown m WHERE m.from_id=a.id AND m.type='money' AND m.subtype IN ('contribution','independent expenditure','donation','transfer')) AS actor_political_money
-    FROM links_shown l JOIN nodes a ON a.id=l.from_id WHERE l.to_id=$1 ORDER BY l.amount DESC NULLS LAST, l.date_start DESC NULLS LAST`, [id]);
-  const statements = await q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, n.name AS actor_name FROM feed_items f JOIN nodes n ON n.id=f.node_id WHERE f.target_id=$1 AND f.status='approved' ORDER BY f.date DESC`, [id]);
-  const candidates = s.node.type === "race" ? await q<any>(`SELECT id, name, descriptor FROM nodes WHERE type='lawmaker' AND external_ids->>'race'=$1`, [id]) : [];
+    FROM links_shown l JOIN nodes a ON a.id=l.from_id WHERE l.to_id=$1 ORDER BY l.amount DESC NULLS LAST, l.date_start DESC NULLS LAST`, [id]),
+  q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, n.name AS actor_name FROM feed_items f JOIN nodes n ON n.id=f.node_id WHERE f.target_id=$1 AND f.status='approved' ORDER BY f.date DESC`, [id]),
+  s.node.type === "race" ? q<any>(`SELECT id, name, descriptor FROM nodes WHERE type='lawmaker' AND external_ids->>'race'=$1`, [id]) : [] as any[]]);
   const candidatePushes = candidates.length ? await q<any>(`
     SELECT l.to_id AS candidate, l.stance, l.amount::float8 AS amount, pdate(l.date_start, l.date_start_prec) AS date_start, l.note, l.source_url, a.id AS actor_id, a.name AS actor_name
     FROM links_shown l JOIN nodes a ON a.id=l.from_id WHERE l.to_id = ANY($1) ORDER BY l.amount DESC NULLS LAST`, [candidates.map((c) => c.id)]) : [];
@@ -590,7 +598,7 @@ export async function viewWordingSources(billId: string) {
 export async function allNodeIds(): Promise<string[]> {
   "use cache";
   cached();
-  // Best-connected first, so a build or warm-up that is cut short has covered the profiles people open most.
+  // Best-connected first: the build prebuilds the head of this list, and the background refresh works down it.
   return (await q<{ id: string }>(`SELECT n.id FROM nodes n ORDER BY (SELECT count(*) FROM links l WHERE l.from_id=n.id OR l.to_id=n.id) DESC, n.id`)).map((r) => r.id);
 }
 

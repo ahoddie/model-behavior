@@ -1,7 +1,6 @@
 // Shared top of every profile: logo (or an initials box), name, descriptor and the sourced key facts.
 // Each fact ends in a source pill (components/Src.tsx); Website values link to the site itself.
 import CiteButton from "./CiteButton";
-import { fmtDate } from "@/lib/format";
 import { TYPE_LABEL } from "@/lib/format";
 import Src from "./Src";
 
