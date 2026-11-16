@@ -4,7 +4,7 @@ import { fmtDate } from "@/lib/format";
 import Src from "@/components/Src";
 import SectionNav from "@/components/SectionNav";
 
-export const metadata = { title: "Topics · Model Behavior" };
+export const metadata = { title: "Stances · Model Behavior" };
 
 const ANSWER = ["disagrees strongly", "disagrees", "no clear side", "agrees", "agrees strongly"];
 
@@ -41,9 +41,9 @@ export default async function Topics() {
   const topics = await getTopics();
   return (
     <div className="home">
-      <SectionNav items={topics.map((t) => ({ id: t.id, label: t.label }))} label="Topics" />
+      <SectionNav items={topics.map((t) => ({ id: t.id, label: t.label }))} label="Stances" />
       <div className="home-main page">
-        <h1>Topics</h1>
+        <h1>Stances</h1>
         <p className="lede">Where people and organizations stand on notable topics, from their own quotes and the public letters they signed.</p>
         <p className="note">Quote readings come from an open-source model and can be wrong; each shows its quote. A signature is shown with the letter&apos;s own words. Few quotes on record address these topics yet, so most columns are short.</p>
         {topics.map((t) => (

@@ -23,16 +23,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <header className="masthead">
           <span className="brand"><Link href="/" className="wordmark">Model Behavior</Link><span className="beta" title="Work in progress: data and features are still being checked">Beta</span></span>
           <nav aria-label="Main">
-            <Link href="/map">Map</Link>
-            <Link href="/money">Money</Link>
-            <Link href="/targets">Lands on</Link>
-            <Link href="/topics">Topics</Link>
+            <Link href="/map">Network</Link>
+            <Link href="/money">Funding</Link>
+            <Link href="/targets">Policy</Link>
+            <Link href="/topics">Stances</Link>
+            <Link href="/about">About</Link>
           </nav>
           <div className="mast-tools">
-            <HeaderSearch />
             <Link href="/data" className="iconbtn" aria-label="Open data: downloads, methodology, corrections" title="Open data">
               <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2.5 13.5h11" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </Link>
+            <HeaderSearch />
           </div>
         </header>
         <main id="main">{children}</main>
