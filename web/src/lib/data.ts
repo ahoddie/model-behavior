@@ -364,7 +364,9 @@ export async function getActorIssues(id: string) {
 
 // ── Lobbying and grants by issue (topic tags from the filed text; see scripts/tag-filings.ts) ──
 // The newest tag row per filing or grant. Tags name topics only, never a position.
-const FILING_TAGS = `(SELECT DISTINCT ON (t.source_kind, t.source_id) t.* FROM filing_issue_tags t ORDER BY t.source_kind, t.source_id, t.tagged_at DESC)`;
+// The prompt version shown on the site: the one that measured best in data/validation/filing-tags-report.md.
+const FILING_TAGS_VERSION = "t5";
+const FILING_TAGS = `(SELECT DISTINCT ON (t.source_kind, t.source_id) t.* FROM filing_issue_tags t WHERE t.prompt_version = '${FILING_TAGS_VERSION}' ORDER BY t.source_kind, t.source_id, t.tagged_at DESC)`;
 export type LobbyIssue = { id: string; label: string; n: number;
   filings: { id: number; period: string | null; filed: string | null; url: string; archive_url: string | null; amount: number | null; firm: string | null; items: string[] }[];
   grants: { id: number; dir: "out" | "in"; other_id: string; other_name: string; date: string | null; url: string }[] };

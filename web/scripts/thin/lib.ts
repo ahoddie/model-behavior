@@ -17,7 +17,11 @@ export const today = () => new Date().toISOString().slice(0, 10);
 
 export async function begin() { await setActor(ORIGIN); }
 const logUrl = (u: string) => appendFileSync(URLS, u + "\n");
-export async function fact(f: { node: string; text: string; url: string; label?: string }) { logUrl(f.url); return insertFact(f); }
+// Insert-only: insertFact upserts on (node, text), which would rewrite an existing row, so a pair that exists is skipped here.
+export async function fact(f: { node: string; text: string; url: string; label?: string }) {
+  if ((await q(`SELECT 1 FROM facts WHERE node_id=$1 AND text=$2`, [f.node, String(f.text).trim()])).length) return false;
+  logUrl(f.url); return insertFact(f);
+}
 export async function filing(f: any) { logUrl(f.url); return insertFiling(f, ORIGIN); }
 export async function link(l: any) { logUrl(l.source_url); return insertLink(l, ORIGIN); }
 

@@ -11,7 +11,7 @@
 // on that. Grants are links.subtype = 'grant', tagged from the link's note (the purpose as written on the grant page).
 // Results go to filing_issue_tags, keyed by source row + model + prompt version, with a hash of the input. Identical texts
 // (the same registrant filing the same description each quarter) are sent to the model once per run.
-// Usage: pnpm tag-filings [--model qwen2.5:7b-instruct] [--limit N] [--ids filing:12,grant:2315] [--redo]
+// Usage: pnpm tag-filings [--model qwen2.5:7b-instruct] [--version t4] [--model-from t3] [--limit N] [--ids filing:12,grant:2315] [--redo]
 import "./env.ts";
 import { createHash } from "node:crypto";
 import { pool, q } from "../src/lib/db.ts";
@@ -23,7 +23,16 @@ const OLLAMA = process.env.OLLAMA_HOST ?? "http://localhost:11434";
 const LIMIT = Number(arg("--limit") ?? 0);
 const REDO = process.argv.includes("--redo");
 const IDS = arg("--ids")?.split(",").map((s) => s.includes(":") ? s : `filing:${s}`);
-export const PROMPT_VERSION = "t2";
+// t3: issue_areas grew to 16 (federal_framework, agency_rules).
+// t4: fixes from data/validation/filing-tags-report.md. Rules now match only sentences that themselves mention AI; the liability
+//     rule no longer fires on Section 230 or intermediary liability; elections needs an election word, not just "deepfake";
+//     new rules for moratoriums, transparency acts, AI risk and AI innovation; issues the model alone tags loosely (see
+//     NEEDS_RULE) are kept only when a rule or code agrees; at most 3 issues per item. The model prompt and the model's input
+//     are unchanged from t3, so `--model-from t3` reuses each item's t3 model picks instead of calling the model again.
+// t5: the innovation rule no longer fires on any "innovation" (bill names like the Workforce Innovation and Opportunity Act);
+//     "content liability" is not AI liability; "campaign ads" counts for elections.
+export const PROMPT_VERSION = arg("--version") ?? "t5";
+const MODEL_FROM = arg("--model-from");
 
 type Area = { id: string; label: string; description: string };
 const areas = await q<Area>(`SELECT id, label, description FROM issue_areas ORDER BY sort`);
@@ -61,19 +70,29 @@ export const aiRelated = (s: string) => AI_ACRONYM.test(s) || AI_WORDS.test(s);
 // Plain phrases that name an issue outright. Only applied to AI-related text.
 const RULES: [RegExp, string][] = [
   [/export control|chip security|diffusion (?:rule|framework)|\bChina\b|\bPRC\b|foreign adversar|\bGAIN AI\b|remote access security/i, "china"],
-  [/preempt|moratorium on state|state (?:AI )?law moratorium|patchwork of state/i, "preemption"],
-  [/frontier (?:AI|model)|AI safety institute|CAISI|model (?:evaluation|testing)|safety testing|incident reporting|AI transparency/i, "frontier_rules"],
+  [/preempt|moratorium|patchwork of state/i, "preemption"],
+  [/frontier (?:AI|model)|AI safety institute|CAISI|model (?:evaluation|testing)|safety testing|incident reporting|AI transparency|model transparency|evaluating AI systems|dangerous capabilit/i, "frontier_rules"],
+  [/catastroph|existential|loss of control|\bAI[- ]risk|risks? from (?:advanced )?(?:AI|artificial intelligence)|dangerous capabilit|bioweapon|biosecurity|accident risk|superintelligen/i, "catastrophic_risk"],
   [/open[- ]source AI|open[- ]weight|open model/i, "open_models"],
   [/copyright|digital replica|NO FAKES|training data/i, "copyright"],
   [/\bchild|\bkids\b|\bminors?\b|\bteens?\b|age verification|age assurance|KOSA|COPPA/i, "kids_safety"],
   [/workforce|\bworkers?\b|\bjobs\b|AI skills/i, "jobs"],
   [/data cent(?:er|re)|\benergy\b|electricity|power grid|\bgrid\b|permitting|nuclear/i, "energy"],
-  [/\bdefen[cs]e\b|military|Department of War|Pentagon|\bNDAA\b|national security|intelligence community|government (?:use|adoption) of AI|AI procurement/i, "national_security"],
-  [/liabilit|section 230/i, "liability"],
+  [/\bdefen[cs]e\b|military|Department of War|Pentagon|\bNDAA\b|national security|intelligence community|government (?:use|adoption) of AI|AI procurement|\bAI and security\b|AI security/i, "national_security"],
+  [/(?<!intermediary |content )\bliabilit/i, "liability"],
   [/\bbias\b|discriminat|civil rights|civil liberties|facial recognition|algorithmic accountability/i, "civil_rights"],
-  [/deepfake|\belection|synthetic media|political ad/i, "elections"],
-  [/competitiveness|\bNAIRR\b|AI research resource|AI (?:research and development|R&D)|American AI leadership|AI leadership/i, "innovation"],
+  [/\belections?\b(?! security)|synthetic media|political ad|campaign ad/i, "elections"],
+  [/comprehensive (?:federal )?AI|federal AI (?:framework|legislation|standard)|national AI (?:framework|standard)/i, "federal_framework"],
+  [/executive order|rulemaking|(?:proposed|interim final|final) rule|OMB memorand|diffusion (?:rule|framework)/i, "agency_rules"],
+  [/competitiveness|\bNAIRR\b|AI research resource|AI (?:research and development|R&D)|American AI leadership|AI leadership|leadership in (?:AI|artificial intelligence)|AI (?:and )?innovation|innovation (?:in|of) (?:AI|artificial intelligence)|Research, Innovation/i, "innovation"],
 ];
+// The model alone tagged these loosely in the t3 check (innovation 5/11, national_security, catastrophic_risk, preemption,
+// liability, china): keep them only when a rule or the LDA code agrees.
+const NEEDS_RULE = new Set(["innovation", "national_security", "catastrophic_risk", "preemption", "liability", "china"]);
+const MAX_ISSUES = 3;
+// Rules read sentence by sentence, and only sentences that mention AI, so one long activity listing many topics does not
+// tag them all. A sentence ends at ". " after a lowercase word and before a capital ("H.R. 3447" is not split).
+const aiSentences = (s: string) => s.split(/(?<=[a-z)]{2}[.!?])\s+(?=[A-Z])|;\s*/).filter((x) => aiRelated(x)).join(" ; ");
 
 // Drop the "<report type>. Via <REGISTRANT>." prefix the LDA importer writes, so a lobbying firm's name is never read as content.
 const filedText = (s: string) => s.replace(/^[^.|]*?\.\s+(?:In-house\.\s*|Via [^a-z]*?\.\s+)/, "").trim();
@@ -95,6 +114,8 @@ Rules:
 - A bill counts only when its name in the text makes the topic plain (for example "Chip Security Act" is US-China competition).
 - innovation: only when the text is about competitiveness, AI research funding or keeping US AI development ahead.
 - national_security: military or intelligence use of AI, defense bills about AI, or the government buying and using AI.
+- federal_framework: only when the text names comprehensive or national AI legislation or a federal AI framework, not any one AI bill.
+- agency_rules: only when the text names an executive order, an agency rule or a rulemaking about AI.
 
 Invented examples (not real filings):
 - "Issues related to artificial intelligence policy." -> none
@@ -164,7 +185,13 @@ const cache = new Map<string, { issues: string[]; reason: string }>();
 if (!REDO) for (const r of await q<{ input_hash: string; via: Record<string, string>; reason: string | null }>(
   `SELECT DISTINCT ON (input_hash) input_hash, via, reason FROM filing_issue_tags WHERE model=$1 AND prompt_version=$2 AND ai_related`, [MODEL, PROMPT_VERSION]))
   cache.set(r.input_hash, { issues: Object.entries(r.via).filter(([, v]) => v.includes("model")).map(([k]) => k), reason: r.reason ?? "" });
-const counts = { scanned: 0, ai_related: 0, no_text: 0, model_calls: 0, tagged: 0, failed: 0 };
+// --model-from <version>: the model's picks stored for the same source under that version (same prompt, same input).
+const reused = new Map<string, { issues: string[]; reason: string }>();
+if (MODEL_FROM) for (const r of await q<{ source_kind: string; source_id: number; via: Record<string, string>; reason: string | null }>(
+  `SELECT source_kind, source_id, via, reason FROM filing_issue_tags WHERE model=$1 AND prompt_version=$2 AND ai_related`, [MODEL, MODEL_FROM]))
+  reused.set(`${r.source_kind}:${r.source_id}`, { issues: Object.entries(r.via).filter(([, v]) => v.includes("model")).map(([k]) => k), reason: r.reason ?? "" });
+const rank = (v: string) => (v.includes("model") && v !== "model" ? 0 : v === "model" ? 2 : 1);
+const counts = { scanned: 0, ai_related: 0, no_text: 0, model_calls: 0, reused: 0, tagged: 0, failed: 0, dropped_model_only: 0, capped: 0 };
 const t0 = Date.now();
 for (const it of todo) {
   counts.scanned++;
@@ -174,16 +201,24 @@ for (const it of todo) {
   let issues: string[] = [], via: Record<string, string> = {}, reason: string | null = null;
   if (ai) {
     counts.ai_related++;
-    for (const [re, issue] of RULES) if (re.test(it.ai)) via[issue] ??= "rule";
+    const sentences = aiSentences(it.ai);
+    for (const [re, issue] of RULES) if (re.test(sentences)) via[issue] ??= "rule";
     const known = it.codes.filter((c) => c in LDA_CODES);
     if (known.length === 1 && CODE_ISSUE[known[0]]) via[CODE_ISSUE[known[0]]] ??= "code";
     try {
-      let m = cache.get(hash);
-      if (!m) { m = await chat(inputOf(it)); cache.set(hash, m); counts.model_calls++; }
-      for (const i of m.issues) via[i] = via[i] ? `${via[i]}+model` : "model";
-      reason = m.reason;
+      let m = reused.get(`${it.kind}:${it.id}`) ?? cache.get(hash);
+      if (reused.has(`${it.kind}:${it.id}`)) counts.reused++;
+      else if (!m) { m = await chat(inputOf(it)); cache.set(hash, m); counts.model_calls++; }
+      for (const i of m!.issues) {
+        if (!via[i] && NEEDS_RULE.has(i)) { counts.dropped_model_only++; continue; }
+        via[i] = via[i] ? `${via[i]}+model` : "model";
+      }
+      reason = m!.reason;
     } catch (e) { counts.failed++; console.warn(`${it.kind}:${it.id}: ${(e as Error).message}`); continue; }
-    issues = ids.filter((i) => i in via);
+    // At most 3: tags the rule and the model agree on first, then rule or code, then the model alone; ties in issue order.
+    issues = ids.filter((i) => i in via).sort((a, b) => rank(via[a]) - rank(via[b]) || ids.indexOf(a) - ids.indexOf(b));
+    if (issues.length > MAX_ISSUES) { counts.capped++; for (const i of issues.slice(MAX_ISSUES)) delete via[i]; issues = issues.slice(0, MAX_ISSUES); }
+    issues = ids.filter((i) => issues.includes(i));
     if (issues.length) counts.tagged++;
   }
   await pool.query(`INSERT INTO filing_issue_tags (source_kind, source_id, model, prompt_version, input_hash, ai_related, issues, via, reason)

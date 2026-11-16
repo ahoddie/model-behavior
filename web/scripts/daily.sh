@@ -8,11 +8,10 @@ LOG="$HOME/Library/Logs/model-behavior-daily.log"
 step() { echo "== $(date '+%F %T') $*" >> "$LOG"; "$@" >> "$LOG" 2>&1 || echo "!! failed: $*" >> "$LOG"; }
 
 # The database and search must be up; the site itself can be down.
-step docker compose -f ../docker-compose.yml up -d db search
+step ./scripts/up.sh --no-site   # Colima VM, db, search, Ollama (the idle watcher stops them later)
 step pnpm import            # FEC, LDA, Congress, Regulations.gov, blogs, Bluesky, state lobbying
 step pnpm archive           # Wayback copies of new source URLs
 step pnpm run sources       # re-check new sources and quotes (only unchecked URLs)
-pgrep -x ollama >/dev/null || (ollama serve >/dev/null 2>&1 &) ; sleep 2
 step pnpm analyze           # label new or changed quotes with the local model
 step pnpm index             # rebuild search
 echo "== $(date '+%F %T') done" >> "$LOG"
