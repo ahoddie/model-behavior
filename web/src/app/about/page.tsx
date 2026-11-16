@@ -17,7 +17,7 @@ export default function About() {
       <p>
         Every fact, quote, and amount links to its public source. See the <Link href="/data?view=methodology">methodology</Link> and <Link href="/data?view=corrections">corrections</Link>.
       </p>
-      <p>Maintained by <a href="https://allegrahoddie.com">Allegra Hoddie</a>, who runs policy programs at <a href="https://buaisa.org">AISA</a>.</p>
+      <p>Maintained by <a href="https://allegrahoddie.com">Allegra Hoddie</a>.</p>
     </div>
   );
 }

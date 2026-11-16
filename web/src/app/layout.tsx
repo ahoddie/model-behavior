@@ -3,6 +3,7 @@ import { Archivo, Literata, JetBrains_Mono } from "next/font/google";
 import Link from "@/components/Link";
 import { Suspense } from "react";
 import LastUpdated from "@/components/LastUpdated";
+import MainNav, { NavLinks } from "@/components/MainNav";
 import HeaderSearch from "@/components/HeaderSearch";
 import ThemeToggle, { THEME_SCRIPT } from "@/components/ThemeToggle";
 import { Lockup } from "@/components/Logo";
@@ -27,11 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <header className="masthead">
           <span className="brand"><Link href="/" className="wordmark" aria-label={`${SITE_NAME} home`}><Lockup /></Link><span className="beta" title="Work in progress: data and features are still being checked">Beta</span></span>
           <nav aria-label="Main">
-            <Link href="/map">Network</Link>
-            <Link href="/money">Funding</Link>
-            <Link href="/targets">Policy</Link>
-            <Link href="/topics">Stances</Link>
-            <Link href="/about">About</Link>
+            <Suspense fallback={<NavLinks />}><MainNav /></Suspense>
           </nav>
           <div className="mast-tools">
             <Link href="/data" className="iconbtn" aria-label="Open data: downloads, methodology, corrections" title="Open data">

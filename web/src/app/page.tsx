@@ -9,7 +9,7 @@ import CiteButton from "@/components/CiteButton";
 import { Named } from "@/components/ProfileHead";
 import RankChart from "@/components/RankChart";
 import TrendChart from "@/components/TrendChart";
-import TalkChart, { type TalkIssue } from "@/components/TalkChart";
+import TalkChart, { type TalkIssue, type ActorTopic } from "@/components/TalkChart";
 import { sourceName } from "@/lib/format";
 
 const SECTIONS = [
@@ -28,14 +28,14 @@ const sideOf = (s: string) => (s === "support" ? "support" : s === "oppose" ? "o
 // Old links to the map (/?focus=…, /?view=time) are redirected in next.config.ts.
 // Who agrees and who disagrees with a statement, most statements first; the first few of each side, then "and N more".
 const SHOW = 6;
-function Side({ label, side, actors }: { label: string; side: string; actors: IssueActor[] }) {
+function Side({ label, side, actors, more }: { label: string; side: string; actors: IssueActor[]; more?: string }) {
   if (!actors.length) return null;
   return (
     <div className={`who-side ${side}`}>
       <span className="who-label">{label} <span className="muted">{actors.length}</span></span>
       <ul>{actors.slice(0, SHOW).map((a) => (
         <li key={a.id}><Named node={a} size={18}><Link href={`/node/${a.id}`}>{a.name}</Link></Named></li>
-      ))}{actors.length > SHOW && <li className="muted">and {actors.length - SHOW} more</li>}</ul>
+      ))}{actors.length > SHOW && <li className="who-rest">{more ? <Link href={more}>and {actors.length - SHOW} more</Link> : <>and {actors.length - SHOW} more</>}</li>}</ul>
     </div>
   );
 }
@@ -43,9 +43,9 @@ function Who({ sides, topicId }: { sides?: { agree: IssueActor[]; disagree: Issu
   if (!sides || !(sides.agree.length + sides.disagree.length)) return null;
   return (
     <div className="who">
-      <Side label="Agree" side="support" actors={sides.agree} />
-      <Side label="Disagree" side="oppose" actors={sides.disagree} />
-      {topicId && <Link className="who-more" href={`/topics#${topicId}`}>See everyone, with their quotes</Link>}
+      <Side label="Agree" side="support" actors={sides.agree} more={topicId && `/topics#${topicId}`} />
+      <Side label="Disagree" side="oppose" actors={sides.disagree} more={topicId && `/topics#${topicId}`} />
+      {topicId && <Link className="who-more" href={`/topics#${topicId}`}>Read their quotes</Link>}
     </div>
   );
 }
@@ -60,6 +60,12 @@ export default async function Home() {
       .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)).slice(0, 15)
       .map((a) => ({ id: a.id, name: a.name, kind: TYPE_LABEL[a.type] ?? a.type, n: a.n, agree: a.agree })),
   })).filter((i) => i.actors.length >= 3);
+  // For the breakdown under a bar: each charted actor's sided statements per issue, most first.
+  const charted = new Set([...talkers.map((a: any) => a.id), ...talk.flatMap((i) => i.actors.map((a) => a.id))]);
+  const byActor: Record<string, ActorTopic[]> = {};
+  for (const i of analysis?.issues ?? []) for (const [side, agree] of [["agree", true], ["disagree", false]] as const)
+    for (const a of who[i.id]?.[side] ?? []) if (charted.has(a.id)) (byActor[a.id] ??= []).push({ id: i.id, label: i.label, n: a.n, agree });
+  for (const k in byActor) byActor[k].sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
 
   return (
     <div className="home">
@@ -116,7 +122,7 @@ export default async function Home() {
                 .sort((a, b) => b.value - a.value)} />
           </figure>
         </div>
-        <TalkChart issues={talk} all={talkers.map((a: any) => ({ id: a.id, name: a.name, kind: TYPE_LABEL[a.type] ?? a.type, n: a.n }))} />
+        <TalkChart issues={talk} byActor={byActor} all={talkers.map((a: any) => ({ id: a.id, name: a.name, kind: TYPE_LABEL[a.type] ?? a.type, n: a.n }))} />
         <ul className="issues">{analysis.issues.filter((i) => i.statements > 0).map((i) => (
           <li key={i.id}>
             <div className="iss-head">

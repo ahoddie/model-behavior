@@ -82,6 +82,12 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
     hoverTimer.current = setTimeout(() => setHoverKey(key), HOVER_MS);
   };
   useEffect(() => () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); }, []);
+  useEffect(() => {
+    if (!selected) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setSelected(null); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [selected]);
   // The columns are placed from the stage's real width. Until it is measured the map is laid out at a stand-in width and
   // kept invisible, so the prebuilt page never shows columns that then jump.
   const [measured, setMeasured] = useState<number | null>(null);
@@ -144,11 +150,12 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
   const nodeScore = useMemo(() => fLinks === layoutLinks ? layoutScore : scoreOf(fLinks), [fLinks, layoutLinks, layoutScore]);
   const score = useCallback((id: string) => { const v = layoutScore.get(id); return v ? v.money / 1e6 + v.count : 0; }, [layoutScore]);
 
-  // Focus: everything within two steps of the selected node.
+  // Focus: the selected node and what it connects to directly. Everything else leaves the map until the selection is cleared
+  // (click the name again, click empty space, press Escape or Close all).
   const focus = useMemo(() => {
     if (!selected || !byId.has(selected)) return null;
     const hop = new Map<string, number>([[selected, 0]]);
-    for (let d = 1; d <= 2; d++) for (const l of layoutLinks) {
+    for (let d = 1; d <= 1; d++) for (const l of layoutLinks) {
       const a = hop.get(l.from), b = hop.get(l.to);
       if (a === d - 1 && !hop.has(l.to)) hop.set(l.to, d);
       if (b === d - 1 && !hop.has(l.from)) hop.set(l.from, d);
@@ -249,7 +256,7 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
   // Which lines stand out. The stylesheet does the dimming from two class names, so lighting one line touches that line
   // and the group, not every line on the map.
   const lit = (e: Edge) => focus && selected ? e.links.some((l) => l.from === selected || l.to === selected) : hoverKey === e.key;
-  const drawn = edges.map((e) => ({ e, d: pathOf(e), w: widthOf(e) }));
+  const drawn = (focus && selected ? edges.filter(lit) : edges).map((e) => ({ e, d: pathOf(e), w: widthOf(e) }));
   // What a box shows comes from the links on screen now, which in the timeline is fewer than the layout holds.
   const moneyOf = (ids: string[]) => d3.sum(ids, (id) => nodeScore.get(id)?.money ?? 0);
   const activeOf = (ids: string[]) => ids.filter((id) => nodeScore.has(id)).length;
@@ -335,7 +342,8 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
       </div>
       {timeline}
       <div className={`mapstage${focus ? " focused" : ""}${mode === "timeline" ? " timeline" : ""}`}>
-        <svg ref={svgRef} width={width} height={height} style={measured === null ? { visibility: "hidden" } : undefined} role="group" aria-label="Influence map: The Valley, Through, Lands on" className="map">
+        <svg ref={svgRef} width={width} height={height} style={measured === null ? { visibility: "hidden" } : undefined} role="group" aria-label="Influence map: The Valley, Through, Lands on" className="map"
+          onClick={() => { if (selected) setSelected(null); }}>
           <g ref={gRef}>
             {COL_TITLES.map((t, i) => (
               <g key={t} transform={`translate(${xOf(i)},${TOP - 24})`}>
@@ -365,7 +373,7 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
                   role="button" tabIndex={0} aria-expanded={it.kind === "cluster" || it.kind === "header" ? it.kind === "header" : undefined}
                   aria-pressed={it.kind === "node" ? Boolean(isSel) : undefined}
                   aria-label={it.kind === "node" ? `${it.label}${money ? `, ${fmtMoney(money)}` : ""}` : it.kind === "cluster" ? `${it.label}, ${count} ${count === 1 ? "name" : "names"}. Expand` : it.label}
-                  onClick={() => activate(it)} onKeyDown={(e) => onKey(e, it)}>
+                  onClick={(e) => { e.stopPropagation(); activate(it); }} onKeyDown={(e) => onKey(e, it)}>
                   {it.kind === "cluster" && <>
                     <rect width={COL_W} height={CLUSTER_H - 6} rx="2" />
                     <text x="12" y="18" className="clabel">{it.label}</text>
