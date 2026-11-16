@@ -1,8 +1,19 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
+// Light line icons for the nav, drawn on a 16-unit grid in the text color.
+const ICONS = {
+  money: <><circle cx="8" cy="8" r="6.25" /><path d="M10 5.75H7.25a1.25 1.25 0 0 0 0 2.5h1.5a1.25 1.25 0 0 1 0 2.5H6M8 4.25v1.5M8 10.75v1.5" /></>,
+  priorities: <><path d="M3.5 14.5V2" /><path d="M3.5 2.5h8.25l-1.75 3 1.75 3H3.5" /></>,
+  stances: <><path d="M8 2.5v11M5 13.5h6M3 4.5h10" /><path d="M3 4.5 1.25 9a1.9 1.9 0 0 0 3.5 0zM13 4.5 11.25 9a1.9 1.9 0 0 0 3.5 0z" /></>,
+  evolution: <><path d="M1.75 13.75h12.5" /><path d="M2.5 11 6 7.25l2.75 2.25 4.75-5.5" /><path d="M10.5 4h3v3" /></>,
+  quotes: <><path d="M2.25 3.25h11.5v7.5H7l-3 2.5v-2.5H2.25z" /><path d="M5.5 6.25v1.5M8 6.25v1.5" /></>,
+  network: <><circle cx="8" cy="3.5" r="1.75" /><circle cx="3.25" cy="12" r="1.75" /><circle cx="12.75" cy="12" r="1.75" /><path d="M7.1 5 4.15 10.5M8.9 5l2.95 5.5M5 12h6" /></>,
+};
+export type NavIcon = keyof typeof ICONS;
+
 // A sticky list of the page's sections on wide screens. The section in view is marked.
-export default function SectionNav({ items, label = "On this page" }: { items: { id: string; label: string }[]; label?: string }) {
+export default function SectionNav({ items, label = "On this page" }: { items: { id: string; label: string; icon?: NavIcon }[]; label?: string }) {
   const [active, setActive] = useState(items[0]?.id);
   // While a click's glide is running, the clicked section stays marked so the marker doesn't step through the ones passed.
   const gliding = useRef(0);
@@ -47,7 +58,7 @@ export default function SectionNav({ items, label = "On this page" }: { items: {
   return (
     <nav className="secnav" aria-label={label}>
       <ol>{items.map((i) => (
-        <li key={i.id}><a href={`#${i.id}`} onClick={(e) => go(e, i.id)} aria-current={active === i.id ? "location" : undefined}>{i.label}</a></li>
+        <li key={i.id}><a href={`#${i.id}`} onClick={(e) => go(e, i.id)} aria-current={active === i.id ? "location" : undefined}>{i.icon && <svg className="secnav-icon" viewBox="0 0 16 16" aria-hidden="true">{ICONS[i.icon]}</svg>}{i.label}</a></li>
       ))}</ol>
     </nav>
   );
