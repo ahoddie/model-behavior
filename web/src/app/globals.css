@@ -542,3 +542,48 @@ a[href^="http"]:hover::after { color: currentColor; }
 .topic-evidence { margin: 6px 0 8px; padding-left: 1em; font-size: 14px; }
 .topic-evidence li { margin-bottom: 6px; }
 @media (max-width: 800px) { .topic-cols { grid-template-columns: 1fr; } }
+
+/* Race pages: the seat line, outside spending around a center axis, candidate totals. */
+.race-seat { display: flex; flex-wrap: wrap; gap: 0; margin: var(--s4) 0 var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); font-size: 15px; }
+.race-seat span:empty { display: none; }
+.race-seat span + span::before { content: "·"; color: var(--muted); margin: 0 var(--s2); }
+.race-block { margin-top: var(--s7); }
+.race-block h2 { margin: 0 0 var(--s1); }
+.race-note { color: var(--muted); font-size: 15px; margin: 0 0 var(--s4); max-width: 68ch; }
+.race-legend { display: flex; justify-content: center; gap: var(--s5); font-size: 14px; margin-bottom: var(--s3); }
+.race-legend i { font-style: normal; }
+.race-chart { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
+.race-chart > li { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; column-gap: var(--s4); align-items: center; padding: var(--s3) 0; border-bottom: 1px solid var(--rule); }
+.race-who { font-weight: 700; color: var(--ink); }
+.race-bars { display: grid; grid-template-columns: 1fr 1fr; position: relative; min-height: 22px; }
+.race-bars::after { content: ""; position: absolute; left: 50%; top: -6px; bottom: -6px; width: 1px; background: var(--ink); }
+.race-side { display: flex; align-items: center; min-width: 0; }
+.race-side.against { justify-content: flex-end; padding-left: 7ch; padding-right: 1px; }
+.race-side.for { justify-content: flex-start; padding-right: 7ch; padding-left: 1px; }
+.race-track { position: relative; display: flex; flex: none; height: 18px; gap: 1px; }
+.seg { display: block; height: 100%; min-width: 2px; transition: opacity .15s ease-out; }
+.seg.support { background: var(--carbon); }
+.seg.oppose { background: var(--money); }
+.race-track:hover .seg { opacity: .55; }
+.race-track .seg:hover { opacity: 1; }
+.race-sum { position: absolute; top: 50%; transform: translateY(-50%); font-size: 14px; white-space: nowrap; }
+.race-side.for .race-sum { left: 100%; padding-left: var(--s2); }
+.race-side.against .race-sum { right: 100%; padding-right: var(--s2); }
+.race-groups { grid-column: 2; margin: var(--s2) 0 0; font-size: 14px; color: var(--muted); }
+.race-filings { margin-top: var(--s4); }
+.race-filings summary { cursor: pointer; font-size: 15px; color: var(--position); }
+.race-filings table { margin-top: var(--s3); }
+.race-table-wrap { overflow-x: auto; }
+.race-cands td:first-child { min-width: 14ch; }
+.race-name { display: block; font-weight: 700; }
+.race-meta { display: block; font-size: 14px; color: var(--muted); }
+.race-cands td.num, .race-cands th { white-space: nowrap; }
+.race-raised { display: block; height: 3px; margin-top: 6px; background: var(--rule); }
+.race-raised span { display: block; height: 100%; margin-left: auto; background: var(--ink); }
+::selection { background: var(--carbon); color: var(--panel); }
+@media (max-width: 640px) {
+  .race-chart > li { grid-template-columns: 1fr; row-gap: var(--s2); }
+  .race-groups { grid-column: 1; }
+  .race-sum { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) { .seg { transition: none; } }

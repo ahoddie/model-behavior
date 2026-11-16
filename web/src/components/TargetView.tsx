@@ -4,6 +4,7 @@ import FollowForm from "./FollowForm";
 import ProfileHead from "./ProfileHead";
 import Src from "./Src";
 import CoverageLine from "./CoverageLine";
+import RaceView from "./RaceView";
 import type { Coverage } from "@/lib/data";
 
 const SIDES = [["support", "For"], ["support_if_amended", "For, if amended"], ["oppose", "Against"], ["", "Other pressure"]] as const;
@@ -16,29 +17,13 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
     <div className="page">
       <ProfileHead node={n} keyFacts={t.keyFacts} logoSource={n.logo_source_url} citePath={`/node/${n.id}`}
         kicker={<>{TYPE_LABEL[n.type]}{n.external_ids?.status ? <> · {n.external_ids.status} {n.external_ids.status_date && `(${fmtDate(n.external_ids.status_date)})`}</> : null}</>} />
-      {t.facts.length > 0 && <ul className="facts">{t.facts.map((f: any, i: number) => <li key={i}>{f.text} <Src url={f.url} /></li>)}</ul>}
+      {isRace && <RaceView t={t} />}
+      {!isRace && t.facts.length > 0 && <ul className="facts">{t.facts.map((f: any, i: number) => <li key={i}>{f.text} <Src url={f.url} /></li>)}</ul>}
       <p className="mono"><Link href={`/map?focus=${n.id}`}>Trace on the map</Link> · <a href={`/api/rss/${n.id}`}>RSS</a></p>
       <CoverageLine c={coverage} />
       <FollowForm nodeId={n.id} />
 
-      {isRace && t.candidates.length > 0 && <>
-        <h2>Money in this race</h2>
-        {t.candidates.map((c: any) => {
-          const ps = t.candidatePushes.filter((p: any) => p.candidate === c.id);
-          const forSum = ps.filter((p: any) => p.stance === "support").reduce((a: number, p: any) => a + (p.amount ?? 0), 0);
-          const agSum = ps.filter((p: any) => p.stance === "oppose").reduce((a: number, p: any) => a + (p.amount ?? 0), 0);
-          return (
-            <section key={c.id}>
-              <h3><Link href={`/node/${c.id}`}>{c.name}</Link></h3><p className="mono muted">Spending on record: {fmtMoney(forSum) || "$0"} in support, {fmtMoney(agSum) || "$0"} in opposition.</p>
-              <table className="data-table"><tbody>{ps.map((p: any, i: number) => (
-                <tr key={i}><td><Link href={`/node/${p.actor_id}`}>{p.actor_name}</Link></td><td>{p.stance}</td><td className="num">{fmtMoney(p.amount)}</td><td className="mono">{fmtDate(p.date_start)}</td><td>{p.note} <Src url={p.source_url} /></td></tr>
-              ))}</tbody></table>
-            </section>
-          );
-        })}
-      </>}
-
-      <h2>Who pushed</h2>
+      {(!isRace || t.pushes.length > 0) && <h2>Who pushed</h2>}
       <div className="grid2">
         {SIDES.map(([s, label]) => {
           const rows = t.pushes.filter((p: any) => sideOf(p.stance) === s);

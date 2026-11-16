@@ -194,7 +194,9 @@ export async function getTarget(id: string) {
   const candidatePushes = candidates.length ? await q<any>(`
     SELECT l.to_id AS candidate, l.stance, l.amount::float8 AS amount, pdate(l.date_start, l.date_start_prec) AS date_start, l.note, l.source_url, a.id AS actor_id, a.name AS actor_name
     FROM links_shown l JOIN nodes a ON a.id=l.from_id WHERE l.to_id = ANY($1) ORDER BY l.amount DESC NULLS LAST`, [candidates.map((c) => c.id)]) : [];
-  return { ...s, pushes, statements, candidates, candidatePushes };
+  // Race pages lay out every FEC line for the seat, so they read all notes, not the summary's first eight.
+  const allFacts = s.node.type === "race" ? await q<{ text: string; url: string }>(`SELECT text, url FROM facts WHERE node_id=$1 AND label IS NULL ORDER BY id`, [id]) : s.facts;
+  return { ...s, pushes, statements, candidates, candidatePushes, allFacts };
 }
 
 export async function listTargets() {
