@@ -31,7 +31,7 @@ export const LANDS_CLUSTER = `CASE
   WHEN n.cluster='government' THEN 'administration'
   ELSE n.cluster END`;
 
-export const FACT_ORDER = ["Type", "Legal form", "Founded", "Founders", "Leader", "Role", "Party", "Office", "Headquarters", "Affiliated with",
+export const FACT_ORDER = ["Type", "Status", "Introduced", "Legal form", "Founded", "Founders", "Leader", "Role", "Party", "Office", "Headquarters", "Affiliated with",
   "Parent", "Previously", "Education", "Funding", "Valuation", "Revenue", "Employees", "Website", "FEC ID", "EIN", "Social"];
 
 export async function getGraph() {

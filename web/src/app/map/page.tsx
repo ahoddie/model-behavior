@@ -8,8 +8,8 @@ export default async function MapPage() {
   return (
     <>
       <div className="home-head">
-        <h1>Who pushes AI policy</h1>
-        <p>Left: labs, investors and tech leaders. Middle: the PACs, think tanks and filings they use. Right: the elections, bills and rules reached. Click a block to open it.</p>
+        <h1>Who pushes AI policy?</h1>
+        <p>The Valley's labs, investors, and tech leaders on the left. PACs, think tanks, and filings in the middle, leading to the elections, bills and rules they fund.</p>
       </div>
       {links.length === 0 ? (
         <p className="page">No sourced links are loaded yet. Run <code>pnpm load</code> after the research files land in <code>data/research</code>.</p>

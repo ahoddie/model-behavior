@@ -1,6 +1,6 @@
 "use client";
 import Linked from "./Linked";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "@/components/Link";
 import type { GNode, GLink } from "@/lib/data";
 import { fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
@@ -11,6 +11,17 @@ type Summary = { node: GNode & { logo_url?: string | null }; facts: { text: stri
 
 export default function NodePanel({ id, links, byId, onSelect, onClose }: { id: string; links: GLink[]; byId: Map<string, GNode>; onSelect: (id: string) => void; onClose: () => void }) {
   const [loaded, setS] = useState<Summary | null>(null);
+  const ref = useRef<HTMLElement>(null);
+  // A new item starts at the top of its own panel, and the panel's top is brought into view if it sits above the screen.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.scrollTop = 0;
+    const top = el.getBoundingClientRect().top;
+    const header = document.querySelector(".masthead")?.getBoundingClientRect();
+    const offset = header && getComputedStyle(document.querySelector(".masthead")!).position === "sticky" ? header.height : 0;
+    if (top < offset) window.scrollBy({ top: top - offset - 12, behavior: "smooth" });
+  }, [id]);
   const s = loaded?.node.id === id ? loaded : null;
   useEffect(() => {
     let live = true;
@@ -20,7 +31,7 @@ export default function NodePanel({ id, links, byId, onSelect, onClose }: { id: 
   const n = byId.get(id)!;
   const mine = links.filter((l) => l.from === id || l.to === id).sort((a, b) => (b.amount ?? 0) - (a.amount ?? 0)).slice(0, 14);
   return (
-    <aside className="nodepanel panel" aria-label={`${n.name} summary`}>
+    <aside ref={ref} className="nodepanel panel" aria-label={`${n.name} summary`}>
       <button className="close" onClick={onClose} aria-label="Close panel">×</button>
       <div className="profile-title">
         <Mark node={{ ...n, logo_url: s?.node.logo_url }} size={40} />
