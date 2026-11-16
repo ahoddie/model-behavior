@@ -11,6 +11,7 @@ export const PROMPT_VERSIONS = {
   quote: "stmt-quote-v1",
   stanceA: "stmt-stance-a-v1",
   stanceB: "stmt-stance-b-v1",
+  gate: "stmt-gate-v2",
   attitude: "stmt-attitude-v1",
 } as const;
 export const PROMPT_SET = Object.values(PROMPT_VERSIONS).join("+");
@@ -99,6 +100,22 @@ export async function stanceB(speakerName: string, text: string, p: Proposition)
     user: `Policy idea: ${propositionText(p)}\n\n${speakerName} said:\n"""${clip(text, 1500)}"""\n\nWhat does ${speakerName} want to happen with that idea?`,
     schema: { type: "object", additionalProperties: false, required: ["wish", "answer"], properties: { wish: { type: "string" }, answer: { type: "string", enum: Object.keys(MAP_B) } } }, maxTokens: 120 });
   return { stance: MAP_B[r.data.answer], reason: r.data.wish, meta: r.meta };
+}
+
+// ---- 5b. gate: does the speaker give a view at all? ---------------------------------------------------------------------
+// The first eval showed the stance prompts read topic or tone as a position (gold "no clear stance" items were labelled support 36 of 77
+// times). This asks only whether the text states the speaker's own view on the idea or only reports/describes. One question, one call.
+const GATE_SYSTEM = `You read one public statement and one policy idea. Decide whether the speaker gives their OWN view on that idea.
+Answers: "gives own view" (the speaker says they want it, oppose it, or clearly judge it good or bad, or ask others to act on it);
+"only describes" (the text reports news, summarizes research or other people's views, explains how things work, describes a risk or an opportunity, or asks a question, without saying what the speaker wants done about the idea);
+"about something else" (the idea is not what the text is about).
+Warning signs of "only describes": newsletter summaries, "X argues", "researchers found", predictions, neutral explanation, product news.
+First write "evidence": at most 12 words quoted from the text that show the speaker's own wish about the idea, or "none". Then answer.`;
+export async function stanceGate(speakerName: string, text: string, p: Proposition): Promise<Step<{ opinion: boolean; evidence: string }>> {
+  const r = await llmJson<{ evidence: string; answer: string }>({ promptVersion: PROMPT_VERSIONS.gate, system: GATE_SYSTEM,
+    user: `Policy idea: ${propositionText(p)}\n\n${speakerName} wrote or said:\n"""${clip(text, 1500)}"""\n\nDoes ${speakerName} give their own view on that idea?`,
+    schema: { type: "object", additionalProperties: false, required: ["evidence", "answer"], properties: { evidence: { type: "string" }, answer: { type: "string", enum: ["gives own view", "only describes", "about something else"] } } }, maxTokens: 220 });
+  return { opinion: r.data.answer === "gives own view", evidence: r.data.evidence.trim(), meta: r.meta };
 }
 
 // ---- 6. general attitude to regulation, -2..+2 ----------------------------------------------------------------------------
