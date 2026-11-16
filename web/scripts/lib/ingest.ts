@@ -1,5 +1,5 @@
 // Shared write path for the research loader and every importer.
-// Enforces §0: no row without a URL, quotes ≤25 words, no trade groups.
+// Enforces §0: no row without a URL, quotes ≤25 words, no trade groups beyond the allowed five.
 import "../env.ts";
 import { pool } from "../../src/lib/db.ts";
 
@@ -9,7 +9,8 @@ export const TRADE_GROUPS = [
   "silicon valley leadership group", "internet association"
 ];
 // American Edge is listed in §3 as an advocacy group, so it is allowed explicitly.
-const ALLOW = new Set(["american-edge", "american edge project"]);
+// The five trade groups after it were added by hand on 2026-11-16 (cluster trade-associations); any other trade group is still rejected.
+const ALLOW = new Set(["american-edge", "american edge project", "netchoice", "chamber-of-progress", "technet", "ccia", "us-chamber-of-commerce"]);
 
 export function isTradeGroup(name: string, id = ""): boolean {
   if (ALLOW.has(id) || ALLOW.has(name.toLowerCase())) return false;

@@ -59,7 +59,7 @@ Bills, races and rules get **target pages**: everyone who pushed on that target,
 - **People:** Marc Andreessen, Ben Horowitz, Vinod Khosla, Reid Hoffman, Peter Thiel, Joe Lonsdale, Garry Tan, Chris Larsen, Greg & Anna Brockman, Sam Altman, Dario Amodei, Demis Hassabis, Mark Zuckerberg, Elon Musk, Jensen Huang, Satya Nadella, Sundar Pichai, Mustafa Suleyman, Eric Schmidt, David Sacks, Jaan Tallinn, Dustin Moskovitz. Add anyone else you find funding, testifying or campaigning on AI policy.
 - **Think tanks and advocacy groups:** Abundance Institute, R Street, Cato, AEI, Mercatus, Hoover, Foundation for American Innovation, Heritage, American Edge · Americans for Responsible Innovation, Center for AI Policy, Encode, Secure AI Project, FLI, CAIS Action Fund · IFP, CSET, CNAS, RAND, Brookings, CSIS · CDT, AI Now, EPIC, Public Citizen
 - **PACs and funders:** Leading the Future (Think Big, American Mission), Public First / Public First Action (Jobs and Democracy, Defending Our Values), Innovation Council Action, Abundant Future, company and executive PACs, Open Philanthropy, a16z
-- **Trade groups:** leave out.
+- **Trade groups:** leave out, except five added by hand: NetChoice, Chamber of Progress, TechNet, CCIA and the U.S. Chamber of Commerce.
 - **Targets:** every bill, race, rule and lawmaker that an actor's money, lobbying or positions reach. Don't track lawmakers' own positions.
 
 ## 4. Four ways in (link types and where to find them)

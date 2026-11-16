@@ -15,6 +15,8 @@ const CLUSTER_NAMES: Record<string, string> = {
   "openai-executives": "OpenAI & executives", "anthropic-executives": "Anthropic & executives", "big-tech": "Big Tech", "ai-labs": "AI labs",
   "safety-funders": "Safety-focused funders", "pro-innovation-think-tanks": "Pro-innovation think tanks", "safety-advocacy": "Safety advocates",
   "national-security-think-tanks": "National-security think tanks", "civil-society": "Civil society", "other-investors": "Other investors & leaders",
+  "innovation-council-network": "Innovation Council network", "civil-society-funders": "Civil-society funders", "labor-creatives": "Labor & creatives",
+  "kids-family-safety": "Kids & family safety", "populist-right": "Populist right", "public-voices": "Public voices", "trade-associations": "Trade associations",
   government: "Federal bodies lobbied", bills: "Bills", races: "Races", rules: "Rules & executive actions", lawmakers: "Candidates & lawmakers",
 };
 const LANDS_NAMES: Record<string, string> = {
