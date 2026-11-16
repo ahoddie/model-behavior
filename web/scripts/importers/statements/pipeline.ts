@@ -85,12 +85,22 @@ export async function analyzeUnit(u: Unit): Promise<Analysis> {
 
   // 5. stance, asked two ways, plus attitude to regulation. The model reads the statement text, not just the quote, so context counts.
   a.stage = "done";
+  // 5a. gate (stmt-gate-v2): does the speaker give their own view on the proposition at all? If not, the stance is "none" and the
+  // three direction prompts are not asked. 5b. direction, asked three differently worded ways (A, B, C); agreement of all three is the signal.
+  const gate = await J.stanceGate(u.person.name, u.text, a.proposition);
+  a.steps.push(step("gate", gate.meta)); a.rationale.push(`Gate: ${gate.opinion ? "gives own view" : "only describes"} (${gate.evidence})`);
   const sa = await J.stanceA(u.person.name, u.text, a.proposition, u.attribution === "paraphrased");
-  const sb = await J.stanceB(u.person.name, u.text, a.proposition);
   const at = await J.attitude(u.person.name, u.text);
-  a.steps.push(step("stance_a", sa.meta), step("stance_b", sb.meta), step("attitude", at.meta));
-  a.stanceA = sa.stance; a.stanceB = sb.stance; a.stance = PRIMARY_STANCE === "A" ? sa.stance : sb.stance;
-  a.agree = sa.stance === sb.stance; a.regAttitude = at.value; a.rationale.push(`A: ${sa.summary}`, `B: ${sb.reason}`, `Attitude: ${at.reason}`);
+  a.steps.push(step("stance_a", sa.meta), step("attitude", at.meta));
+  a.regAttitude = at.value; a.rationale.push(`A: ${sa.summary}`, `Attitude: ${at.reason}`);
+  a.stanceA = sa.stance;
+  if (gate.opinion) {
+    const sb = await J.stanceB(u.person.name, u.text, a.proposition);
+    const sc = await J.stanceC(u.person.name, u.text, a.proposition);
+    a.steps.push(step("stance_b", sb.meta), step("stance_c", sc.meta));
+    a.stanceB = sb.stance; a.stance = sa.stance; a.agree = sa.stance === sb.stance && sb.stance === sc.stance;
+    a.rationale.push(`B: ${sb.reason}`, `C: ${sc.reason}`);
+  } else { a.stanceB = null; a.stance = "none"; a.agree = false; }
   a.summary = cleanSummary(sa.summary, u.person.name, u.attribution === "paraphrased", a);
 
   // Confidence signal = agreement between the two prompts plus checks in code.
@@ -101,7 +111,7 @@ export async function analyzeUnit(u: Unit): Promise<Analysis> {
     no_hedge_conflict: !((a.stance === "support" || a.stance === "oppose") && HEDGE.test(a.quote ?? u.text)),
     policy_terms_in_quote: policyTerms(a.quote ?? u.text),
   };
-  a.high = a.checks.prompts_agree && a.checks.quote_verified && a.checks.speaker_checked && a.checks.no_hedge_conflict;
+  a.high = gate.opinion && a.stance !== "none" && a.checks.prompts_agree && a.checks.quote_verified && a.checks.speaker_checked && a.checks.no_hedge_conflict;
   a.outcome = "ok";
   return a;
 }
@@ -183,7 +193,9 @@ export function recency(date: string, now = Date.now()) {
   return days <= 30 ? 1 : Math.max(0.2, 1 - 0.8 * (days - 30) / (730 - 30));
 }
 export const significance = (tier: number, stance: Stance | null, date: string) => Math.round(tier * clarity(stance) * recency(date) * 1000) / 1000;
-export const confidenceOf = (a: Analysis) => (a.attribution === "paraphrased" ? Math.min(0.6, a.high ? 0.6 : 0.4) : a.high ? 0.9 : a.agree ? 0.7 : 0.4);
+// Measured on the gold set (REPORT.md): even the strictest rule (gate + A = B = C + code checks) is right about 0.7 to 0.8 of the time,
+// so no stored stance gets 0.9. high = 0.75, all three agree = 0.6, otherwise 0.4; paraphrases are capped at 0.6.
+export const confidenceOf = (a: Analysis) => (a.attribution === "paraphrased" ? Math.min(0.6, a.high ? 0.6 : 0.4) : a.high ? 0.75 : a.agree ? 0.6 : 0.4);
 
 export type StoreResult = { outcome: "stored" | "duplicate" | "skipped"; feedId?: number; replaced?: boolean };
 export async function store(doc: Doc, u: Unit, a: Analysis): Promise<StoreResult> {

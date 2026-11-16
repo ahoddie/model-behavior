@@ -12,6 +12,7 @@ export const PROMPT_VERSIONS = {
   stanceA: "stmt-stance-a-v1",
   stanceB: "stmt-stance-b-v1",
   gate: "stmt-gate-v2",
+  stanceC: "stmt-stance-c-v1",
   attitude: "stmt-attitude-v1",
 } as const;
 export const PROMPT_SET = Object.values(PROMPT_VERSIONS).join("+");
@@ -116,6 +117,20 @@ export async function stanceGate(speakerName: string, text: string, p: Propositi
     user: `Policy idea: ${propositionText(p)}\n\n${speakerName} wrote or said:\n"""${clip(text, 1500)}"""\n\nDoes ${speakerName} give their own view on that idea?`,
     schema: { type: "object", additionalProperties: false, required: ["evidence", "answer"], properties: { evidence: { type: "string" }, answer: { type: "string", enum: ["gives own view", "only describes", "about something else"] } } }, maxTokens: 220 });
   return { opinion: r.data.answer === "gives own view", evidence: r.data.evidence.trim(), meta: r.meta };
+}
+
+// ---- 5c. third independent reading: would the speaker agree with the sentence? ---------------------------------------------------
+const CLAIM_SYSTEM = `You read a short public statement and a claim. Say whether the speaker of the statement would agree with the claim, judging only from the statement.
+Answers: "agrees" (the statement clearly shows the speaker agrees); "disagrees" (the statement clearly shows the speaker rejects it);
+"agrees only in part" (the speaker accepts one part and rejects another, or sets a condition); "cannot tell" (the statement does not say).
+Be careful with direction: a speaker who opposes a PROBLEM agrees with a claim that something should be done about it. First write "reason" in at most 20 words, then answer.`;
+const claimText = (p: Proposition) => p.kind === "target" ? `The policy "${targetById(p.id)!.label}" should be adopted or kept.` : issueById(p.id)!.statement;
+const MAP_C: Record<string, Stance> = { agrees: "support", disagrees: "oppose", "agrees only in part": "mixed", "cannot tell": "none" };
+export async function stanceC(speakerName: string, text: string, p: Proposition): Promise<Step<{ stance: Stance; reason: string }>> {
+  const r = await llmJson<{ reason: string; answer: string }>({ promptVersion: PROMPT_VERSIONS.stanceC, system: CLAIM_SYSTEM,
+    user: `Claim: ${claimText(p)}\n\nStatement by ${speakerName}:\n"""${clip(text, 1500)}"""\n\nWould ${speakerName} agree with the claim?`,
+    schema: { type: "object", additionalProperties: false, required: ["reason", "answer"], properties: { reason: { type: "string" }, answer: { type: "string", enum: Object.keys(MAP_C) } } }, maxTokens: 160 });
+  return { stance: MAP_C[r.data.answer], reason: r.data.reason.trim(), meta: r.meta };
 }
 
 // ---- 6. general attitude to regulation, -2..+2 ----------------------------------------------------------------------------
