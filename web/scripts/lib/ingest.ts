@@ -120,12 +120,18 @@ export async function insertLink(l: any, origin = "research"): Promise<boolean> 
   return r.rows[0]?.inserted === true;
 }
 
+const UNDATED_PAGE = /^https?:\/\/[^/]+\/(?:[a-z-]+\/)?(about(-us)?|mission|team|our-team|who-we-are|funding|supporters|donors|issues\/[^?#]*)\/?(?:[?#].*)?$/i;
+
 export async function insertFeed(f: any, origin = "research", status: "pending" | "approved" = "approved"): Promise<boolean> {
   const node = f.node ?? f.node_id;
   if (!isUrl(f.url)) return reject("feed_items", "no url", f);
   if (!(await nodeExists(node))) return reject("feed_items", `unknown node ${node}`, f);
   const date = isoDate(f.date);
   if (!date) return reject("feed_items", "no date", f);
+  // Standing pages (about, mission, team) and Wayback copies carry no publish date, so any date on them is when we
+  // looked, not when they said it. Those belong in facts, not the dated feed.
+  if (UNDATED_PAGE.test(f.url) || /^https?:\/\/web\.archive\.org\//.test(f.url))
+    return reject("feed_items", "undated page; use a fact or the dated original", f);
   const excerpt: string | null = f.excerpt ? String(f.excerpt).trim().replace(/^["“]|["”]$/g, "") : null;
   if (excerpt && wordCount(excerpt) > 25) return reject("feed_items", "excerpt over 25 words", f);
   if (!excerpt && !f.summary) return reject("feed_items", "no excerpt or summary", f);
