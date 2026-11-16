@@ -37,17 +37,16 @@ export default async function Home() {
       <header className="home-intro">
         <h1 className="home-title">How Silicon Valley shapes AI <span className="title-last">policy<Skyline className="skyline" /></span></h1>
         <p className="lede">
-          Frontier labs, their founders and investors, and the funders and think tanks around them are spending money and taking public positions on
-          AI governance in the United States. <Link href="/map">See the whole taxonomy here.</Link>
+          Frontier labs, their founders and investors, and the funders and think tanks around them spend money and take public positions on U.S. AI
+          policy. <Link href="/map">See the network.</Link>
         </p>
       </header>
 
       <section id="money" className="home-sec">
         <div className="sec-head"><h2>Where is the money going?</h2><CiteButton kind="page" title="Where is the money going?" path="/#money" asOf={asOf} /></div>
         <p className="sec-lede">
-          Political money given directly by the labs, people, investors and funders tracked here: contributions to candidates, PACs and parties, and
-          grants to advocacy groups. That comes to {fmtMoney(counts.direct)} on record so far. Money that a PAC passes on is not counted again.
-          Lobbying is reported separately, in {counts.filings.toLocaleString()} filings.
+          {fmtMoney(counts.direct)} given directly by the labs, people, investors, and funders tracked here to candidates, PACs, parties, and advocacy
+          groups. Lobbying is separate: {counts.filings.toLocaleString()} filings.
         </p>
         <div className="grid2">
           <div>
@@ -77,18 +76,15 @@ export default async function Home() {
       {analysis && <section id="issues" className="home-sec">
         <div className="sec-head"><h2>What do they care about?</h2><CiteButton kind="page" title="What do they care about?" path="/#issues" asOf={asOf} /></div>
         <p className="sec-lede">
-          An open-source model running on our own machine read {analysis.meta.used.toLocaleString()} quotes in which an actor states their own view, and
-          noted which policy issues each one addresses. Each issue is written as a plain statement, and the model judged whether the quote agrees or
-          disagrees with it. The bar runs from disagrees strongly (−2) to agrees strongly (+2). The money line splits each gift by what its recipient talks about. These are machine labels, not
-          findings; open any issue to read the quotes behind it. <Link href="/data?view=methodology#analysis">How this works</Link>.
+          {analysis.meta.used.toLocaleString()} quotes, sorted by the policy statements they speak to, and whether speakers tend to agree or disagree.
+          {" "}<Link href="/data?view=methodology#analysis">How this works</Link>.
         </p>
         <ul className="issues">{analysis.issues.filter((i) => i.statements > 0).map((i) => (
           <li key={i.id}>
             <div className="iss-head">
-              <h3>{i.label}</h3>
+              <h3>{i.positive}</h3>
               <StanceBar value={i.avg} />
             </div>
-            <p className="note">Statement: “{i.positive}”</p>
             <p className="iss-facts">
               {i.statements} {i.statements === 1 ? "statement" : "statements"} from {i.actors} {i.actors === 1 ? "actor" : "actors"}: {i.plus} agree, {i.minus} disagree, {i.neutral} mention it without taking a side.
               {i.money > 0 && <> {fmtMoney(i.money)} went to groups that speak on it, for or against, most from {i.money_givers.map((g, k) => <span key={g.id}>{k > 0 && (k === i.money_givers.length - 1 ? " and " : ", ")}<Link href={`/node/${g.id}`}>{g.name}</Link></span>)}.</>}
@@ -97,16 +93,15 @@ export default async function Home() {
           </li>
         ))}</ul>
         <p className="note">
-          {fmtMoney(analysis.cover.assigned)} of {fmtMoney(analysis.cover.total)} in direct giving went to recipients with enough public statements to place by issue.
-          The rest went mostly to candidates and party committees, whose own positions this site doesn&apos;t track.
+          {fmtMoney(analysis.cover.assigned)} of {fmtMoney(analysis.cover.total)} in direct giving went to groups with enough public statements to place by
+          issue. Most of the rest went to candidates and party committees.
         </p>
       </section>}
 
       <section id="stances" className="home-sec">
         <div className="sec-head"><h2>Where do they stand?</h2><CiteButton kind="page" title="Where do they stand?" path="/#stances" asOf={asOf} /></div>
         <p className="sec-lede">
-          The bills, executive orders and rules with the most public positions for and against from the actors tracked here. Each name shows that actor&apos;s latest stated position and links to
-          where they said it. A conditional position means support only if the bill is changed, or support for parts of it.
+          The bills, executive orders, and rules with the most public positions. Each name links to where that actor said it.
         </p>
         {stances.map((t: any) => (
           <article key={t.id} className="stance">
@@ -127,14 +122,13 @@ export default async function Home() {
             </div>
           </article>
         ))}
-        <p className="more"><Link href="/targets">Every bill, rule and race</Link></p>
+        <p className="more"><Link href="/targets">Every bill, rule, and race</Link></p>
       </section>
 
       <section id="trend" className="home-sec">
         <div className="sec-head"><h2>How has that changed?</h2><CiteButton kind="page" title="How has that changed?" path="/#trend" asOf={asOf} /></div>
         <p className="sec-lede">
-          Public positions on bills and rules each year, counted across every actor and bill. This is a count of statements on record, not a measure of
-          opinion: years with more coverage show more statements.
+          Public positions on bills and rules, by year. Years with more coverage show more statements.
         </p>
         <div className="legend-row">
           <span><i className="sw sw-support" aria-hidden /> Supported</span>
@@ -169,10 +163,9 @@ export default async function Home() {
       <section id="map" className="home-sec">
         <div className="sec-head"><h2>How is it all connected?</h2><CiteButton kind="page" title="How is it all connected?" path="/#map" asOf={asOf} /></div>
         <p className="sec-lede">
-          The map puts every actor, the groups their money and positions pass through, and the elections, bills and rules it reaches side by side. Use
-          Overall to see everything at once, or Timeline to watch it build month by month.
+          Every actor, the groups their money and positions pass through, and the elections, bills, and rules they reach.
         </p>
-        <p className="more"><Link href="/map">Open the map</Link></p>
+        <p className="more"><Link href="/map">Open the network</Link></p>
       </section>
       </div>
     </div>

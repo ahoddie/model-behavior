@@ -112,12 +112,11 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
           </section>}
           {actorIssues.length > 0 && <section>
             <h2>Issues they speak on</h2>
-            <p className="note">Labeled by an open-source model from the quotes above. Open an issue to see each label. <Link href="/data?view=methodology#analysis">How this works</Link>.</p>
+            <p className="note"><Link href="/data?view=methodology#analysis">How this works</Link></p>
             <ul className="issues">{actorIssues.map((i: any) => (
               <li key={i.id}>
                 <details>
-                  <summary className="iss-head"><h3>{i.label} <span className="muted">({i.n})</span></h3><StanceBar value={i.avg} /></summary>
-                  <p className="note">Statement: “{i.positive}”</p>
+                  <summary className="iss-head"><h3>{i.positive} <span className="muted">({i.n})</span></h3><StanceBar value={i.avg} /></summary>
                   <ul className="record">{i.items.map((it: any) => (
                     <li key={it.feed_id}><div className="when">{fmtDate(it.date)}</div>
                       <div><p>“{it.excerpt}”<Src url={it.url} /></p><p className="note">Model&apos;s reading: {ANSWER_WORDS[it.v + 2]}. {it.reason}</p></div></li>

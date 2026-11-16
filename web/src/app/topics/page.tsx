@@ -45,11 +45,9 @@ export default async function Topics() {
       <div className="home-main page">
         <h1>Stances</h1>
         <p className="lede">Where people and organizations stand on notable topics, from their own quotes and the public letters they signed.</p>
-        <p className="note">Quote readings come from an open-source model and can be wrong; each shows its quote. A signature is shown with the letter&apos;s own words. Few quotes on record address these topics yet, so most columns are short.</p>
         {topics.map((t) => (
           <section key={t.id} id={t.id} className="topic">
-            <h2>{t.label}</h2>
-            <p className="note">Statement: “{t.positive}”</p>
+            <h2>{t.positive}</h2>
             <div className="topic-cols">
               <Column title="Agree" actors={t.agree} />
               <Column title="No clear side" actors={t.neutral} />

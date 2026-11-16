@@ -4,6 +4,8 @@ import Link from "@/components/Link";
 import { Suspense } from "react";
 import LastUpdated from "@/components/LastUpdated";
 import HeaderSearch from "@/components/HeaderSearch";
+import { Lockup } from "@/components/Logo";
+import { SITE_NAME } from "@/lib/brand";
 import "./globals.css";
 
 const display = Archivo({ variable: "--font-display", subsets: ["latin"], axes: ["wdth"] });
@@ -11,7 +13,7 @@ const body = Literata({ variable: "--font-body", subsets: ["latin"], style: ["no
 const mono = JetBrains_Mono({ variable: "--font-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Model Behavior",
+  title: SITE_NAME,
   description: "How frontier labs, investors, tech leaders and think tanks push on U.S. AI policy.",
 };
 
@@ -21,7 +23,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <a className="skip" href="#main">Skip to content</a>
         <header className="masthead">
-          <span className="brand"><Link href="/" className="wordmark">Model Behavior</Link><span className="beta" title="Work in progress: data and features are still being checked">Beta</span></span>
+          <span className="brand"><Link href="/" className="wordmark" aria-label={`${SITE_NAME} home`}><Lockup /></Link><span className="beta" title="Work in progress: data and features are still being checked">Beta</span></span>
           <nav aria-label="Main">
             <Link href="/map">Network</Link>
             <Link href="/money">Funding</Link>
@@ -41,6 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Suspense fallback={null}><LastUpdated /></Suspense>
           <Link href="/data?view=methodology">Methodology</Link>
           <Link href="/data?view=corrections">Corrections</Link>
+          <Link href="/brand">Brand</Link>
         </footer>
       </body>
     </html>
