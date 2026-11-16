@@ -36,7 +36,7 @@ async function archiveFor(url: string, given?: string) {
   const hit = (await q<{ archive_url: string }>(`SELECT archive_url FROM archives WHERE url=$1 AND archive_url IS NOT NULL`, [url]))[0]?.archive_url
     ?? (await q<{ archive_url: string }>(`SELECT archive_url FROM facts WHERE url=$1 AND archive_url IS NOT NULL LIMIT 1`, [url]))[0]?.archive_url;
   if (noWayback) { memo.set(url, hit ?? null); return hit ?? null; }
-  let a = hit ?? (await available(url));
+  let a: string | null = hit ?? (await available(url));
   if (!a && !dry) { a = await save(url); await sleep(6000); }
   memo.set(url, a ?? null);
   return a ?? null;

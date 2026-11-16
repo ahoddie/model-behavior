@@ -392,17 +392,17 @@ function lobbyItems(d: string | null): { firm: string | null; items: string[] } 
 export async function getActorLobbyingIssues(id: string): Promise<LobbyIssue[]> {
   "use cache";
   cached();
-  const filings = await q<any>(`
+  const [filings, grants, areas] = await Promise.all([q<any>(`
     SELECT i AS issue, f.id::int, f.period, f.filed_date::text AS filed, f.url, f.archive_url, f.amount::float8 AS amount, f.description
     FROM ${FILING_TAGS} t JOIN filings f ON t.source_kind='filing' AND f.id=t.source_id, unnest(t.issues) i
-    WHERE f.node_id=$1 ORDER BY f.filed_date DESC NULLS LAST, f.id`, [id]);
-  const grants = await q<any>(`
+    WHERE f.node_id=$1 ORDER BY f.filed_date DESC NULLS LAST, f.id`, [id]),
+    q<any>(`
     SELECT i AS issue, l.id::int, CASE WHEN l.from_id=$1 THEN 'out' ELSE 'in' END AS dir,
       o.id AS other_id, o.name AS other_name, l.date_start::text AS date, l.source_url AS url
     FROM ${FILING_TAGS} t JOIN links l ON t.source_kind='grant' AND l.id=t.source_id
       JOIN nodes o ON o.id = CASE WHEN l.from_id=$1 THEN l.to_id ELSE l.from_id END, unnest(t.issues) i
-    WHERE $1 IN (l.from_id, l.to_id) ORDER BY l.date_start DESC NULLS LAST, l.id`, [id]);
-  const areas = await q<any>(`SELECT id, label FROM issue_areas ORDER BY sort`);
+    WHERE $1 IN (l.from_id, l.to_id) ORDER BY l.date_start DESC NULLS LAST, l.id`, [id]),
+    q<any>(`SELECT id, label FROM issue_areas ORDER BY sort`)]);
   return areas.map((a: any) => {
     const fs = filings.filter((f: any) => f.issue === a.id).map(({ issue, description, ...f }: any) => ({ ...f, ...lobbyItems(description) }));
     const gs = grants.filter((g: any) => g.issue === a.id).map(({ issue, ...g }: any) => g);
