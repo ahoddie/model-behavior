@@ -286,7 +286,8 @@ export async function processDoc(doc: Doc, opts: { dryRun?: boolean } = {}): Pro
     const mine = units.filter((u) => u.person.id === p.id);
     let best: { u: Unit; a: Analysis } | null = null, worst: Analysis["outcome"] = "irrelevant";
     for (const u of mine) {
-      const a = await analyzeUnit(u);
+      let a: Analysis;
+      try { a = await analyzeUnit(u); } catch (e) { console.warn("unit skipped (model gave no valid output):", (e as Error).message.slice(0, 90)); continue; }
       if (a.outcome === "ok") {
         const rank = (x: Analysis) => clarity(x.stance) * 10 + (x.attribution === "direct" ? 2 : x.attribution === "quoted" ? 1 : 0) + (x.high ? 1 : 0);
         if (!best || rank(a) > rank(best.a)) best = { u, a };

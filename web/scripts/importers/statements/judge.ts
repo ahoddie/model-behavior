@@ -145,7 +145,7 @@ Write a short reason first.`;
 export async function attitude(speakerName: string, text: string): Promise<Step<{ value: number | null; reason: string }>> {
   const r = await llmJson<{ reason: string; attitude: string }>({ promptVersion: PROMPT_VERSIONS.attitude, system: TONE_SYSTEM,
     user: `Speaker: ${speakerName}\nStatement:\n"""${clip(text, 1500)}"""`,
-    schema: { type: "object", additionalProperties: false, required: ["reason", "attitude"], properties: { reason: { type: "string" }, attitude: { type: "string", enum: Object.keys(TONE) } } }, maxTokens: 140 });
+    schema: { type: "object", additionalProperties: false, required: ["reason", "attitude"], properties: { reason: { type: "string" }, attitude: { type: "string", enum: Object.keys(TONE) } } }, maxTokens: 260 });
   return { value: TONE[r.data.attitude] ?? null, reason: r.data.reason, meta: r.meta };
 }
 
