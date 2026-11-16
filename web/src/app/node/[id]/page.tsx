@@ -14,6 +14,7 @@ import TargetView from "@/components/TargetView";
 import ProfileHead from "@/components/ProfileHead";
 import Src from "@/components/Src";
 import KnownRecord from "@/components/KnownRecord";
+import ProfileTabs, { TabLink } from "@/components/ProfileTabs";
 
 const TABS = [["record", "Record"], ["feed", "All statements"], ["positions", "Positions table"], ["money", "Filings"], ["people", "People"], ["connections", "Connections"], ["flags", "Said and did"]] as const;
 
@@ -36,7 +37,7 @@ export async function generateStaticParams() {
 
 const loadActor = (id: string) => Promise.all([getProfile(id), getActorIssues(id), getActorLobbyingIssues(id), approvedConflictFlags(id)]);
 
-// Only the choice of tab and filter waits for the URL. Awaited here, outside the boundary, the profile's cached reads are stored
+// Only the statements filter waits for the URL; tabs switch in the browser (components/ProfileTabs). Awaited here, outside the boundary, the profile's cached reads are stored
 // with the prebuilt page; the same calls inside the boundary are answered from that copy, so no tab or filter runs a query.
 export default async function NodePage(props: PageProps<"/node/[id]">) {
   const { id } = await props.params;
@@ -76,7 +77,6 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
   const sp = await spP;
   const [pr, actorIssues, lobbyIssues, flags] = await loadActor(id);
   const p = pr!;
-  const tab = (typeof sp.tab === "string" ? sp.tab : "record") as (typeof TABS)[number][0];
   const kind = typeof sp.kind === "string" ? sp.kind : "";
   const issue = typeof sp.issue === "string" ? sp.issue : "";
   const feed = p.feed.filter((f: any) => (!kind || f.kind === kind) && (!issue || f.issues.includes(issue)));
@@ -87,20 +87,15 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
   const stanceFeed = p.feed.filter((f: any) => f.stance);
   const href = (t: string, extra = "") => `/node/${id}?tab=${t}${extra}`;
 
-  return (
-    <>
-      <nav className="tabs" aria-label="Profile sections">
-        {TABS.map(([t, label]) => <Link key={t} href={href(t)} scroll={false} aria-current={tab === t ? "page" : undefined}>{label}{t === "flags" && flags.length ? ` (${flags.length})` : ""}</Link>)}
-      </nav>
-
-      {tab === "record" && (() => {
+  const panels = {
+    record: (() => {
         // Quotes are the actor's own words; reporting about a donation or a policy page is left to the full list.
         const quotes = p.feed.filter((f: any) => f.excerpt && !["donation", "policy change", "filing"].includes(f.kind)).sort(byDate);
         const positions = positionLinks.map((l: any) => ({ ...l, date: l.date_start })).sort(byDate);
         // Lobbying contacts are listed under Filings, not as political money.
         const money = p.links.filter((l: any) => l.type === "money" && l.subtype !== "lobbying").map((l: any) => ({ ...l, date: l.date_start })).sort(byDate);
         return <>
-          {!quotes.length && !positions.length && !money.length && !lobbyIssues.length && <p className="muted">No quotes, positions or political money on record yet. See <Link href={href("connections")} scroll={false}>connections</Link>.</p>}
+          {!quotes.length && !positions.length && !money.length && !lobbyIssues.length && <p className="muted">No quotes, positions or political money on record yet. See <TabLink href={href("connections")}>connections</TabLink>.</p>}
           {quotes.length > 0 && <section>
             <h2>In {p.node.name}&apos;s words</h2>
             <ul className="record">{quotes.slice(0, 8).map((f: any) => (
@@ -108,7 +103,7 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
                 <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /> <CiteButton small kind="quote" speaker={p.node.name} quote={f.excerpt} date={fmtDate(f.date)} url={f.url} archive={f.archive_url} outlet={sourceName(f.url)} /></p>
                   {f.target_name && <p className="note">On {f.target_id ? <Link href={`/node/${f.target_id}`}>{f.target_name}</Link> : f.target_name}</p>}</div></li>
             ))}</ul>
-            {quotes.length > 8 && <p className="more"><Link href={href("feed")} scroll={false}>All {p.feed.length} statements</Link></p>}
+            {quotes.length > 8 && <p className="more"><TabLink href={href("feed")}>All {p.feed.length} statements</TabLink></p>}
           </section>}
           {actorIssues.length > 0 && <section>
             <h2>Issues they speak on</h2>
@@ -127,7 +122,7 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
           </section>}
           {lobbyIssues.length > 0 && <section>
             <h2>Lobbying by issue</h2>
-            <p className="note">Issues named in {p.node.name}&apos;s federal lobbying reports and grants, in the filed words. Filings list topics, not positions; amounts are per filing. <Link href={href("money")} scroll={false}>All filings</Link>.</p>
+            <p className="note">Issues named in {p.node.name}&apos;s federal lobbying reports and grants, in the filed words. Filings list topics, not positions; amounts are per filing. <TabLink href={href("money")}>All filings</TabLink>.</p>
             <ul className="lobby-issues">{lobbyIssues.map((i) => (
               <li key={i.id}>
                 <details>
@@ -164,9 +159,9 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
             ))}</ul>
           </section>}
         </>;
-      })()}
+    })(),
 
-      {tab === "feed" && <>
+    feed: <>
         <div className="filters">
           <span>Type:</span> <Link href={href("feed", issue ? `&issue=${encodeURIComponent(issue)}` : "")} scroll={false} aria-current={!kind ? "page" : undefined}>all</Link>
           {kinds.map((k) => <Link key={k} href={href("feed", `&kind=${encodeURIComponent(k)}${issue ? `&issue=${encodeURIComponent(issue)}` : ""}`)} scroll={false} aria-current={kind === k ? "page" : undefined}>{k}</Link>)}
@@ -185,9 +180,9 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
             </li>
           ))}</ul>
         )}
-      </>}
+      </>,
 
-      {tab === "positions" && <>
+    positions: <>
         {positionLinks.length === 0 && stanceFeed.length === 0 ? <p className="muted">No sourced positions on bills or rules yet.</p> : (
           <table className="data-table"><thead><tr><th>Date</th><th>Target</th><th>Stance</th><th>Evidence</th></tr></thead><tbody>
             {[...positionLinks.map((l: any) => ({ date: l.date_start, target: l.other_name, tid: l.other_id, stance: l.stance ?? l.subtype, text: l.note ?? l.subtype, url: l.source_url })),
@@ -201,18 +196,18 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
           </tbody></table>
         )}
         <p className="muted">Grouped by target, newest first, so a change in stance sits above the old one.</p>
-      </>}
+      </>,
 
-      {tab === "money" && (p.filings.length === 0 ? <p className="muted">No filings on record yet.</p> : (
+    money: (p.filings.length === 0 ? <p className="muted">No filings on record yet.</p> : (
         <table className="data-table"><thead><tr><th>Filed</th><th>Type</th><th>Period</th><th className="num">Amount</th><th>Issues</th><th>Detail</th><th>Source</th></tr></thead><tbody>
           {p.filings.map((f: any) => (
             <tr key={f.id}><td className="mono">{fmtDate(f.filed_date) || "–"}</td><td>{f.filing_type}</td><td className="mono">{f.period}</td>
               <td className="num">{fmtMoney(f.amount)}</td><td className="mono">{f.issues.join(" ")}</td><td>{f.description?.slice(0, 220)}</td><td><Src url={f.url} archive={f.archive_url} /></td></tr>
           ))}
         </tbody></table>
-      ))}
+      )),
 
-      {tab === "people" && (personLinks.length === 0 ? <p className="muted">No sourced roles yet.</p> : (
+    people: (personLinks.length === 0 ? <p className="muted">No sourced roles yet.</p> : (
         <table className="data-table"><thead><tr><th>Person / org</th><th>Role</th><th>When</th><th>Detail</th></tr></thead><tbody>
           {personLinks.map((l: any) => (
             <tr key={l.id}><td><Link href={`/node/${l.other_id}`}>{l.other_name}</Link></td><td>{l.subtype}</td>
@@ -220,9 +215,9 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
               <td>{l.note} <Src url={l.source_url} /></td></tr>
           ))}
         </tbody></table>
-      ))}
+      )),
 
-      {tab === "connections" && ["money", "person", "idea", "position"].map((t) => {
+    connections: ["money", "person", "idea", "position"].map((t) => {
         const ls = p.links.filter((l: any) => l.type === t);
         if (!ls.length) return null;
         return (
@@ -236,9 +231,11 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
             </tbody></table>
           </section>
         );
-      })}
+      }),
 
-      {tab === "flags" && <ConflictFlags flags={flags} />}
-    </>
-  );
+    flags: <ConflictFlags flags={flags} />,
+  };
+  const tabs = TABS.map(([t, label]) => [t, `${label}${t === "flags" && flags.length ? ` (${flags.length})` : ""}`] as [string, string]);
+  const search = new URLSearchParams(Object.entries(sp).filter((e): e is [string, string] => typeof e[1] === "string")).toString();
+  return <ProfileTabs base={`/node/${id}`} search={search ? `?${search}` : ""} tabs={tabs} panels={panels} />;
 }
