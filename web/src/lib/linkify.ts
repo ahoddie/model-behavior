@@ -1,5 +1,5 @@
 // Turns names of tracked actors inside a sentence into links. Plain string matching, no model:
-// exact names (and names with a trailing parenthetical removed, e.g. "Open Philanthropy (now Coefficient Giving)"),
+// exact names (and names with a trailing parenthetical removed, e.g. "Coefficient Giving (fmr. Open Philanthropy)"),
 // longest first, whole words only. Names shared by two profiles, and very short names, are skipped to avoid wrong links.
 export type Part = { t: string; id?: string };
 
