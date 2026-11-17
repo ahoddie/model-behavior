@@ -90,14 +90,14 @@ export default async function Home() {
           <figcaption className="chart-head"><h3>Top givers</h3></figcaption>
           <RankChart label="The ten largest givers, by dollars given directly" unit="given" fmt={fmtMoney}
             rows={givers.map((g: any) => ({ id: g.id, name: g.name, value: g.total,
-              label: <><Link href={`/node/${g.id}`}>{g.name}</Link> <span className="rc-kind">({TYPE_LABEL[g.type]})</span></>,
+              label: <><Link href={`/node/${g.id}`}>{g.name}</Link></>,
               note: `${g.recipients} ${g.recipients === 1 ? "recipient" : "recipients"}` }))} />
         </figure>
         <figure className="chart">
           <figcaption className="chart-head"><h3>Top recipients</h3></figcaption>
           <RankChart label="The ten largest recipients, by dollars received from the givers tracked here" unit="received" fmt={fmtMoney}
             rows={recipients.map((r: any) => ({ id: r.id, name: r.name, value: r.total,
-              label: <><Link href={`/node/${r.id}`}>{r.name}</Link> <span className="rc-kind">({TYPE_LABEL[r.type]})</span></>,
+              label: <><Link href={`/node/${r.id}`}>{r.name}</Link></>,
               note: `From ${r.top_givers}${r.givers > 3 ? ` and ${r.givers - 3} more` : ""}` }))} />
         </figure>
         <p className="more"><Link href="/money">Trace the money</Link></p>
@@ -131,11 +131,14 @@ export default async function Home() {
               <StanceBar value={i.avg} />
             </div>
             <Who sides={who[i.id]} topicId={topics.find((t) => t.issue_id === i.id && t.confirmed > 0)?.id} />
-            <p className="iss-facts">
-              {i.statements} {i.statements === 1 ? "statement" : "statements"} from {i.actors} {i.actors === 1 ? "actor" : "actors"}: {i.plus} agree, {i.minus} disagree, {i.neutral} neutral.
-              {i.money > 0 && <> {fmtMoney(i.money)} to groups that speak on it, mostly from {i.money_givers.map((g, k) => <span key={g.id}>{k > 0 && (k === i.money_givers.length - 1 ? " and " : ", ")}<Link href={`/node/${g.id}`}>{g.name}</Link></span>)}.</>}
-              {lobbying[i.id] && <> {lobbying[i.id].filings.toLocaleString()} lobbying {lobbying[i.id].filings === 1 ? "filing" : "filings"} from {lobbying[i.id].actors} {lobbying[i.id].actors === 1 ? "actor" : "actors"}.</>}
-            </p>
+            <details className="iss-rests">
+              <summary>What this rests on</summary>
+              <p className="iss-facts">
+                {i.statements} {i.statements === 1 ? "statement" : "statements"} from {i.actors} {i.actors === 1 ? "actor" : "actors"}: {i.plus} agree, {i.minus} disagree, {i.neutral} neutral.
+                {i.money > 0 && <> {fmtMoney(i.money)} to groups that speak on it, mostly from {i.money_givers.map((g, k) => <span key={g.id}>{k > 0 && (k === i.money_givers.length - 1 ? " and " : ", ")}<Link href={`/node/${g.id}`}>{g.name}</Link></span>)}.</>}
+                {lobbying[i.id] && <> {lobbying[i.id].filings.toLocaleString()} lobbying {lobbying[i.id].filings === 1 ? "filing" : "filings"} from {lobbying[i.id].actors} {lobbying[i.id].actors === 1 ? "actor" : "actors"}.</>}
+              </p>
+            </details>
           </li>
         ))}</ul>
         <p className="note">

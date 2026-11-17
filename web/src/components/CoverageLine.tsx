@@ -1,4 +1,4 @@
-// One line under each profile header saying how far the source checks have got.
+// One line at the foot of each profile saying how far the source checks have got.
 // Empty sections mean "not found in what has been checked", never "none exists".
 import Link from "@/components/Link";
 import { fmtDate } from "@/lib/format";

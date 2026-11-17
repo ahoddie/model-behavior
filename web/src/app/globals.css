@@ -401,7 +401,9 @@ em, i, cite, address, dfn, var { font-style: normal; }
 .rc-rows { list-style: none; margin: 0; padding: 0; }
 .rc-row { display: grid; grid-template-columns: var(--rc-lw) minmax(0, 1fr); column-gap: 12px; }
 .rc-label { align-self: center; text-align: right; line-height: 1.2; padding: 3px 0; text-wrap: balance; }
-.rc-kind { color: var(--muted); white-space: nowrap; }
+/* Names in charts and stance lists are ink, not link blue: a column of blue names competes with the bars. Blue on hover. */
+.rc-label a, .who .named a { color: inherit; }
+.rc-label a:hover, .who .named a:hover { color: var(--position); }
 .rc-track { margin-right: var(--rc-gut); padding: 4px 0; min-width: 0; display: flex; align-items: center;
   background: linear-gradient(to right, var(--rule) 1px, transparent 1px) 0 0 / var(--rc-step) 100%; border-right: 0; }
 .rc-hit { border: 0; padding: 0; margin: 0; background: none; color: inherit; font: inherit; cursor: pointer; text-align: left; }
@@ -556,7 +558,10 @@ button.linkish { color: var(--carbon); font-weight: 500; }
 @media (max-width: 600px) { .iss-head { grid-template-columns: 1fr; gap: var(--s2); } .iss-head .stancebar { flex-wrap: wrap; gap: 4px 12px; } }
 .iss-head h3 { margin: 0; }
 .issues .note { font-size: 15px; color: var(--muted); margin: 4px 0 0; }
-.iss-facts { font-size: 14px; color: var(--muted); margin: var(--s3) 0 0; max-width: none; }
+.iss-facts { font-size: 14px; color: var(--muted); margin: var(--s2) 0 0; max-width: none; }
+.iss-rests { margin: var(--s3) 0 0; }
+.iss-rests summary { font-size: 14px; color: var(--muted); cursor: pointer; width: fit-content; }
+.iss-rests summary:hover, .iss-rests[open] summary { color: var(--ink); }
 .stancebar { display: inline-flex; align-items: center; gap: 12px; white-space: nowrap; }
 @media (max-width: 900px) { .iss-head { grid-template-columns: 1fr; gap: var(--s2); } }
 .sb-word { font-weight: 700; font-size: 15px; }
@@ -585,20 +590,14 @@ button.linkish { color: var(--carbon); font-weight: 500; }
   content: ""; position: absolute; left: 16px; top: -6px; width: 10px; height: 10px; background: var(--ink); transform: rotate(45deg);
 }
 
-/* /money: compact summary of the "Start from" actor, under the select. Row on wide screens, stacked on narrow. */
-.actor-summary { display: grid; grid-template-columns: minmax(240px, 1fr) 2fr; gap: var(--s2) var(--s5); align-items: start;
+/* /money: compact summary of the "Start from" actor, under the select. */
+.actor-summary { display: grid; grid-template-columns: minmax(0, 72ch); gap: var(--s2) var(--s5); align-items: start;
   margin: var(--s3) 0 var(--s4); padding: var(--s3) 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); }
 .actor-summary h2 { margin: 0; font-size: 18px; line-height: 1.25; }
 .actor-summary p { margin: 2px 0 0; }
 .actor-summary-kind { font-size: 14px; color: var(--muted); }
 .actor-summary-desc { font-size: 15px; line-height: 1.4; }
 .actor-summary .panel-open { margin: var(--s1) 0 0; font-size: 14px; }
-.actor-summary .keyfacts.compact { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); margin: 0; border-top: 0; }
-.actor-summary .keyfacts.compact > div { display: block; padding: 2px var(--s3) 6px 0; border-bottom: 0; }
-.actor-summary .keyfacts dt { font-size: 13px; }
-.actor-summary .keyfacts dd { font-size: 15px; }
-.actor-summary-none { font-size: 14px; margin: 0; }
-@media (max-width: 720px) { .actor-summary { grid-template-columns: 1fr; } .actor-summary .keyfacts.compact { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } }
 
 /* Map: no zoom or pan, bigger and steadier click targets. */
 svg.map { cursor: default; touch-action: auto; }
@@ -868,3 +867,8 @@ img.mark { background: var(--logo-bg); }
 @keyframes tl-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .tl-arrivals ul { animation: none; } }
 @media (max-width: 700px) { .tl-arrivals { flex-wrap: wrap; } .tl-arrivals-head { width: auto; } .tl-arrivals ul { flex-wrap: wrap; } }
+
+/* Profiles: source chips after a fact sit back until the row is hovered or the chip focused; the coverage line closes the page. */
+.facts .src-wrap, .keyfacts .src-wrap { opacity: .6; transition: opacity .12s; }
+.facts li:hover .src-wrap, .keyfacts div:hover .src-wrap, .src-wrap:focus-within { opacity: 1; }
+.page > .coverage:last-child { margin-top: var(--s5); padding-top: var(--s3); border-top: 1px solid var(--rule); }

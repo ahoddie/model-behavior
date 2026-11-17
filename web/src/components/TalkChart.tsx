@@ -36,7 +36,7 @@ export default function TalkChart({ issues, all, byActor }: { issues: TalkIssue[
   const toggle = (id: string) => setOpen((o) => (o === id ? null : id));
   const issue = issues.find((i) => i.id === cur);
   const actors: Actor[] = issue ? issue.actors : all;
-  const name = (a: Actor) => <><Link href={`/node/${a.id}`}>{a.name}</Link> <span className="rc-kind">({a.kind})</span></>;
+  const name = (a: Actor) => <><Link href={`/node/${a.id}`}>{a.name}</Link></>;
   const who = actors.find((a) => a.id === open);
   const topics = who ? byActor[who.id] ?? [] : [];
   const tmax = Math.max(1, ...topics.map((t) => t.n));

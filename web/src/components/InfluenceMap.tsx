@@ -65,7 +65,10 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
   }, [links]);
   const issues = useMemo(() => [...new Set(nodes.flatMap((n) => n.issues ?? []))].sort(), [nodes]);
 
-  const [types, setTypes] = useState<Set<string>>(new Set(LINK_TYPES));
+  // The overall view opens on money alone: all four line types at once read as a tangle. The timeline, and a name arriving
+  // from another page (?focus=), show every type, since either may have no money to draw.
+  const [types, setTypes] = useState<Set<string>>(new Set(["money"]));
+  const allTypes = () => setTypes(new Set(LINK_TYPES));
   const [issue, setIssue] = useState("");
   const [yearFrom, setYearFrom] = useState(years.min);
   const [yearTo, setYearTo] = useState(years.max);
@@ -287,7 +290,7 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
     <div className="tool-row">
       <span className="seg" role="group" aria-label="View">
         <button aria-pressed={mode === "map"} onClick={() => setMode("map")}>Overall</button>
-        <button aria-pressed={mode === "timeline"} onClick={() => { setMode("timeline"); setMonthIdx(months.length - 1); }}>Timeline</button>
+        <button aria-pressed={mode === "timeline"} onClick={() => { setMode("timeline"); allTypes(); setMonthIdx(months.length - 1); }}>Timeline</button>
       </span>
       <span className="tool-right">
         <NameSearch names={nodes} onPick={setSelected} />
@@ -330,7 +333,7 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
   );
 
   // ?view=time opens the timeline and ?focus=id selects a name; a link to the map from elsewhere on the site lands here too.
-  const fromUrl = <Suspense fallback={null}><FromUrl apply={(view, focus) => { setModeState(view === "time" ? "timeline" : "map"); if (focus) setSelected(focus); }} /></Suspense>;
+  const fromUrl = <Suspense fallback={null}><FromUrl apply={(view, focus) => { setModeState(view === "time" ? "timeline" : "map"); if (focus) setSelected(focus); if (focus || view === "time") allTypes(); }} /></Suspense>;
   // SteppedList takes its starting name once, so a name arriving from the URL or the search box remounts it.
   if (mobile) return (<div className="mapwrap">{fromUrl}{filters}{timeline}<SteppedList key={selected ?? ""} nodes={nodes} links={fLinks} initial={selected} /></div>);
 

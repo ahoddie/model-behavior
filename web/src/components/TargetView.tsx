@@ -20,7 +20,6 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
       {isRace && <RaceView t={t} />}
       {!isRace && t.facts.length > 0 && <ul className="facts">{t.facts.map((f: any, i: number) => <li key={i}>{f.text} <Src url={f.url} /></li>)}</ul>}
       <p className="mono"><Link href={`/map?focus=${n.id}`}>Trace on the map</Link> · <a href={`/api/rss/${n.id}`}>RSS</a></p>
-      <CoverageLine c={coverage} />
       <FollowForm nodeId={n.id} />
 
       {(!isRace || t.pushes.length > 0) && <h2>Who pushed</h2>}
@@ -52,6 +51,7 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
               {f.excerpt ? <blockquote>“{f.excerpt}” <Src url={f.url} archive={f.archive_url} /></blockquote> : <p style={{ margin: 0 }}>{f.summary} <Src url={f.url} archive={f.archive_url} /></p>}</div></li>
         ))}</ul>
       </>}
+      <CoverageLine c={coverage} />
     </div>
   );
 }
