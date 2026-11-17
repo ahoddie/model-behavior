@@ -36,7 +36,10 @@ async function evalItem(g: Gold) {
     const prop = g.target ? { kind: "target" as const, id: g.target } : { kind: "issue" as const, id: g.issue! };
     const sa = await J.stanceA(person.name, g.text, prop, g.attribution === "paraphrased");
     const sb = await J.stanceB(person.name, g.text, prop);
-    pred.oA = sa.stance; pred.oB = sb.stance;
+    const sg = await J.stanceGate(person.name, g.text, prop), sc = await J.stanceC(person.name, g.text, prop);
+    pred.oA = sa.stance; pred.oB = sb.stance; pred.oC = sc.stance; pred.oGate = sg.opinion;
+    pred.oFinal = sg.opinion ? sa.stance : "none";
+    pred.oHigh = sg.opinion && sa.stance !== "none" && sa.stance === sb.stance && sb.stance === sc.stance;
   }
   return pred;
 }
@@ -74,12 +77,15 @@ const stanceTable = (title: string, key: string, sel: ({ g, p }: { g: Gold; p: a
 const nn = (k: string) => ({ g, p }: { g: Gold; p: any }) => g.relevant && p[k] !== undefined && p[k] !== null;
 stanceTable("Stance, prompt A, gold proposition", "oA", nn("oA"));
 stanceTable("Stance, prompt B, gold proposition", "oB", nn("oB"));
+stanceTable("Stance, final rule (gate, then prompt A), gold proposition", "oFinal", nn("oFinal"));
 stanceTable("Stance, stored label end to end (pipeline's own proposition, gold-relevant items it kept)", "p_stance", nn("p_stance"));
 const agreeRows = rows.filter(({ g, p }) => g.relevant && p.oA !== undefined && p.oA === p.oB);
 out.push(`## Confidence`, `Definition: **high-confidence** = prompts A and B agree, the quote is verified verbatim, the speaker is checked (own channel, or model and code agree on who spoke) and, for support/oppose, the text has no hedge words. The model's own confidence number is not used.`, ``);
 const hi = rows.filter(({ g, p }) => g.relevant && p.high && p.p_stance);
 out.push(`- high-confidence items: ${hi.length} of ${rows.filter(({ g, p }) => g.relevant && p.p_stance).length}; stance precision on them: **${f(hi.filter(({ g, p }) => g.stance === p.p_stance).length / Math.max(1, hi.length))}** (target 0.90)`);
 out.push(`- oracle-proposition stance where A and B agree: ${agreeRows.length} items, precision ${f(agreeRows.filter(({ g, p }) => g.stance === p.oA).length / Math.max(1, agreeRows.length))}`, ``);
+const oh = rows.filter(({ g, p }) => g.relevant && p.oHigh);
+out.push(`- final rule on the gold proposition (gate, A = B = C, support or oppose): ${oh.length} items, stance precision **${f(oh.filter(({ g, p }) => g.stance === p.oFinal).length / Math.max(1, oh.length))}**; with a direction on the gold side only: ${f(oh.filter(({ g, p }) => g.stance === p.oFinal && g.stance !== "none").length / Math.max(1, oh.filter(({ g }) => g.stance !== "none").length))}`, ``);
 const qs = rows.filter(({ p }) => p.quoteProposed);
 out.push(`## Quote match`, `Model-proposed quotes: ${qs.length}. Verbatim exact substring: ${qs.filter(({ p }) => p.quoteStrict === true).length}; verbatim after folding quotes/whitespace: ${qs.filter(({ p }) => p.quote).length} (${f(qs.filter(({ p }) => p.quote).length / Math.max(1, qs.length))}). Items longer than 25 words needing a model-picked quote: ${qs.filter(({ g }) => words(g.text) > 25).length}.`, ``);
 const sp = rows.filter(({ g }) => g.attribution === "quoted" && g.speaker !== undefined);
