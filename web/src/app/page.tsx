@@ -122,7 +122,8 @@ export default async function Home() {
                 .sort((a, b) => b.value - a.value)} />
           </figure>
         </div>
-        <TalkChart issues={talk} byActor={byActor} all={talkers.map((a: any) => ({ id: a.id, name: a.name, kind: TYPE_LABEL[a.type] ?? a.type, n: a.n }))} />
+        <TalkChart issues={talk} byActor={byActor} all={talkers.map((a: any) => ({ id: a.id, name: a.name, kind: TYPE_LABEL[a.type] ?? a.type, n: a.n,
+          rest: { neutral: a.neutral, off: a.off_issue, unsure: a.unsure, unsorted: a.unsorted } }))} />
         <ul className="issues">{analysis.issues.filter((i) => i.statements > 0).map((i) => (
           <li key={i.id}>
             <div className="iss-head">

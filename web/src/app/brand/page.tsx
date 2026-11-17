@@ -1,7 +1,8 @@
 import { Lockup, Mark } from "@/components/Logo";
 import { SITE_DESCRIPTOR, SITE_NAME } from "@/lib/brand";
 
-export const metadata = { title: `Brand · ${SITE_NAME}` };
+// Kept out of search engines and other crawlers: not linked from the site, noindex here, and disallowed in robots.ts.
+export const metadata = { title: `Brand · ${SITE_NAME}`, robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false, noimageindex: true } } };
 
 const COLORS: { name: string; hex: string; use: string }[] = [
   { name: "Paper", hex: "#F2EEE3", use: "Page background" },

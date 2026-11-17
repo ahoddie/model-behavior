@@ -11,7 +11,7 @@ import { placeActor, countSharedQuotesOnce, newestFirst, type Side } from "./sta
 export const RECORD_TAG = "record";
 function cached() { cacheLife("record"); cacheTag(RECORD_TAG); }
 
-export type GNode = { id: string; type: string; name: string; descriptor: string | null; cluster: string; source_url: string; issues: string[]; first_date: string | null };
+export type GNode = { id: string; type: string; name: string; descriptor: string | null; cluster: string; source_url: string; issues: string[]; first_date: string | null; logo_url?: string | null };
 export type GLink = { id: number; from: string; to: string; type: "money" | "person" | "idea" | "position"; subtype: string | null; amount: number | null;
   date_start: string | null; date_end: string | null; stance: string | null; note: string | null; source_url: string };
 
@@ -39,7 +39,7 @@ export async function getGraph() {
   "use cache";
   cached();
   const [nodes, links] = await Promise.all([q<GNode>(`
-    SELECT n.id, n.type, n.name, n.descriptor, ${LANDS_CLUSTER} AS cluster, n.source_url,
+    SELECT n.id, n.type, n.name, n.descriptor, ${LANDS_CLUSTER} AS cluster, n.source_url, n.logo_url,
       coalesce((SELECT array_agg(DISTINCT i) FROM feed_items f, unnest(f.issues) i WHERE f.node_id=n.id AND f.status='approved'), '{}') AS issues,
       (SELECT min(d)::text FROM (SELECT min(date_start) d FROM links WHERE from_id=n.id OR to_id=n.id UNION ALL SELECT min(date) FROM feed_items WHERE node_id=n.id AND status='approved') x) AS first_date
     FROM nodes n
@@ -294,7 +294,14 @@ export async function getHome() {
     WHERE fi.status='approved' AND fi.excerpt IS NOT NULL AND fi.kind NOT IN ('donation','policy change','filing') AND n.type NOT IN ('lawmaker','agency') AND fi.date IS NOT NULL
     ORDER BY fi.date DESC, fi.id DESC LIMIT 12`);
   // Who is quoted most: approved word-for-word statements per actor, on any subject.
-  const talkers = await q<any>(`SELECT n.id, n.name, n.type, count(*)::int AS n FROM feed_items fi JOIN nodes n ON n.id=fi.node_id
+  // Alongside the count, where those quotes stand in the issue sorting, so a bar's breakdown can account for every one of them.
+  const talkers = await q<any>(`SELECT n.id, n.name, n.type, count(*)::int AS n,
+      count(*) FILTER (WHERE l.feed_id IS NOT NULL AND ${GOOD} AND EXISTS (SELECT 1 FROM jsonb_each_text(l.issues_ok) e WHERE e.value::int <> 0))::int AS sided,
+      count(*) FILTER (WHERE l.feed_id IS NOT NULL AND ${GOOD} AND l.issues_ok <> '{}'::jsonb AND NOT EXISTS (SELECT 1 FROM jsonb_each_text(l.issues_ok) e WHERE e.value::int <> 0))::int AS neutral,
+      count(*) FILTER (WHERE l.feed_id IS NOT NULL AND ${GOOD} AND l.issues_ok = '{}'::jsonb)::int AS off_issue,
+      count(*) FILTER (WHERE l.feed_id IS NOT NULL AND NOT (${GOOD}))::int AS unsure,
+      count(*) FILTER (WHERE l.feed_id IS NULL)::int AS unsorted
+    FROM feed_items fi JOIN nodes n ON n.id=fi.node_id LEFT JOIN ${LABELS} l ON l.feed_id=fi.id
     WHERE fi.status='approved' AND fi.excerpt IS NOT NULL AND fi.kind NOT IN ('donation','policy change','filing') AND n.type NOT IN ('lawmaker','agency')
     GROUP BY n.id ORDER BY count(*) DESC, n.name LIMIT 15`);
   // The date this overview was computed, read inside the cache so the page itself has no clock to wait on.
@@ -303,19 +310,20 @@ export async function getHome() {
 }
 
 // Lands on: each target's latest stated position per actor, grouped into sides, so a row says who stood where.
+export type SideName = { id: string; name: string; type: string; logo_url: string | null };
 export async function targetSides() {
   "use cache";
   cached();
-  const rows = await q<{ target: string; side: string; names: { id: string; name: string }[]; n: number }>(`
+  const rows = await q<{ target: string; side: string; names: SideName[]; n: number }>(`
     WITH s AS (
       SELECT l.from_id AS actor, l.to_id AS target, l.stance, l.date_start AS d FROM links l WHERE l.type='position' AND l.stance IS NOT NULL
       UNION ALL
       SELECT fi.node_id, fi.target_id, fi.stance, fi.date FROM feed_items fi WHERE fi.status='approved' AND fi.stance IS NOT NULL AND fi.target_id IS NOT NULL),
     latest AS (SELECT DISTINCT ON (actor, target) actor, target, stance FROM s ORDER BY actor, target, d DESC NULLS LAST)
     SELECT target, CASE WHEN stance='support' THEN 'support' WHEN stance='oppose' THEN 'oppose' ELSE 'mixed' END AS side,
-      json_agg(json_build_object('id', a.id, 'name', a.name) ORDER BY a.name) AS names, count(*)::int AS n
+      json_agg(json_build_object('id', a.id, 'name', a.name, 'type', a.type, 'logo_url', a.logo_url) ORDER BY (a.logo_url IS NULL), a.name) AS names, count(*)::int AS n
     FROM latest JOIN nodes a ON a.id=latest.actor WHERE a.type NOT IN ('lawmaker','agency','bill','race','rule') GROUP BY 1, 2`);
-  const out: Record<string, Record<string, { names: { id: string; name: string }[]; n: number }>> = {};
+  const out: Record<string, Record<string, { names: SideName[]; n: number }>> = {};
   for (const r of rows) (out[r.target] ??= {})[r.side] = { names: r.names, n: r.n };
   return out;
 }

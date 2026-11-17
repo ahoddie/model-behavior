@@ -1,10 +1,32 @@
+"use client";
 // Layered flow from one starting point: each column is one step further along the money.
-import Link from "@/components/Link";
+// Clicking a box opens the same summary panel as the network; a modified click still opens the full profile.
+import { useEffect, useMemo, useState } from "react";
 import { fmtMoney } from "@/lib/format";
+import NodePanel from "./NodePanel";
+import type { GNode, GLink } from "@/lib/data";
 
-type Flow = { from_id: string; to_id: string; from_name: string; to_name: string; amount: number | null; d: number; source_url: string; stance: string | null };
+type Flow = { from_id: string; to_id: string; from_name: string; to_name: string; amount: number | null; d: number; source_url: string; stance: string | null;
+  subtype?: string | null; date_start?: string | null; date_end?: string | null; note?: string | null };
 
 export default function MoneyFlow({ start, flows }: { start: string; flows: Flow[] }) {
+  const [selected, setSelected] = useState<string | null>(null);
+  useEffect(() => { setSelected(null); }, [start]);
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setSelected(null); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, []);
+  // The panel's connections are the money steps in this trace. Its header and facts come from the record itself.
+  const { links, byId } = useMemo(() => {
+    const byId = new Map<string, GNode>();
+    const add = (id: string, name: string) => { if (!byId.has(id)) byId.set(id, { id, name, type: "", descriptor: null, cluster: "", source_url: "", issues: [], first_date: null }); };
+    const links: GLink[] = flows.map((f, i) => {
+      add(f.from_id, f.from_name); add(f.to_id, f.to_name);
+      return { id: i, from: f.from_id, to: f.to_id, type: "money", subtype: f.subtype ?? null, amount: f.amount, date_start: f.date_start ?? null, date_end: f.date_end ?? null, stance: f.stance, note: f.note ?? null, source_url: f.source_url };
+    });
+    return { links, byId };
+  }, [flows]);
   const depth = new Map<string, number>([[start, 0]]);
   const names = new Map<string, string>();
   for (const f of [...flows].sort((a, b) => a.d - b.d)) {
@@ -56,15 +78,24 @@ export default function MoneyFlow({ start, flows }: { start: string; flows: Flow
         {[...pos.entries()].map(([id, p]) => {
           // "Undisclosed donors" is a placeholder, not a profile, so it is drawn without a link.
           const box = (
-            <g transform={`translate(${p.x},${p.y})`} className="item">
+            <g transform={`translate(${p.x},${p.y})`} className={`item${selected === id ? " sel" : ""}`}>
               <rect width={colW} height={p.h} rx="2" />
               <text x="8" y="15" className="nlabel">{(names.get(id) ?? id).slice(0, 28)}</text>
               <text x="8" y="29" className="namt">{fmtMoney(inflow.get(id))}</text>
             </g>
           );
-          return id.startsWith("undisclosed:") ? <g key={id}>{box}</g> : <Link key={id} href={`/node/${id}`}>{box}</Link>;
+          if (id.startsWith("undisclosed:")) return <g key={id}>{box}</g>;
+          return (
+            <a key={id} href={`/node/${id}`} aria-label={`${names.get(id) ?? id}: open summary`} aria-expanded={selected === id}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                setSelected((s) => (s === id ? null : id));
+              }}>{box}</a>
+          );
         })}
       </svg>
+      {selected && <NodePanel id={selected} links={links} byId={byId} onSelect={(id) => setSelected(id.startsWith("undisclosed:") ? null : id)} onClose={() => setSelected(null)} />}
     </div>
   );
 }

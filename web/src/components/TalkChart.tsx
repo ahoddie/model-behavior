@@ -11,7 +11,22 @@ export type TalkIssue = { id: string; label: string; positive: string; topicId?:
 
 // One actor's sided statements on one issue, for the breakdown that opens under a bar.
 export type ActorTopic = { id: string; label: string; n: number; agree: boolean };
-type Actor = { id: string; name: string; kind: string; n: number; agree?: boolean };
+// For the all-issues chart: the actor's quotes that don't appear in the breakdown, by reason, so the rows add up to the bar.
+type Rest = { neutral: number; off: number; unsure: number; unsorted: number };
+type Actor = { id: string; name: string; kind: string; n: number; agree?: boolean; rest?: Rest };
+
+function restLine(r: Rest) {
+  const parts = [
+    r.neutral && `${r.neutral} on an issue without taking a side`,
+    r.off && `${r.off} on none of the tracked issues`,
+    r.unsure && `${r.unsure} the model couldn't read with confidence`,
+    r.unsorted && `${r.unsorted} not sorted yet`,
+  ].filter(Boolean) as string[];
+  const total = r.neutral + r.off + r.unsure + r.unsorted;
+  if (!total) return null;
+  const list = parts.length > 1 ? `${parts.slice(0, -1).join(", ")}${parts.length > 2 ? "," : ""} and ${parts.at(-1)}` : parts[0];
+  return `The other ${total} ${total === 1 ? "quote" : "quotes"}: ${list}.`;
+}
 const ALL = "all";
 
 export default function TalkChart({ issues, all, byActor }: { issues: TalkIssue[]; all: Actor[]; byActor: Record<string, ActorTopic[]> }) {
@@ -38,6 +53,7 @@ export default function TalkChart({ issues, all, byActor }: { issues: TalkIssue[
           <span className="rc-topic-n">{t.n} · {t.agree ? "agrees" : "disagrees"}</span>
         </li>
       ))}</ul>}
+      {!issue && who.rest && restLine(who.rest) && <p className="rc-topics-rest muted">{restLine(who.rest)}</p>}
     </div>
   );
   return (

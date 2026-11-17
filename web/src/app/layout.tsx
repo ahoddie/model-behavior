@@ -43,7 +43,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Suspense fallback={null}><LastUpdated /></Suspense>
           <Link href="/data?view=methodology">Methodology</Link>
           <Link href="/data?view=corrections">Corrections</Link>
-          <Link href="/brand">Brand</Link>
         </footer>
       </body>
     </html>
