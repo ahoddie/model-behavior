@@ -8,6 +8,7 @@ import { landsRank, clusterName, fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/for
 import type { GNode, GLink } from "@/lib/data";
 import SteppedList from "./SteppedList";
 import NodePanel from "./NodePanel";
+import { Mark } from "./ProfileHead";
 
 const COLUMN: Record<string, number> = { lab: 0, person: 0, investor: 0, funder: 0, pac: 1, nonprofit: 1, think_tank: 1, bill: 2, race: 2, rule: 2, lawmaker: 2, agency: 2 };
 const COL_TITLES = ["The Valley", "Through", "Lands on"];
@@ -148,6 +149,32 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
   // What is shown now: the layout's links, up to the timeline's month.
   const dateCut = mode === "timeline" && monthIdx < months.length - 1 ? `${months[monthIdx]}-31` : null;
   const fLinks = useMemo(() => dateCut ? layoutLinks.filter((l) => l.date_start! <= dateCut) : layoutLinks, [layoutLinks, dateCut]);
+
+  // Who acts in the timeline's current month: each giver or speaker with the links dated that month, most money first, then
+  // most links. "New" marks a name whose first dated link in the layout falls in this month.
+  const firstSeen = useMemo(() => {
+    const m = new Map<string, string>();
+    if (mode !== "timeline") return m;
+    for (const l of layoutLinks) { if (!l.date_start) continue; const d = l.date_start.slice(0, 7), cur = m.get(l.from); if (!cur || d < cur) m.set(l.from, d); }
+    return m;
+  }, [mode, layoutLinks]);
+  const arrivals = useMemo(() => {
+    if (mode !== "timeline") return [];
+    const month = months[monthIdx];
+    const by = new Map<string, { id: string; money: number; n: number; type: string; to: Map<string, number> }>();
+    for (const l of layoutLinks) {
+      if (l.date_start?.slice(0, 7) !== month) continue;
+      const a = by.get(l.from) ?? { id: l.from, money: 0, n: 0, type: l.type, to: new Map() };
+      a.money += l.type === "money" ? l.amount ?? 0 : 0; a.n++;
+      if (l.type === "money" && a.type !== "money") a.type = "money";
+      a.to.set(l.to, (a.to.get(l.to) ?? 0) + (l.amount ?? 0) + 1e-9);
+      by.set(l.from, a);
+    }
+    return [...by.values()].sort((a, b) => b.money - a.money || b.n - a.n).map((a) => ({
+      ...a, isNew: firstSeen.get(a.id) === month,
+      top: [...a.to.entries()].sort((x, y) => y[1] - x[1])[0][0], targets: a.to.size,
+    }));
+  }, [mode, months, monthIdx, layoutLinks, firstSeen]);
 
   const layoutScore = useMemo(() => scoreOf(layoutLinks), [layoutLinks]);
   const nodeScore = useMemo(() => fLinks === layoutLinks ? layoutScore : scoreOf(fLinks), [fLinks, layoutLinks, layoutScore]);
@@ -331,11 +358,37 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
       <span className="mono">{fmtDate(`${months[monthIdx]}-01`).replace(/ 1,/, "")} · {fLinks.length} dated links</span>
     </div>
   );
+  // Under the bar: the month's most active names, so each step shows who arrived and with how much.
+  const VERB: Record<string, string> = { money: "to", position: "position on", person: "tie to", idea: "idea link to" };
+  const monthName = fmtDate(`${months[monthIdx]}-01`).replace(/ 1,/, "");
+  const arrivalsRow = mode === "timeline" && (
+    <div className="tl-arrivals" aria-live="polite">
+      <span className="tl-arrivals-head">{arrivals.length ? <>Most active in {monthName} <span className="muted">{arrivals.length} {arrivals.length === 1 ? "name" : "names"}</span></> : <span className="muted">Nothing dated in {monthName}</span>}</span>
+      <ul key={months[monthIdx]}>{arrivals.slice(0, 5).map((a) => {
+        const n = byId.get(a.id)!, to = byId.get(a.top);
+        return (
+          <li key={a.id}>
+            <button className="tl-chip" onClick={() => setSelected(a.id)} aria-label={`${n.name}: open summary`}>
+              <Mark node={n} size={28} />
+              <span className="tl-chip-text">
+                <span className="tl-chip-name">{n.name}{a.isNew && <span className="tl-new">New</span>}</span>
+                <span className="tl-chip-what">
+                  {a.money > 0 && <b>{fmtMoney(a.money)} </b>}
+                  {VERB[a.type] ?? "to"} {to?.name ?? "another name"}{a.targets > 1 && ` and ${a.targets - 1} more`}
+                </span>
+              </span>
+            </button>
+          </li>
+        );
+      })}</ul>
+      {arrivals.length > 5 && <span className="tl-more muted">and {arrivals.length - 5} more</span>}
+    </div>
+  );
 
   // ?view=time opens the timeline and ?focus=id selects a name; a link to the map from elsewhere on the site lands here too.
   const fromUrl = <Suspense fallback={null}><FromUrl apply={(view, focus) => { setModeState(view === "time" ? "timeline" : "map"); if (focus) setSelected(focus); if (focus || view === "time") allTypes(); }} /></Suspense>;
   // SteppedList takes its starting name once, so a name arriving from the URL or the search box remounts it.
-  if (mobile) return (<div className="mapwrap">{fromUrl}{filters}{timeline}<SteppedList key={selected ?? ""} nodes={nodes} links={fLinks} initial={selected} /></div>);
+  if (mobile) return (<div className="mapwrap">{fromUrl}{filters}{timeline}{arrivalsRow}<SteppedList key={selected ?? ""} nodes={nodes} links={fLinks} initial={selected} /></div>);
 
   return (
     <div className="mapwrap" ref={wrap}>
@@ -344,6 +397,7 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
         {filters}
       </div>
       {timeline}
+      {arrivalsRow}
       <div className={`mapstage${focus ? " focused" : ""}${mode === "timeline" ? " timeline" : ""}`}>
         <svg ref={svgRef} width={width} height={height} style={measured === null ? { visibility: "hidden" } : undefined} role="group" aria-label="Influence map: The Valley, Through, Lands on" className="map"
           onClick={() => { if (selected) setSelected(null); }}>
