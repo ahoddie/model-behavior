@@ -5,7 +5,7 @@ import { fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
 import Src from "@/components/Src";
 import Skyline from "@/components/Skyline";
 import TitleCode from "@/components/TitleCode";
-import SectionNav, { type NavIcon } from "@/components/SectionNav";
+import SectionNav from "@/components/SectionNav";
 import CiteButton from "@/components/CiteButton";
 import { Named } from "@/components/ProfileHead";
 import RankChart from "@/components/RankChart";
@@ -13,13 +13,13 @@ import TrendChart from "@/components/TrendChart";
 import TalkChart, { type TalkIssue, type ActorTopic } from "@/components/TalkChart";
 import { sourceName } from "@/lib/format";
 
-const SECTIONS: { id: string; label: string; icon: NavIcon; title: string }[] = [
-  { id: "money", label: "Where Money Goes", icon: "money", title: "Where is the money going?" },
-  { id: "issues", label: "Policy Priorities", icon: "priorities", title: "What do they care about?" },
-  { id: "stances", label: "Stances", icon: "stances", title: "Where do they stand?" },
-  { id: "trend", label: "Evolution", icon: "evolution", title: "How has that changed?" },
-  { id: "words", label: "Quotes", icon: "quotes", title: "What are they saying?" },
-  { id: "map", label: "The Network", icon: "network", title: "How is it all connected?" },
+const SECTIONS: { id: string; label: string; title: string }[] = [
+  { id: "money", label: "Where money goes", title: "Where is the money going?" },
+  { id: "issues", label: "Policy priorities", title: "What do they care about?" },
+  { id: "stances", label: "Stances", title: "Where do they stand?" },
+  { id: "trend", label: "Change over time", title: "How has that changed?" },
+  { id: "words", label: "Quotes", title: "What are they saying?" },
+  { id: "map", label: "Network", title: "How is it all connected?" },
 ];
 
 const SIDES = [["support", "Supported"], ["mixed", "Mixed or conditional"], ["oppose", "Opposed"]] as const;

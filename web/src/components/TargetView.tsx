@@ -31,8 +31,8 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
           const behind = [...actors.values()].reduce((a, r) => a + (r.actor_political_money ?? 0), 0);
           const direct = rows.reduce((a: number, r: any) => a + (r.type === "money" ? r.amount ?? 0 : 0), 0);
           return (
-            <section key={s} className="panel" style={{ padding: "var(--s4)" }}>
-              <h3>{label} <span className="mono">{actors.size}</span></h3>
+            <section key={s} className="push-side">
+              <h3>{label} <span className="muted">{actors.size}</span></h3>
               <p className="mono muted">{direct > 0 && <>Spent here {fmtMoney(direct)} · </>}{behind > 0 && <>Political money on record across these actors {fmtMoney(behind)}</>}</p>
               <ul className="conns">{rows.map((r: any) => (
                 <li key={r.id}><Link href={`/node/${r.actor_id}`}>{r.actor_name}</Link> <span className={`tag ${r.type}`}>{r.subtype ?? r.type}</span>{" "}
@@ -47,7 +47,7 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
         <h2>What they said about it</h2>
         <ul className="feed">{t.statements.map((f: any) => (
           <li key={f.id}><div className="when">{fmtDate(f.date)}</div>
-            <div><Link href={`/node/${f.node_id}`}>{f.actor_name}</Link>{f.stance ? <span className="tag position" style={{ marginLeft: 6 }}>{f.stance}</span> : null}
+            <div><Link href={`/node/${f.node_id}`}>{f.actor_name}</Link>{f.stance ? <span className="muted"> · {f.stance}</span> : null}
               {f.excerpt ? <blockquote>“{f.excerpt}” <Src url={f.url} archive={f.archive_url} /></blockquote> : <p style={{ margin: 0 }}>{f.summary} <Src url={f.url} archive={f.archive_url} /></p>}</div></li>
         ))}</ul>
       </>}

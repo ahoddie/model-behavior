@@ -72,12 +72,29 @@ async function Listing({ sp: spP }: { sp: Sp }) {
   const groups = [...new Set(inKind.map((t) => t.grp as string))]
     .filter((g) => kind[0] !== "elections" || !want || cycleOf(g) === want)
     .sort((a, b) => landsRank(a) - landsRank(b));
-  const rowsOf = (g: string) => inKind.filter((t) => t.grp === g)
-    // Rows with positions come first, then by money, so the busiest debates lead.
-    .sort((a, b) => total(sides[b.id] as Sides) - total(sides[a.id] as Sides) || b.money - a.money);
-  // Bars in the tables are scaled to the largest value in the tab.
-  const maxRace = Math.max(1, ...inKind.map((t) => t.race_money ?? 0));
+  // Cards: rows with positions first, then by money, so the busiest debates lead. Tables: by the value their bar draws,
+  // so the bars step down in order.
+  const isCands = (g: string) => g.endsWith("-candidates");
+  const drawn = (t: any) => (t.type === "lawmaker" ? t.shown_money : t.race_money) ?? 0;
+  const rowsOf = (g: string) => inKind.filter((t) => t.grp === g).sort((a, b) =>
+    kind[0] === "elections" ? drawn(b) - drawn(a) || b.candidates - a.candidates || a.name.localeCompare(b.name)
+    : kind[0] === "lobbied" ? (b.lobbying ?? 0) - (a.lobbying ?? 0) || b.actors - a.actors || a.name.localeCompare(b.name)
+    : total(sides[b.id] as Sides) - total(sides[a.id] as Sides) || b.money - a.money);
+  // Under a "2026 races" heading the year and the word "race" are already said.
+  const raceName = (n: string) => n.replace(/^\d{4}\s+/, "").replace(/\s+race$/i, "");
+  const groupName = (g: string) => (kind[0] === "elections" && isCands(g) ? clusterName(g).replace(/election$/, "candidates") : clusterName(g));
+  const byId = new Map<string, any>(ts.map((t) => [t.id, t]));
+  // Each race's candidates, best funded first.
+  const candsOf = new Map<string, any[]>();
+  for (const t of ts) if (t.type === "lawmaker" && t.race) candsOf.set(t.race, [...(candsOf.get(t.race) ?? []), t]);
+  for (const list of candsOf.values()) list.sort((a, b) => b.shown_money - a.shown_money || a.name.localeCompare(b.name));
+  // Bars are scaled to the largest value of their kind in the tab, so every group shares one ruler.
+  const maxRace = Math.max(1, ...inKind.filter((t) => t.type !== "lawmaker").map(drawn));
+  const maxCand = Math.max(1, ...inKind.filter((t) => t.type === "lawmaker").map(drawn));
   const maxFilings = Math.max(1, ...inKind.map((t) => t.lobbying ?? 0));
+  const Bar = ({ v, max, tone }: { v: number; max: number; tone?: string }) => (
+    <td className="pbar" aria-hidden><span className={`pmeter${tone ? ` pmeter-${tone}` : ""}`}>{v > 0 && <i style={{ width: `${(100 * v) / max}%` }} />}</span></td>
+  );
   const cards = kind[0] === "bills" || kind[0] === "rules";
 
   return (
@@ -100,13 +117,13 @@ async function Listing({ sp: spP }: { sp: Sp }) {
       )}
 
       <div className="pol-body">
-        {groups.length > 1 && <SectionNav key={kind[0] + want} items={groups.map((g) => ({ id: g, label: clusterName(g) }))} label="Groups" />}
+        {groups.length > 1 && <SectionNav key={kind[0] + want} items={groups.map((g) => ({ id: g, label: groupName(g) }))} label="Groups" />}
         <div className="pol-main">
           {groups.map((g) => {
             const rows = rowsOf(g);
             return (
               <section key={g} id={g} className="pol-group">
-                <h2>{clusterName(g)} <span className="muted">{rows.length}</span></h2>
+                <h2>{groupName(g)} <span className="muted">{rows.length}</span></h2>
 
                 {cards ? (
                   <ul className="pcards">{rows.map((t) => {
@@ -128,28 +145,62 @@ async function Listing({ sp: spP }: { sp: Sp }) {
                       </li>
                     );
                   })}</ul>
-                ) : kind[0] === "elections" ? (
-                  <table className="data-table ptable">
-                    <thead><tr><th>Race</th><th className="num">Candidates on record</th><th>Outside money on record</th></tr></thead>
-                    <tbody>{rows.map((t) => (
-                      <tr key={t.id}>
-                        <td><Link href={`/node/${t.id}`}>{t.name}</Link></td>
-                        <td className="num">{t.candidates}</td>
-                        <td><span className="pmeter"><i style={{ width: `${(100 * (t.race_money ?? 0)) / maxRace}%` }} /></span>
-                          <span className="mono">{t.race_money > 0 ? fmtMoney(t.race_money) : "None"}</span></td>
-                      </tr>
-                    ))}</tbody>
-                  </table>
-                ) : (
+                ) : kind[0] === "elections" ? (() => {
+                  const cands = isCands(g);
+                  const paid = rows.filter((t) => drawn(t) > 0), quiet = rows.filter((t) => !(drawn(t) > 0));
+                  const sum = paid.reduce((x, t) => x + drawn(t), 0);
+                  const max = cands ? maxCand : maxRace;
+                  return (
+                    <>
+                      {paid.length > 0 && (
+                        <p className="pstats">
+                          {fmtMoney(sum)} in outside money on record, across {paid.length} {cands ? (paid.length === 1 ? "candidate" : "candidates") : (paid.length === 1 ? "race" : "races")}.
+                          {" "}The largest is <Link href={`/node/${paid[0].id}`}>{cands ? paid[0].name : raceName(paid[0].name)}</Link>, at {fmtMoney(drawn(paid[0]))}.
+                        </p>
+                      )}
+                      {paid.length > 0 && (
+                        <table className="data-table ptable">
+                          <thead><tr><th className="prank"><span className="vh">Rank</span></th><th>{cands ? "Candidate" : "Race"}</th>
+                            <th className="pwho">{cands ? "Race" : "Candidates on record"}</th><th colSpan={2}>Outside money on record</th></tr></thead>
+                          <tbody>{paid.map((t, i) => {
+                            const list = candsOf.get(t.id) ?? [];
+                            const race = cands && t.race ? byId.get(t.race) : undefined;
+                            return (
+                              <tr key={t.id}>
+                                <td className="prank">{i + 1}</td>
+                                <td className="pname"><Link href={`/node/${t.id}`}>{cands ? t.name : raceName(t.name)}</Link></td>
+                                <td className="pwho">{cands
+                                  ? (race ? <Link href={`/node/${race.id}`}>{raceName(race.name)}</Link> : <span className="muted">Not on record</span>)
+                                  : list.length ? <>
+                                      {list.slice(0, 3).map((c, k) => <span key={c.id}>{k > 0 && ", "}<Link href={`/node/${c.id}`}>{c.name}</Link></span>)}
+                                      {list.length > 3 && <span className="muted">, and {list.length - 3} more</span>}
+                                    </> : <span className="muted">{t.candidates || "None"}</span>}</td>
+                                <td className="pamt">{fmtMoney(drawn(t))}</td>
+                                <Bar v={drawn(t)} max={max} tone="money" />
+                              </tr>
+                            );
+                          })}</tbody>
+                        </table>
+                      )}
+                      {quiet.length > 0 && (
+                        <div className="pquiet">
+                          <h3>No outside money on record <span className="muted">{quiet.length}</span></h3>
+                          <ul>{quiet.map((t) => <li key={t.id}><Link href={`/node/${t.id}`}>{cands ? t.name : raceName(t.name)}</Link></li>)}</ul>
+                        </div>
+                      )}
+                    </>
+                  );
+                })() : (
                   // One lobbying report covers many agencies, so no dollar figure is split out per agency.
                   <table className="data-table ptable">
-                    <thead><tr><th>Body</th><th className="num">Organizations</th><th>Lobbying filings</th></tr></thead>
-                    <tbody>{rows.map((t) => (
+                    <thead><tr><th className="prank"><span className="vh">Rank</span></th><th>Body</th><th className="num">Organizations</th><th colSpan={2}>Lobbying filings</th></tr></thead>
+                    <tbody>{rows.map((t, i) => (
                       <tr key={t.id}>
-                        <td><Link href={`/node/${t.id}`}>{t.name}</Link>{t.descriptor && <span className="ptable-note">{t.descriptor}</span>}</td>
+                        <td className="prank">{i + 1}</td>
+                        <td className="pname"><Link href={`/node/${t.id}`}>{t.name}</Link>{t.descriptor && <span className="ptable-note">{t.descriptor}</span>}</td>
                         <td className="num">{t.actors}</td>
-                        <td><span className="pmeter"><i style={{ width: `${(100 * (t.lobbying ?? 0)) / maxFilings}%` }} /></span>
-                          <span className="mono">{(t.lobbying ?? 0).toLocaleString()}</span></td>
+                        <td className="pamt">{(t.lobbying ?? 0).toLocaleString()}</td>
+                        <Bar v={t.lobbying ?? 0} max={maxFilings} />
                       </tr>
                     ))}</tbody>
                   </table>

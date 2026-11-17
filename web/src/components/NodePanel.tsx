@@ -39,7 +39,7 @@ export default function NodePanel({ id, links, byId, onSelect, onClose }: { id: 
         <div><h2>{n.name}</h2></div>
       </div>
       <p>{n.descriptor ? <>{n.descriptor} <Src url={n.source_url} /></> : TYPE_LABEL[n.type]}</p>
-      <p className="panel-open"><Link href={`/node/${id}`}>Open the full profile →</Link></p>
+      <p className="panel-open"><Link href={`/node/${id}`}>Open the full profile</Link></p>
       {s?.keyFacts?.length ? <KeyFacts facts={s.keyFacts} compact /> : null}
       {s?.facts.length ? <ul className="facts">{s.facts.map((f, i) => <li key={i}><Linked parts={(f as any).parts} text={f.text} /> <Src url={f.url} /></li>)}</ul> : null}
       <h3>Connections</h3>

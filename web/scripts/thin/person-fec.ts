@@ -15,7 +15,7 @@ if (!person || !fecName || !first) throw new Error("Needs --person, --fec-name a
 const KEY = process.env.DATA_GOV_KEY || "DEMO_KEY";
 
 const slug = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-const ACRONYMS = new Set(["PAC", "RBG", "MAHA", "NRCC", "NRSC", "DCCC", "DSCC", "RNC", "DNC", "USA", "II", "LLC"]);
+const ACRONYMS = new Set(["PAC", "RBG", "MAHA", "MAGA", "CLF", "NRCC", "NRSC", "DCCC", "DSCC", "RNC", "DNC", "USA", "II", "LLC"]);
 const name = (s: string) => s.toLowerCase().replace(/\b[a-z][a-z']*\b/g, (w) => (ACRONYMS.has(w.toUpperCase()) ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1)));
 const docUrl = (r: any) => r.pdf_url || (r.image_number ? `https://docquery.fec.gov/cgi-bin/fecimg/?${r.image_number}` : null);
 

@@ -371,7 +371,7 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
             <button className="tl-chip" onClick={() => setSelected(a.id)} aria-label={`${n.name}: open summary`}>
               <Mark node={n} size={28} />
               <span className="tl-chip-text">
-                <span className="tl-chip-name">{n.name}{a.isNew && <span className="tl-new">New</span>}</span>
+                <span className="tl-chip-name">{n.name}{a.isNew && <span className="tl-new">new</span>}</span>
                 <span className="tl-chip-what">
                   {a.money > 0 && <b>{fmtMoney(a.money)} </b>}
                   {VERB[a.type] ?? "to"} {to?.name ?? "another name"}{a.targets > 1 && ` and ${a.targets - 1} more`}

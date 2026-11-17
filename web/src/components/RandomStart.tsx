@@ -10,12 +10,6 @@ export default function RandomStart({ ids, current }: { ids: string[]; current?:
   };
   return (
     <button type="button" className="rand-btn" onClick={pick} aria-label="Start from a random giver">
-      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
-        <rect x="1.5" y="1.5" width="13" height="13" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
-        <circle cx="5" cy="5" r="1.2" fill="currentColor" /><circle cx="11" cy="5" r="1.2" fill="currentColor" />
-        <circle cx="8" cy="8" r="1.2" fill="currentColor" />
-        <circle cx="5" cy="11" r="1.2" fill="currentColor" /><circle cx="11" cy="11" r="1.2" fill="currentColor" />
-      </svg>
       Random
     </button>
   );

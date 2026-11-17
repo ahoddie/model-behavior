@@ -40,7 +40,7 @@ export default function SteppedList({ nodes, links, initial }: { nodes: GNode[];
       </nav>
       <h2>{n.name}</h2>
       <p className="mono muted">{TYPE_LABEL[n.type]}{n.descriptor ? <> · <a href={n.source_url}>{n.descriptor}</a></> : null}</p>
-      <p><Link href={`/node/${n.id}`}>Full profile →</Link></p>
+      <p><Link href={`/node/${n.id}`}>Open the full profile</Link></p>
       <ul className="steplist">
         {mine.map((l) => {
           const o = byId.get(l.from === current ? l.to : l.from)!;

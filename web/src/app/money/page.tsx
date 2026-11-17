@@ -66,7 +66,7 @@ async function Trace({ sp: spP }: { sp: PageProps<"/money">["searchParams"] }) {
   return (
     <>
       <form className="filters" action="/money">
-        <Select key={start} label="Start from" name="from" defaultValue={start} wide submitOnChange options={starts.map((s) => ({ value: s.id, label: `${s.name} (${fmtMoney(s.out)})` }))} />
+        <Select key={start} label="Start from" name="from" defaultValue={start} wide submitOnChange options={starts.map((s) => ({ value: s.id, label: s.out ? `${s.name} (${fmtMoney(s.out)})` : `${s.name} (amount not stated)` }))} />
         <RandomStart ids={starts.filter((s) => !isUndisclosed(s.id)).map((s) => s.id)} current={start} />
         <noscript><button type="submit">Trace</button></noscript>
       </form>

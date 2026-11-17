@@ -9,6 +9,8 @@ import Select from "@/components/Select";
 import Src from "@/components/Src";
 import { nodeKey, quoteKey } from "@/lib/sameness";
 
+const KIND_LABEL: Record<string, string> = { node: "Profile", feed: "Statement", filing: "Filing" };
+
 type Hit = { key: string; kind: string; title: string; body: string; url: string; node_id: string; node_name: string; node_type?: string; date?: string; amount?: number | null; also?: { id: string; name: string }[] };
 
 // Collapse results that are the same item (also guards against a stale index). Keeps the first, best-ranked hit.
@@ -78,7 +80,7 @@ async function Results({ sp: spP }: { sp: PageProps<"/search">["searchParams"] }
       <ul className="feed">
         {hits.map((h) => (
           <li key={h.key}>
-            <div className="when"><span className="tag">{h.kind}</span>{h.date ? <><br />{fmtDate(h.date)}</> : null}</div>
+            <div className="when"><span className="tag">{KIND_LABEL[h.kind] ?? h.kind}</span>{h.date ? <><br />{fmtDate(h.date)}</> : null}</div>
             <div>
               {h.kind === "node" ? <Link href={h.url}><strong>{h.title}</strong></Link> : <><Link href={`/node/${h.node_id}`}>{h.node_name}</Link> · {h.title.replace(`${h.node_name}: `, "")}{!h.body && <> <Src url={h.url} /></>}</>}
               {h.body && <p style={{ margin: "4px 0 0" }}>{h.kind === "feed" ? h.body : h.body.slice(0, 260)}{h.kind !== "node" && <> <Src url={h.url} /></>}</p>}

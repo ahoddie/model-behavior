@@ -13,6 +13,10 @@ export const TRADE_GROUPS = [
 // U.S. Chamber of Commerce were removed the same day; they and every other trade group are rejected.
 const ALLOW = new Set(["american-edge", "american edge project", "chamber-of-progress", "ccia"]);
 
+// Removed from scope by the user; research files that still list them are not re-added.
+// SoftBank, Stargate, MGX, and Masayoshi Son (2026-11-17): commercial infrastructure investment, not policy money.
+export const OUT_OF_SCOPE = new Set(["softbank", "stargate", "mgx", "masayoshi-son"]);
+
 export function isTradeGroup(name: string, id = ""): boolean {
   if (ALLOW.has(id) || ALLOW.has(name.toLowerCase())) return false;
   const n = name.toLowerCase();
@@ -87,6 +91,7 @@ export async function upsertNode(n: any): Promise<boolean> {
   if (!type) return reject("nodes", `bad type ${n.type}`, n);
   if (!isUrl(n.source_url)) return reject("nodes", "no source_url", n);
   if (isTradeGroup(n.name, n.id)) return reject("nodes", "trade group (out of scope)", n);
+  if (OUT_OF_SCOPE.has(n.id)) return reject("nodes", "removed from scope", n);
   await pool.query(
     `INSERT INTO nodes (id,type,name,descriptor,cluster,external_ids,source_url)
      VALUES ($1,$2,$3,$4,$5,$6,$7)

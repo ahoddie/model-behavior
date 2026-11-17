@@ -6,6 +6,9 @@ import { fmtMoney } from "@/lib/format";
 import NodePanel from "./NodePanel";
 import type { GNode, GLink } from "@/lib/data";
 
+// Names longer than the box are cut at a word and marked; the full name is in the tooltip and the panel.
+const clip = (s: string) => s.length <= 24 ? s : s.slice(0, 23).replace(/\s+\S*$/, "").replace(/[\s(/,–-]+$/, "") + "…";
+
 type Flow = { from_id: string; to_id: string; from_name: string; to_name: string; amount: number | null; d: number; source_url: string; stance: string | null;
   subtype?: string | null; date_start?: string | null; date_end?: string | null; note?: string | null };
 
@@ -54,7 +57,7 @@ export default function MoneyFlow({ start, flows }: { start: string; flows: Flow
   for (let c = 0; c < cols; c++) {
     const ids = [...depth.entries()].filter(([, d]) => d === c).map(([id]) => id).sort((a, b) => (inflow.get(b) ?? 0) - (inflow.get(a) ?? 0)).slice(0, 18);
     let y = 10;
-    for (const id of ids) { const h = 22 + 70 * Math.sqrt((inflow.get(id) ?? 0) / max); pos.set(id, { x: c * gapX, y, h }); y += h + 10; }
+    for (const id of ids) { const h = 40 + 52 * Math.sqrt((inflow.get(id) ?? 0) / max); pos.set(id, { x: c * gapX, y, h }); y += h + 10; }
     height = Math.max(height, y);
   }
   void H;
@@ -80,8 +83,9 @@ export default function MoneyFlow({ start, flows }: { start: string; flows: Flow
           const box = (
             <g transform={`translate(${p.x},${p.y})`} className={`item${selected === id ? " sel" : ""}`}>
               <rect width={colW} height={p.h} rx="2" />
-              <text x="8" y="15" className="nlabel">{(names.get(id) ?? id).slice(0, 28)}</text>
-              <text x="8" y="29" className="namt">{fmtMoney(inflow.get(id))}</text>
+              <title>{names.get(id) ?? id}</title>
+              <text x="8" y="16" className="nlabel">{clip(names.get(id) ?? id)}</text>
+              <text x="8" y="31" className="namt">{inflow.get(id) ? fmtMoney(inflow.get(id)) : "Amount not stated"}</text>
             </g>
           );
           if (id.startsWith("undisclosed:")) return <g key={id}>{box}</g>;

@@ -57,7 +57,6 @@ export default async function Topics() {
       <SectionNav items={topics.map((t) => ({ id: t.id, label: t.label }))} label="Stances" />
       <div className="home-main page">
         <h1>Stances</h1>
-        <p className="lede">Where people and organizations stand on notable topics, from their own quotes and the public letters they signed. Every quote was checked by a person against the statement.</p>
         {topics.map((t) => (
           <section key={t.id} id={t.id} className="topic">
             <h2>{t.positive}</h2>

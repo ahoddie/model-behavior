@@ -16,7 +16,7 @@ export default async function ActorSummary({ id }: { id: string }) {
         <h2>{node.name}</h2>
         <p className="actor-summary-kind">{kind}</p>
         {node.descriptor && <p className="actor-summary-desc">{node.descriptor} <Src url={node.source_url} /></p>}
-        <p className="panel-open"><Link href={`/node/${node.id}`}>Open the full profile →</Link></p>
+        <p className="panel-open"><Link href={`/node/${node.id}`}>Open the full profile</Link></p>
       </div>
     </section>
   );

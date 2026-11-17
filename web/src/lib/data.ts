@@ -215,7 +215,9 @@ export async function listTargets() {
       coalesce(sum(l.amount) FILTER (WHERE l.type='money'),0)::float8 AS money,
       (SELECT count(*)::int FROM nodes c WHERE c.type='lawmaker' AND c.external_ids->>'race'=n.id) AS candidates,
       (SELECT coalesce(sum(l2.amount),0)::float8 FROM links_shown l2 JOIN nodes c ON c.id=l2.to_id
-        WHERE l2.type='money' AND c.type='lawmaker' AND c.external_ids->>'race'=n.id) AS race_money
+        WHERE l2.type='money' AND c.type='lawmaker' AND c.external_ids->>'race'=n.id) AS race_money,
+      n.external_ids->>'race' AS race,
+      (SELECT coalesce(sum(l3.amount),0)::float8 FROM links_shown l3 WHERE l3.type='money' AND l3.to_id=n.id) AS shown_money
     FROM nodes n
     LEFT JOIN LATERAL (SELECT max(extract(year FROM coalesce(date_end, date_start)))::int AS y FROM links WHERE to_id=n.id OR from_id=n.id) ly ON true
     LEFT JOIN links l ON l.to_id=n.id WHERE n.type IN ('bill','race','rule','lawmaker','agency')
@@ -242,8 +244,8 @@ export async function moneyStarts() {
   "use cache";
   cached();
   return q<{ id: string; name: string; type: string; out: number }>(`
-    SELECT n.id, n.name, n.type, sum(l.amount)::float8 AS out FROM nodes n JOIN links_shown l ON l.from_id=n.id AND l.type='money' AND l.subtype <> 'lobbying'
-    GROUP BY n.id HAVING sum(l.amount) > 0 ORDER BY sum(l.amount) DESC`);
+    SELECT n.id, n.name, n.type, coalesce(sum(l.amount), 0)::float8 AS out FROM nodes n JOIN links_shown l ON l.from_id=n.id AND l.type='money' AND l.subtype <> 'lobbying'
+    GROUP BY n.id ORDER BY coalesce(sum(l.amount), 0) DESC, n.name`);
 }
 
 export { fmtMoney } from "./format";
