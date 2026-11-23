@@ -106,7 +106,7 @@ export async function upsertNode(n: any): Promise<boolean> {
 
 export function defaultCluster(type: string): string {
   return ({ bill: "bills", race: "races", rule: "rules", lawmaker: "lawmakers", agency: "government", lab: "ai-labs", investor: "other-investors",
-    person: "other-investors", think_tank: "pro-innovation-think-tanks", pac: "leading-the-future-network", nonprofit: "civil-society", funder: "safety-funders" } as Record<string, string>)[type] ?? "other";
+    person: "other-investors", think_tank: "pro-innovation-think-tanks", pac: "other-investors", nonprofit: "civil-society", funder: "safety-funders" } as Record<string, string>)[type] ?? "other";
 }
 
 export async function insertLink(l: any, origin = "research"): Promise<boolean> {
