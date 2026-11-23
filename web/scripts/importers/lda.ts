@@ -21,6 +21,11 @@ export async function run() {
     const billIndex = new Map<string, string>(); // "S2938" -> node id
     for (const b of bills) billIndex.set(String(b.external_ids.congress).toUpperCase().replace(/[^A-Z0-9]/g, "").replace(/^\d+/, ""), b.id);
 
+    // A filing whose client name exactly matches one tracked actor belongs to that actor only, so a shorter name
+    // ("AI Safety Fund", "Center for AI Safety") does not also claim "Center for AI Safety Action Fund" filings.
+    const exact = new Map<string, string>();
+    for (const a of actors) for (const n of [a.name, ...[a.external_ids?.lda_client ?? []].flat().map(String)]) exact.set(tokens(n).join(" "), a.id);
+
     for (const a of actors) {
       const names: string[] = [a.external_ids?.lda_client ?? []].flat().map(String);
       if (!names.length) names.push(a.name);
@@ -34,6 +39,8 @@ export async function run() {
           for (const f of page.results ?? []) {
             const client = tokens(f.client?.name ?? "");
             if (!want.every((t) => client.includes(t))) continue; // skip namesakes
+            const owner = exact.get(client.join(" "));
+            if (owner && owner !== a.id) continue; // filed by another tracked actor with a longer name
             const amount = f.income != null ? Number(f.income) : f.expenses != null ? Number(f.expenses) : null;
             const issues = (f.lobbying_activities ?? []).map((x: any) => x.general_issue_code).filter(Boolean);
             const desc = (f.lobbying_activities ?? []).map((x: any) => x.description).filter(Boolean).join(" | ");
