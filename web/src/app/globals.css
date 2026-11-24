@@ -841,6 +841,11 @@ img.mark { background: var(--logo-bg); }
 .pcard .pside a, .pcard .pside-more { position: relative; z-index: 1; }
 .pcard h3 { margin: 0; font-size: 19px; line-height: 1.25; }
 .pcard-note { margin: -4px 0 0; font-size: 14px; line-height: 1.4; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pcard-stage { margin: 0 0 -6px; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.pcard-stage::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; background: var(--rule); }
+.pcard-stage.stage-enacted::before { background: var(--carbon); }
+.pcard-stage.stage-vetoed::before, .pcard-stage.stage-failed::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }
+.pcard-stage.stage-passed_one_chamber::before, .pcard-stage.stage-passed_legislature::before { background: var(--mixed); }
 .pcard-none { margin: 0; font-size: 14px; color: var(--muted); }
 .pcard-quiet { background: transparent; }
 .pcard-foot { margin: auto 0 0; padding-top: var(--s2); border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); }

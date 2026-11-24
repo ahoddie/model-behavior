@@ -313,6 +313,18 @@ export async function getHome() {
 
 // Lands on: each target's latest stated position per actor, grouped into sides, so a row says who stood where.
 export type SideName = { id: string; name: string; type: string; logo_url: string | null };
+// Each bill node's lifecycle stage and place, from the public bill records (table bills, linked by node_id).
+// Read apart from listTargets so the page still loads on a database that has not had the bills migration.
+export async function billStages(): Promise<Record<string, { stage: string; jurisdiction: string }>> {
+  "use cache";
+  cached();
+  try {
+    const rows = await q<{ id: string; stage: string; jurisdiction: string }>(
+      `SELECT DISTINCT ON (node_id) node_id AS id, stage, jurisdiction FROM bills WHERE node_id IS NOT NULL ORDER BY node_id, coalesce(stage_date, status_date) DESC NULLS LAST`);
+    return Object.fromEntries(rows.map((r) => [r.id, { stage: r.stage, jurisdiction: r.jurisdiction }]));
+  } catch { return {}; }
+}
+
 export async function targetSides() {
   "use cache";
   cached();

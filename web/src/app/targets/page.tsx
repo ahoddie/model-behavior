@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "@/components/Link";
-import { listTargets, targetSides, type SideName } from "@/lib/data";
-import { fmtMoney, clusterName, landsRank, billPlace, STATE_NAMES } from "@/lib/format";
+import { listTargets, targetSides, billStages, type SideName } from "@/lib/data";
+import { fmtMoney, clusterName, landsRank, billPlace, STATE_NAMES, STAGE_LABEL } from "@/lib/format";
 import Select from "@/components/Select";
 import SectionNav from "@/components/SectionNav";
 import { Named } from "@/components/ProfileHead";
@@ -45,7 +45,7 @@ function Balance({ sd }: { sd: Sides }) {
 }
 
 type Sp = PageProps<"/targets">["searchParams"];
-const load = () => Promise.all([listTargets(), targetSides()]);
+const load = () => Promise.all([listTargets(), targetSides(), billStages()]);
 
 // Only the choice of tab and cycle waits for the URL. Awaited here, outside the boundary, the cached list is stored with the
 // prebuilt page; the same call inside the boundary is answered from that copy, so no tab runs a query.
@@ -64,12 +64,19 @@ export default async function Targets({ searchParams }: PageProps<"/targets">) {
 
 async function Listing({ sp: spP }: { sp: Sp }) {
   const sp = await spP;
-  const [ts, sides] = await load();
+  const [ts, sides, stages] = await load();
   const kind = (KINDS.find(([k]) => k === sp.kind) ?? KINDS[0]);
   const want = typeof sp.cycle === "string" ? sp.cycle : "";
   // Bills are grouped by where they sit: Congress first, then each state on its own, A to Z.
-  const placeOf = (t: any) => `b-${billPlace(t.id, t.name)}`;
-  const inKind = ts.filter((t) => kind[2](t.grp)).map((t) => (kind[0] === "bills" ? { ...t, grp: placeOf(t) } : t));
+  const placeOf = (t: any) => `b-${stages[t.id]?.jurisdiction ?? billPlace(t.id, t.name)}`;
+  // Bills can be narrowed to one stage; "none" keeps the bills with no public record matched yet.
+  const stageOf = (t: any) => stages[t.id]?.stage ?? "none";
+  const allBills = ts.filter((t) => t.grp.startsWith("b-"));
+  const stageCounts = new Map<string, number>();
+  for (const t of allBills) stageCounts.set(stageOf(t), (stageCounts.get(stageOf(t)) ?? 0) + 1);
+  const stageWant = kind[0] === "bills" && typeof sp.stage === "string" && stageCounts.has(sp.stage) ? sp.stage : "";
+  const inKind = ts.filter((t) => kind[2](t.grp)).map((t) => (kind[0] === "bills" ? { ...t, grp: placeOf(t) } : t))
+    .filter((t) => !stageWant || stageOf(t) === stageWant);
   const placeName = (g: string) => (g === "b-us" ? "Federal" : g === "b-other" ? "Other" : STATE_NAMES[g.slice(2)] ?? g.slice(2).toUpperCase());
   const billRank = (g: string) => (g === "b-us" ? "0" : g === "b-other" ? "2" : `1${placeName(g)}`);
   const cycles = [...new Set(ts.map((t) => cycleOf(t.grp)).filter(Boolean) as string[])].sort().reverse();
@@ -120,8 +127,19 @@ async function Listing({ sp: spP }: { sp: Sp }) {
         </form>
       )}
 
+      {kind[0] === "bills" && stageCounts.size > 1 && (
+        <form className="filters" action="/targets">
+          <input type="hidden" name="kind" value="bills" />
+          <Select label="Stage" name="stage" defaultValue={stageWant} submitOnChange
+            options={[{ value: "", label: `Every stage (${allBills.length})` },
+              ...[...Object.keys(STAGE_LABEL), "none"].filter((k) => stageCounts.has(k))
+                .map((k) => ({ value: k, label: `${STAGE_LABEL[k] ?? "Stage not on record"} (${stageCounts.get(k)})` }))]} />
+          <noscript><button type="submit">Show</button></noscript>
+        </form>
+      )}
+
       <div className="pol-body">
-        {groups.length > 1 && <SectionNav key={kind[0] + want} items={groups.map((g) => ({ id: g, label: groupName(g), count: kind[0] === "bills" ? rowsOf(g).length : undefined }))} label="Groups" />}
+        {groups.length > 1 && <SectionNav key={kind[0] + want + stageWant} items={groups.map((g) => ({ id: g, label: groupName(g), count: kind[0] === "bills" ? rowsOf(g).length : undefined }))} label="Groups" />}
         <div className="pol-main">
           {groups.map((g) => {
             const rows = rowsOf(g);
@@ -135,6 +153,7 @@ async function Listing({ sp: spP }: { sp: Sp }) {
                     const href = `/node/${t.id}`;
                     return (
                       <li key={t.id} className={`pcard${sd ? "" : " pcard-quiet"}`}>
+                        {stages[t.id] && <p className={`pcard-stage stage-${stages[t.id].stage}`}>{STAGE_LABEL[stages[t.id].stage] ?? stages[t.id].stage}</p>}
                         <h3><Link href={href}>{t.name}</Link></h3>
                         {t.descriptor && <p className="pcard-note">{t.descriptor}</p>}
                         {sd ? <>

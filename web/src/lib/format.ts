@@ -54,6 +54,12 @@ export const billPlace = (id: string, name = ""): string => {
   return m ?? "other";
 };
 
+// A bill's lifecycle stage, in the order a bill moves through them.
+export const STAGE_LABEL: Record<string, string> = {
+  proposed: "Proposed", introduced: "Introduced", in_committee: "In committee", passed_one_chamber: "Passed one chamber",
+  passed_legislature: "Passed the legislature", enacted: "Enacted", vetoed: "Vetoed", failed: "Failed",
+};
+
 export const TYPE_LABEL: Record<string, string> = { lab: "Lab", person: "Person", investor: "Investor", funder: "Funder", pac: "PAC", nonprofit: "Nonprofit",
   think_tank: "Think tank", bill: "Bill", race: "Race", rule: "Rule", lawmaker: "Candidate", agency: "Federal body" };
 
