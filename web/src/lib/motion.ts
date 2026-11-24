@@ -6,10 +6,13 @@
 //   message as an uncaught error. So when the page is not visible no transition is started at all: the update runs at once
 //   and a transition that has already settled is returned.
 // - Hidden, interrupted, or timed out mid-way: the browser rejects the transition's promises. Each gets a quiet handler,
-//   and a rejection for invalid state is passed on to the caller with the exact message React already ignores.
+//   and a rejection for invalid state or a timeout is passed on to the caller with the exact message React already
+//   ignores, so React treats it as a skipped transition instead of reporting it.
 // - Slow renders: while the update runs the screen shows a frozen picture of the old page, and React's update waits for
 //   the navigation to finish. The update is capped at 700 ms; after that the transition goes ahead with the page as it is,
-//   and the rest of the render lands normally a moment later.
+//   and the rest of the render lands normally a moment later. The cap is a timer, so it cannot fire while a long render
+//   blocks the main thread (common in dev); if that outlasts the browser's own limit (about 4 s), the timeout is passed
+//   on as a skip, as above.
 const lines = [
   "(function(){",
   "var d=document;if(!d.startViewTransition||d.__quietVT)return;d.__quietVT=1;",
@@ -18,7 +21,7 @@ const lines = [
   "function none(){}",
   "function cap(u){return function(){return Promise.race([Promise.resolve(u()),new Promise(function(r){setTimeout(r,700)})])}}",
   // Rejections React should treat as a plain skip (see customizeViewTransitionError in react-dom).
-  "function calm(p){return q(p.catch(function(e){if(e&&e.name==='InvalidStateError')throw new DOMException('Transition was aborted because of invalid state','InvalidStateError');throw e}))}",
+  "function calm(p){return q(p.catch(function(e){if(e&&(e.name==='InvalidStateError'||e.name==='TimeoutError'))throw new DOMException('Transition was aborted because of invalid state','InvalidStateError');throw e}))}",
   "d.startViewTransition=function(a){",
   "var o=typeof a==='function'?{update:a}:a,u=o&&o.update;",
   // Not visible: run the update now and hand back a transition that is already over.
