@@ -1273,3 +1273,43 @@ h1.bill-num { font-family: var(--f-display); font-stretch: 62%; font-weight: 900
   .srcs { columns: 1; }
 }
 @media (prefers-reduced-motion: reduce) { .track .fill, .st .pip { animation: none; } .back .arr, .item-toc a { transition: none; } }
+/* Polish: hovers, presses, and panels (uses the Motion tokens near the top of this file). */
+a { transition: color var(--dur-1); }
+:where(button, .iconbtn, .sel-btn, .chip, .src) { transition: background-color var(--dur-1), border-color var(--dur-1), color var(--dur-1), transform var(--dur-1) var(--ease-out); }
+:where(button, .iconbtn):not(.rc-hit, .linkish, .close):active { transform: translateY(1px); }
+
+/* The masthead and tab dot: it grows in under the page you are on, and peeks in under the one you point at. */
+.masthead nav a::after, .tabs a::after {
+  content: ""; position: absolute; left: 50%; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--carbon);
+  transform: scale(0); opacity: 0; transition: transform var(--dur-2) var(--ease-spring), opacity var(--dur-2);
+}
+.masthead nav a::after { bottom: -6px; }
+.tabs a::after { bottom: 3px; }
+.masthead nav a:hover::after, .tabs a:hover::after { transform: scale(.6); opacity: .45; }
+.masthead nav a[aria-current="page"]::after, .tabs a[aria-current="page"]::after { transform: scale(1); opacity: 1; }
+
+/* Bill tiles and election panels answer the pointer: a small lift and the newsprint shadow of the homepage boxes. */
+.pcard, .rpanel, .prec { transition: border-color var(--dur-1), transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out); }
+.pcard:hover, .rpanel:hover, .prec:hover { transform: translateY(-2px); box-shadow: 0 2px 0 var(--ink); }
+.pcard:active, .rpanel:active, .prec:active { transform: translateY(0); box-shadow: 0 0 0 var(--ink); transition-duration: 60ms; }
+/* The "On the map" dot gives one small pulse when its tile is pointed at. */
+.pcard:hover .pcard-onmap::before { animation: mo-pulse .6s var(--ease-out); }
+@keyframes mo-pulse { 40% { transform: scale(1.7); } }
+
+/* The map's node panel slides in from the side; its facts and connections fade in as they arrive. */
+.nodepanel { animation: mo-slide-l var(--dur-3) var(--ease-out) both; }
+.nodepanel :is(.keyfacts, .facts, .conns li) { animation: mo-fade var(--dur-3) var(--ease-out) both; }
+.nodepanel .close { transition: transform var(--dur-2) var(--ease-spring), color var(--dur-1); }
+.nodepanel .close:hover { transform: rotate(90deg); }
+
+/* Theme switch: the new theme spreads out in a circle from the button (ThemeToggle sets --vt-x, --vt-y and .theme-vt). */
+html.theme-vt::view-transition-old(root) { animation: none; }
+html.theme-vt::view-transition-new(root) { animation: mo-wipe 480ms var(--ease-in-out); }
+@keyframes mo-wipe { from { clip-path: circle(0 at var(--vt-x, 100%) var(--vt-y, 0)); } to { clip-path: circle(150vmax at var(--vt-x, 100%) var(--vt-y, 0)); } }
+.themebtn svg { transition: transform var(--dur-3) var(--ease-spring); }
+.themebtn:hover .i-sun { transform: rotate(45deg); }
+.themebtn:hover .i-moon { transform: rotate(-20deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pcard:hover, .rpanel:hover, .prec:hover, .nodepanel .close:hover, .themebtn:hover svg { transform: none; }
+}

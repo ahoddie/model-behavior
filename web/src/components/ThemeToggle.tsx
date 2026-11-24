@@ -1,7 +1,7 @@
 "use client";
 // Light and dark switch. The choice is saved in the browser; with no saved choice the site follows the device setting.
 // THEME_SCRIPT runs before the page paints (see layout.tsx) so a dark page never flashes light first.
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 
 const KEY = "theme";
 export const THEME_SCRIPT = `try{var t=localStorage.getItem("${KEY}");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t}catch(e){}`;
@@ -22,11 +22,19 @@ export default function ThemeToggle() {
     return () => mq.removeEventListener("change", onSystem);
   }, []);
 
-  const flip = () => {
+  // Where the browser can, the new theme spreads out in a circle from this button (the "theme-vt" rules in globals.css).
+  const flip = (e: MouseEvent<HTMLButtonElement>) => {
     const next = dark ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
+    const root = document.documentElement;
+    const apply = () => { root.dataset.theme = next; };
     try { localStorage.setItem(KEY, next); } catch {}
     setDark(!dark);
+    if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) return apply();
+    const r = e.currentTarget.getBoundingClientRect();
+    root.style.setProperty("--vt-x", `${r.left + r.width / 2}px`);
+    root.style.setProperty("--vt-y", `${r.top + r.height / 2}px`);
+    root.classList.add("theme-vt");
+    document.startViewTransition(apply).finished.finally(() => root.classList.remove("theme-vt"));
   };
   const label = dark ? "Switch to light mode" : "Switch to dark mode";
 
