@@ -17,12 +17,12 @@ const CLUSTER_NAMES: Record<string, string> = {
   "national-security-think-tanks": "National-security think tanks", "civil-society": "Civil society", "other-investors": "Other investors & leaders",
   "innovation-council-network": "Innovation Council network", "civil-society-funders": "Civil-society funders", "labor-creatives": "Labor & creatives",
   "kids-family-safety": "Kids & family safety", "populist-right": "Populist right", "public-voices": "Public voices", "trade-associations": "Trade associations",
-  government: "Federal bodies lobbied", bills: "Bills", races: "Races", rules: "Rules & executive actions", lawmakers: "Candidates & lawmakers",
+  government: "Agencies and offices engaged", bills: "Bills", races: "Races", rules: "Rules & executive actions", lawmakers: "Candidates & lawmakers",
 };
 const LANDS_NAMES: Record<string, string> = {
   "b-federal": "Federal bills", "b-california": "California bills", "b-state": "Other state bills",
-  "r-orders": "Executive orders", "r-other": "Other federal actions", "g-congress": "Congress lobbied",
-  "g-whitehouse": "White House lobbied", "g-agencies": "Agencies lobbied", administration: "Administration officials & funds",
+  "r-orders": "Executive orders", "r-other": "Other federal actions", "g-congress": "Congress",
+  "g-whitehouse": "White House", "g-agencies": "Federal agencies", administration: "Administration officials & funds",
 };
 export const clusterName = (c: string) => {
   const e = c.match(/^e-(\d{4}|undated)-(races|candidates)$/);

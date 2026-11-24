@@ -11,7 +11,7 @@ const KINDS = [
   ["bills", "Bills", (g: string) => g.startsWith("b-")],
   ["rules", "Executive orders and rules", (g: string) => g.startsWith("r-")],
   ["elections", "Elections", (g: string) => g.startsWith("e-")],
-  ["lobbied", "Who was lobbied", (g: string) => g.startsWith("g-") || g === "administration"],
+  ["lobbied", "Agencies and offices engaged", (g: string) => g.startsWith("g-") || g === "administration"],
 ] as const;
 const cycleOf = (g: string) => g.match(/^e-(\d{4})-/)?.[1];
 type Side = { names: SideName[]; n: number };
