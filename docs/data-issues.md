@@ -98,3 +98,8 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - jensen-huang: descriptor "Nvidia founder and CEO" is stale (8-K: resigned Nov 12, 2026).
 - Duplicate agency nodes: ftc / agency-federal-trade-commission-ftc; national-security-council / agency-natl-security-council-nsc; commerce-department / agency-commerce-dept-of-doc.
 - ron-conway: a Verge statement summary says he "regrets funding pro-AI efforts and now opposes federal AI regulation"; looks unreliable, check against the article.
+
+## people-01
+- marc-andreessen: money rows show $11.9M to Fairshake; FEC Schedule A (C00835959) lists five personal gifts totaling $45.4M (2023–2025).
+- joe-lonsdale: Leading the Future row has no amount, and the cited article gives none for him; the $250K it reports was from Lonsdale Enterprises to American Mission.
+- daniel-ziegler: node name reversed ("Ziegler Daniel").
