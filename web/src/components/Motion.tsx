@@ -9,7 +9,25 @@ const TARGETS = "[data-reveal], .home-sec, .rc, .tc, .pbal-bar, .pmeter, .race-t
 // React marks each element it owns with a "__reactFiber$…" key once it has hydrated it.
 const hydrated = (el: Element) => Object.keys(el).some((k) => k.startsWith("__reactFiber$"));
 
+// View transitions (page changes, and the theme switch) are skipped by the browser when the tab is hidden or another one
+// interrupts them. That rejects the transition's "ready" promise, which nobody else listens to, so it surfaced as a console
+// error. Every transition gets a quiet handler here; whoever started it still sees the rejection on its own.
+function quietTransitions() {
+  const doc = document as Document & { __quietVT?: boolean };
+  if (!doc.startViewTransition || doc.__quietVT) return;
+  doc.__quietVT = true;
+  const start = doc.startViewTransition.bind(doc);
+  doc.startViewTransition = ((arg?: Parameters<typeof start>[0]) => {
+    const t = start(arg);
+    t.ready.catch(() => {});
+    t.finished.catch(() => {});
+    t.updateCallbackDone.catch(() => {});
+    return t;
+  }) as typeof doc.startViewTransition;
+}
+
 export default function Motion() {
+  useEffect(quietTransitions, []);
   useEffect(() => {
     if (matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) return;
     const root = document.documentElement;

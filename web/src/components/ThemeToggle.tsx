@@ -29,12 +29,13 @@ export default function ThemeToggle() {
     const apply = () => { root.dataset.theme = next; };
     try { localStorage.setItem(KEY, next); } catch {}
     setDark(!dark);
-    if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) return apply();
+    if (!document.startViewTransition || document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return apply();
     const r = e.currentTarget.getBoundingClientRect();
     root.style.setProperty("--vt-x", `${r.left + r.width / 2}px`);
     root.style.setProperty("--vt-y", `${r.top + r.height / 2}px`);
     root.classList.add("theme-vt");
-    document.startViewTransition(apply).finished.finally(() => root.classList.remove("theme-vt"));
+    const t = document.startViewTransition(apply);
+    t.finished.catch(() => {}).finally(() => root.classList.remove("theme-vt"));
   };
   const label = dark ? "Switch to light mode" : "Switch to dark mode";
 
