@@ -383,7 +383,7 @@ blockquote .src-wrap, .lede .src-wrap { font-size: 1rem; }
 /* Every page shares the Nodes page's width, so titles and subtitles start at the same place. Running text keeps a readable line. */
 .page { max-width: 1240px; }
 .page > p:not(.lede) { max-width: 72ch; }
-.lede { font-size: 20px; line-height: 1.5; max-width: 40ch; margin: 12px 0 0; }
+.lede { font-size: 20px; line-height: 1.5; max-width: none; margin: 12px 0 0; }
 .profile-head { gap: var(--s5); margin-bottom: var(--s5); }
 .profile-meta { font-size: 16px; color: var(--muted); margin: 8px 0 0; }
 .profile-meta a { color: var(--carbon); }
