@@ -909,3 +909,8 @@ img.mark { background: var(--logo-bg); }
 
 /* About: lines kept to a readable length. */
 .about p { max-width: 66ch; }
+
+/* Detail pages: "Back" sits in the space above the title, so the title stays where it is on every other page. */
+.page.has-back { position: relative; }
+.backlink { position: absolute; top: 8px; left: var(--s5); font-family: var(--f-body); font-size: 13px; color: var(--muted); text-decoration: none; }
+.backlink:hover, .backlink:focus-visible { color: var(--ink); text-decoration: underline; }

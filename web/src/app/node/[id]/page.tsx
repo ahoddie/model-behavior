@@ -11,6 +11,7 @@ import CoverageLine from "@/components/CoverageLine";
 import { fmtMoney, fmtDate, TYPE_LABEL, clusterName } from "@/lib/format";
 import TargetView from "@/components/TargetView";
 import ProfileHead from "@/components/ProfileHead";
+import BackLink from "@/components/BackLink";
 import Src from "@/components/Src";
 import KnownRecord from "@/components/KnownRecord";
 import ProfileTabs, { TabLink } from "@/components/ProfileTabs";
@@ -57,7 +58,8 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
   const noRecords = !p.keyFacts.length && !p.facts.length && !p.feed.length && !p.filings.length && !p.links.length && !lobbyIssues.length && !flags.length;
 
   return (
-    <div className="page">
+    <div className="page has-back">
+      <BackLink fallback="/map" />
       <ProfileHead node={p.node} keyFacts={p.keyFacts} logoSource={p.node.logo_source_url} citePath={`/node/${id}`}
         kicker={<>{TYPE_LABEL[p.node.type]} · <Link href={`/map?focus=${id}`}>{clusterName(p.node.cluster)}</Link></>} />
       <p className="mono"><Link href={`/map?focus=${id}`}>Trace on the map</Link></p>

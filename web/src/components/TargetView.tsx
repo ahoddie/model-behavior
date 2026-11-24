@@ -4,6 +4,7 @@ import ProfileHead from "./ProfileHead";
 import Src from "./Src";
 import CoverageLine from "./CoverageLine";
 import RaceView from "./RaceView";
+import BackLink from "./BackLink";
 import type { Coverage } from "@/lib/data";
 
 const SIDES = [["support", "For"], ["support_if_amended", "For, if amended"], ["oppose", "Against"], ["", "Other pressure"]] as const;
@@ -13,7 +14,8 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
   const sideOf = (s: string | null) => (s === "support" || s === "oppose" || s === "support_if_amended" ? s : "");
   const isRace = n.type === "race";
   return (
-    <div className="page">
+    <div className="page has-back">
+      <BackLink fallback="/targets" />
       <ProfileHead node={n} keyFacts={t.keyFacts} logoSource={n.logo_source_url} citePath={`/node/${n.id}`}
         kicker={<>{TYPE_LABEL[n.type]}{n.external_ids?.status ? <> · {n.external_ids.status} {n.external_ids.status_date && `(${fmtDate(n.external_ids.status_date)})`}</> : null}</>} />
       {isRace && <RaceView t={t} />}
