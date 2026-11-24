@@ -71,7 +71,7 @@ async function neighborPeople(id: string) {
 // profile. A surname two of those people share is skipped.
 function pageLinker(all: { id: string; name: string }[], people: { id: string; name: string }[], self: string) {
   const link = buildLinker(all);
-  const surnames = buildLinker(people.map((p) => ({ id: p.id, name: p.name.replace(/\s*\([^)]*\)\s*$/, "").trim().split(/\s+/).pop() ?? "" })));
+  const surnames = buildLinker(people.map((p) => ({ id: p.id, type: "person", name: p.name.replace(/\s*\([^)]*\)\s*$/, "").trim().split(/\s+/).pop() ?? "" })));
   return (text: string): Part[] => link(text, self).flatMap((p) => (p.id ? [p] : surnames(p.t, self)));
 }
 
@@ -79,7 +79,7 @@ function pageLinker(all: { id: string; name: string }[], people: { id: string; n
 async function nodeNames() {
   "use cache";
   cached();
-  return q<{ id: string; name: string }>(`SELECT id, name FROM nodes`);
+  return q<{ id: string; name: string; type: string }>(`SELECT id, name, type FROM nodes`);
 }
 
 // Type and logo for a set of nodes, so a list can show each one's mark (logo, or the initials box).
