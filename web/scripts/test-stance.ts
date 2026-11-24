@@ -34,3 +34,7 @@ test("a quote filed under a person and their organization counts once, under the
   assert.equal(out.find((r) => r.node_id === "anthropic")?.speaker, "Dario Amodei");
   assert.ok(!out.some((r) => r.node_id === "amodei" && r.text.startsWith("Second") && r.kind === "quote"));
 });
+test("a newest reading that agrees only in part makes the actor mixed", () => {
+  assert.equal(placeActor([{ v: 0, date: "2025-06-01", mixed: true }, { v: 1, date: "2024-01-01" }]).side, "mixed");
+  assert.equal(placeActor([{ v: 0, date: "2023-01-01", mixed: true }, { v: -1, date: "2025-01-01" }]).side, "disagree");
+});

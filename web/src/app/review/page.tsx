@@ -2,11 +2,12 @@ import { connection } from "next/server";
 import { headers } from "next/headers";
 import Link from "@/components/Link";
 import { q } from "@/lib/db";
-import { decide, bulk, runImporter, decideQueued, decideStance } from "./actions";
+import { decide, bulk, runImporter, decideQueued, decideStance, decideFinding } from "./actions";
 import { getStanceQueue } from "@/lib/data";
 import Select from "@/components/Select";
 
 const READING = [{ value: "2", label: "agrees strongly" }, { value: "1", label: "agrees" }, { value: "0", label: "no clear side" }, { value: "-1", label: "disagrees" }, { value: "-2", label: "disagrees strongly" }];
+const FINDING_READING = [{ value: "2", label: "agrees strongly" }, { value: "1", label: "agrees" }, { value: "mixed", label: "agrees with part of it" }, { value: "-1", label: "disagrees" }, { value: "-2", label: "disagrees strongly" }];
 const IMPORTERS = ["lda", "fec", "propublica", "regulations", "congress", "openstates", "state-lobbying", "news", "social", "blogs", "transcripts"];
 
 export default async function Review(props: PageProps<"/review">) {
@@ -24,6 +25,10 @@ export default async function Review(props: PageProps<"/review">) {
     ORDER BY significance DESC, confidence DESC NULLS LAST, id LIMIT 100`, [ws]);
   const wsCounts = await q<{ source_workstream: string; n: number }>(`SELECT source_workstream, count(*)::int n FROM review_queue WHERE status='pending' GROUP BY 1 ORDER BY 2 DESC`);
   const readings = await getStanceQueue();
+  // Positions the pipeline found but could not show on its own: low confidence, or the quote was not found at its link.
+  const findings = await q<any>(`SELECT s.*, t.positive FROM stance_findings s JOIN topics t ON t.id=s.topic_id WHERE s.status='pending'
+    ORDER BY s.verified DESC, s.confidence DESC, t.sort, s.speaker_name LIMIT 150`);
+  const findingCount = (await q<{ n: number }>(`SELECT count(*)::int n FROM stance_findings WHERE status='pending'`))[0]?.n ?? 0;
   const runs = await q<any>(`SELECT importer, started_at::text, finished_at, ok, added FROM import_runs ORDER BY id DESC LIMIT 12`);
   return (
     <div className="page">
@@ -77,6 +82,26 @@ export default async function Review(props: PageProps<"/review">) {
             <p className="note">Model&apos;s reading: {READING.find((o) => o.value === String(r.v))?.label ?? r.v}.{r.reason ? ` ${r.reason}` : ""}</p>
             <div className="filters" style={{ marginTop: 8 }}>
               <Select label="Reading" name="answer" defaultValue={String(r.v)} options={READING} />
+              <label>Note <input type="text" name="note" style={{ width: 220 }} /></label>
+              <button name="verdict" value="confirm">Confirm</button>
+              <button name="verdict" value="reject">Reject</button>
+            </div>
+          </form>
+        ))}
+      </section>}
+
+      {findings.length > 0 && <section id="findings" style={{ marginBottom: "var(--s5)" }}>
+        <h2>Positions found ({findingCount})</h2>
+        <p className="note">The positions pipeline found these quotes but did not show them: either its confidence was below the bar, or it could not find the quote word for word at the link. Open the source, check the quote is there and is the speaker&apos;s own words, then confirm with the right reading or reject.</p>
+        {findings.map((r) => (
+          <form key={r.id} action={decideFinding} className="panel review-item">
+            <input type="hidden" name="id" value={r.id} />
+            <p className="mono muted">{r.node_id ? <Link href={`/node/${r.node_id}`}>{r.speaker_name}</Link> : r.speaker_name}{r.speaker_role ? ` (${r.speaker_role})` : ""} · {r.date ?? "undated"} · {r.source_kind ?? "source"} · <a href={r.url} target="_blank" rel="noreferrer">Open the source</a></p>
+            <p><strong>Statement:</strong> {r.positive}</p>
+            <p>“{r.quote}”</p>
+            <p className="note">Model&apos;s reading: {r.side}{r.implied ? " (implied)" : ""}, confidence {Number(r.confidence).toFixed(2)}. {r.reason} Quote check: {r.verify_note}.</p>
+            <div className="filters" style={{ marginTop: 8 }}>
+              <Select label="Reading" name="reading" defaultValue={r.side === "mixed" ? "mixed" : String(r.answer)} options={FINDING_READING} />
               <label>Note <input type="text" name="note" style={{ width: 220 }} /></label>
               <button name="verdict" value="confirm">Confirm</button>
               <button name="verdict" value="reject">Reject</button>

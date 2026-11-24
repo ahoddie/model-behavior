@@ -1,6 +1,6 @@
 // How the Statements page places one actor on one topic, and how it keeps one quote from counting twice. Pure functions: no database.
 export type Side = "agree" | "disagree" | "mixed" | "neutral";
-type Dated = { v: number; date: string | null };
+type Dated = { v: number; date: string | null; mixed?: boolean };
 
 // Dates come as "2024", "2024-07" or "2024-07-05". Two dates can be ordered only when neither is a prefix of the other:
 // "2024" against "2024-07" could fall either side.
@@ -10,12 +10,14 @@ export const newestFirst = <T extends Dated>(items: T[]) => [...items].sort((a, 
 // The newest statement that takes a side decides. If an older statement took the other side, the actor still goes with the
 // newest and `changed` says so. If the two sides cannot be put in order (same date, or one undated), the actor is "mixed".
 // An actor whose statements all take no side is "neutral".
+// A reading marked `mixed` (the speaker backs part and rejects part) counts as taking a side: if it is the newest, the actor is mixed.
 export function placeActor(items: Dated[]): { side: Side; changed: boolean } {
-  const sided = newestFirst(items.filter((i) => i.v !== 0));
+  const sided = newestFirst(items.filter((i) => i.v !== 0 || i.mixed));
   if (!sided.length) return { side: "neutral", changed: false };
   const latest = sided[0];
+  if (latest.mixed) return { side: "mixed", changed: false };
   const side: Side = latest.v > 0 ? "agree" : "disagree";
-  const other = sided.find((i) => Math.sign(i.v) !== Math.sign(latest.v));
+  const other = sided.find((i) => !i.mixed && Math.sign(i.v) !== Math.sign(latest.v));
   if (!other) return { side, changed: false };
   return after(latest.date, other.date) ? { side, changed: true } : { side: "mixed", changed: false };
 }

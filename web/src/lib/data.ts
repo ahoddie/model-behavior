@@ -572,11 +572,13 @@ export async function getMergedInto(id: string): Promise<string | null> {
 // question, statement_labels for topics that reuse an issue (topics.issue_id). A proposal reaches the page when a reviewer
 // confirms it on /review, with the reviewer's answer. A signature is the signer's own public act and needs no check.
 // Placement rules live in lib/stance.ts: the newest sided statement decides, and a quote shared by a person and their organization counts once.
-export type TopicEvidence = { kind: "quote" | "letter"; v: number; text: string; url: string; archive_url: string | null; date: string | null; doc?: string; speaker?: string };
-export type TopicActor = { id: string; name: string; type: string; logo_url: string | null; changed: boolean; items: TopicEvidence[] };
+export type TopicEvidence = { kind: "quote" | "letter"; v: number; text: string; url: string; archive_url: string | null; date: string | null; doc?: string; speaker?: string;
+  mixed?: boolean; machine?: boolean; implied?: boolean; confidence?: number; source_kind?: string | null };
+export type TopicActor = { id: string; name: string; type: string; logo_url: string | null; changed: boolean; items: TopicEvidence[]; onSite: boolean; role?: string | null };
 export type TopicRow = { id: string; issue_id: string | null; label: string; description: string; positive: string;
   agree: TopicActor[]; mixed: TopicActor[]; neutral: TopicActor[]; disagree: TopicActor[];
-  checked: number; confirmed: number; letters: string[] };  // quotes a reviewer has read on this topic, how many were confirmed, and the letters counted
+  checked: number; confirmed: number; letters: string[];  // quotes a reviewer has read on this topic, how many were confirmed, and the letters counted
+  found: number; shown: number; machine: number };          // positions the pipeline found, how many show, and how many of those no person has checked
 
 // The model's newest reading per quote and topic, so a second prompt version replaces the first instead of counting twice.
 const STANCE_READINGS = `(
@@ -602,28 +604,44 @@ export async function getTopics(): Promise<TopicRow[]> {
   cached();
   const topics = await q<any>(`SELECT id, label, description, positive, issue_id FROM topics ORDER BY sort`);
   const rows = await q<any>(`
-    SELECT c.topic_id AS topic, fi.node_id, c.answer::int AS v, 'quote' AS kind, fi.excerpt AS text, fi.url, fi.archive_url, pdate(fi.date, fi.date_prec)::text AS date, NULL AS doc
+    SELECT c.topic_id AS topic, fi.node_id, c.answer::int AS v, 'quote' AS kind, fi.excerpt AS text, fi.url, fi.archive_url, pdate(fi.date, fi.date_prec)::text AS date, NULL AS doc,
+           NULL AS speaker_name, NULL AS role, false AS mixed, false AS machine, NULL::boolean AS implied, NULL::real AS confidence, NULL AS source_kind
       FROM stance_checks c JOIN feed_items fi ON fi.id=c.feed_id
      WHERE c.verdict='confirmed' AND fi.status='approved' AND fi.excerpt IS NOT NULL
     UNION ALL
-    SELECT p.topic_id, p.node_id, p.answer::int, 'letter', p.quote, p.source_url, p.archive_url, p.date::text, p.document_name
-      FROM topic_positions p WHERE p.answer IS NOT NULL`);
-  const nodes = new Map<string, any>((await q<any>(`SELECT id, name, type, logo_url FROM nodes WHERE id = ANY($1)`, [[...new Set(rows.map((r: any) => r.node_id))]])).map((n: any) => [n.id, n]));
+    SELECT p.topic_id, p.node_id, p.answer::int, 'letter', p.quote, p.source_url, p.archive_url, p.date::text, p.document_name, NULL, NULL, false, false, NULL, NULL, NULL
+      FROM topic_positions p WHERE p.answer IS NOT NULL
+    UNION ALL
+    SELECT s.topic_id, s.node_id, coalesce(s.review_answer, s.answer)::int, 'quote', s.quote, s.url, NULL, s.date, NULL, s.speaker_name, s.speaker_role,
+           coalesce(s.review_side, s.side)='mixed', s.status='auto', s.implied, s.confidence, s.source_kind
+      FROM stance_findings s WHERE s.status IN ('auto','confirmed')
+       AND NOT EXISTS (SELECT 1 FROM stance_checks c WHERE c.feed_id=s.feed_id AND c.topic_id=s.topic_id)`);
+  const nodes = new Map<string, any>((await q<any>(`SELECT id, name, type, logo_url, descriptor FROM nodes WHERE id = ANY($1)`, [[...new Set(rows.map((r: any) => r.node_id).filter(Boolean))]])).map((n: any) => [n.id, n]));
+  // A speaker who is not on the site yet is grouped by name and shown without a profile link.
+  const keyOf = (r: any) => r.node_id && nodes.has(r.node_id) ? r.node_id : r.speaker_name ? `ext:${String(r.speaker_name).toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : null;
+  const who = new Map<string, { name: string; type: string; logo_url: string | null; onSite: boolean; role: string | null }>(
+    [...nodes.values()].map((n: any) => [n.id, { name: n.name, type: n.type, logo_url: n.logo_url, onSite: true, role: n.descriptor }]));
+  for (const r of rows) { const k = keyOf(r); if (k?.startsWith("ext:") && !who.has(k)) who.set(k, { name: r.speaker_name, type: "other", logo_url: null, onSite: false, role: r.role }); }
+  for (const r of rows) r.node_id = keyOf(r);
   const checks = new Map((await q<any>(`SELECT topic_id, count(*)::int AS checked, count(*) FILTER (WHERE verdict='confirmed')::int AS confirmed FROM stance_checks GROUP BY 1`)).map((c: any) => [c.topic_id, c]));
+  const found = new Map((await q<any>(`SELECT topic_id, count(*)::int AS found, count(*) FILTER (WHERE status IN ('auto','confirmed'))::int AS shown, count(*) FILTER (WHERE status='auto')::int AS machine FROM stance_findings GROUP BY 1`)).map((c: any) => [c.topic_id, c]));
   return topics.map((t: any) => {
-    const mine = countSharedQuotesOnce(rows.filter((r: any) => r.topic === t.id && nodes.has(r.node_id)), nodes);
+    const mine = countSharedQuotesOnce(rows.filter((r: any) => r.topic === t.id && r.node_id && who.has(r.node_id)), who);
     const by = new Map<string, TopicEvidence[]>();
-    for (const r of mine) by.set(r.node_id, [...(by.get(r.node_id) ?? []), { kind: r.kind, v: r.v, text: r.text, url: r.url, archive_url: r.archive_url, date: r.date, doc: r.doc ?? undefined, speaker: r.speaker }]);
+    for (const r of mine) by.set(r.node_id, [...(by.get(r.node_id) ?? []), { kind: r.kind, v: r.v, text: r.text, url: r.url, archive_url: r.archive_url, date: r.date, doc: r.doc ?? undefined, speaker: r.speaker,
+      mixed: r.mixed || undefined, machine: r.machine || undefined, implied: r.implied ?? undefined, confidence: r.confidence ?? undefined, source_kind: r.source_kind }]);
     const placed = [...by.entries()].map(([id, items]) => {
-      const n = nodes.get(id);
+      const n = who.get(id)!;
       const { side, changed } = placeActor(items);
-      return { side, actor: { id, name: n.name, type: n.type, logo_url: n.logo_url, changed, items: newestFirst(items) } as TopicActor };
-    }).sort((a, b) => b.actor.items.length - a.actor.items.length || a.actor.name.localeCompare(b.actor.name));
+      return { side, actor: { id, name: n.name, type: n.type, logo_url: n.logo_url, changed, items: newestFirst(items), onSite: n.onSite, role: n.role } as TopicActor };
+    }).sort((a, b) => Number(b.actor.onSite) - Number(a.actor.onSite) || b.actor.items.length - a.actor.items.length || a.actor.name.localeCompare(b.actor.name));
     const on = (s: Side) => placed.filter((p) => p.side === s).map((p) => p.actor);
+    const fd = found.get(t.id);
     return { id: t.id, issue_id: t.issue_id, label: t.label, description: t.description, positive: t.positive,
       agree: on("agree"), mixed: on("mixed"), neutral: on("neutral"), disagree: on("disagree"),
       checked: checks.get(t.id)?.checked ?? 0, confirmed: checks.get(t.id)?.confirmed ?? 0,
-      letters: [...new Set(mine.filter((r: any) => r.kind === "letter").map((r: any) => r.doc as string))].sort() };
+      letters: [...new Set(mine.filter((r: any) => r.kind === "letter").map((r: any) => r.doc as string))].sort(),
+      found: fd?.found ?? 0, shown: fd?.shown ?? 0, machine: fd?.machine ?? 0 };
   });
 }
 

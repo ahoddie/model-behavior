@@ -111,3 +111,21 @@ export async function decideStance(form: FormData) {
   revalidatePath("/review");
   await cleared();
 }
+
+// A reviewer's check of one position the positions pipeline found (stance_findings). The reading may be corrected.
+// "mixed" is stored as answer 0 with side mixed. Re-running the pipeline keeps the decision.
+export async function decideFinding(form: FormData) {
+  await localOnly();
+  const id = Number(form.get("id"));
+  const confirmed = form.get("verdict") === "confirm";
+  const reading = String(form.get("reading") ?? "");
+  const note = String(form.get("note") ?? "").trim() || null;
+  if (!id) throw new Error("Missing finding.");
+  const side = reading === "mixed" ? "mixed" : Number(reading) > 0 ? "agree" : Number(reading) < 0 ? "disagree" : null;
+  if (confirmed && !side) throw new Error("Pick agree, disagree, or mixed before confirming.");
+  const answer = reading === "mixed" ? 0 : Number(reading);
+  await withActor((c) => c.query(`UPDATE stance_findings SET status=$2, review_side=$3, review_answer=$4, review_note=$5, reviewed_at=now() WHERE id=$1`,
+    [id, confirmed ? "confirmed" : "rejected", confirmed ? side : null, confirmed ? answer : null, note]));
+  revalidatePath("/review");
+  await cleared();
+}
