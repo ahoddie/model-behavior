@@ -149,3 +149,12 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - jeremy-liew: descriptor "Venture Capital Consultant, Self Employed"; Wikipedia says he's still a Lightspeed partner, though his Lightspeed fact is labeled "Previously".
 - joel-kaplan: Meta's page says Chief Global Affairs Officer; Fortune says president of global affairs.
 - More duplicate agency nodes: white-house / agency-executive-office-of-the-president-eop.
+
+## Bills (public bill records)
+- us-ndaa-ai-preemption-2025 / us-ndaa-fy2026-ai-preemption: two nodes for the same FY2026 NDAA preemption push; both carry stage failed from data/bills/curated-stages.json.
+- AI relevance for federal and California bills is matched on the title (and, for California, NCSL's AI list), so bills with generic titles, such as omnibus or appropriations bills carrying AI provisions, are only included when they're on the map. CRS legislative subjects in GovInfo matched no bills.
+- State bills other than California's come from NCSL's AI database, which starts in 2025. State bills from 2023–24 are only present when they're on the map (for example, the Colorado AI Act, SB24-205, has a research stage).
+- NCSL counts some loosely related bills as AI legislation (budget bills with an AI line, STEM councils); they're kept, with ai_match 'ncsl'.
+- State bill links (source_url) point to the public State Net bill text NCSL links, not to the legislature's own page; map bills keep their official link on the node.
+- ny-a3283-2025 (gene synthesis screening) isn't on NCSL's AI list, so it has no bill record or stage.
+- Thin states (under 15 AI bills for 2025–26): Wyoming 7; Alaska, DC, and South Dakota 9; Nebraska and New Hampshire 13. They look like small legislatures rather than gaps.
