@@ -8,7 +8,7 @@ export default async function MapPage() {
   return (
     <>
       <div className="home-head">
-        <h1>Who pushes AI policy?</h1>
+        <h1>Who shapes AI policy?</h1>
         <p>The Valley's labs, investors, and tech leaders on the left. PACs, think tanks, and filings in the middle, leading to the elections, bills, and rules they fund.</p>
       </div>
       {links.length === 0 ? (

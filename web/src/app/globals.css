@@ -516,7 +516,7 @@ em, i, cite, address, dfn, var { font-style: normal; }
 .title-code-ink { mix-blend-mode: var(--blend-ink); }
 /* Tabs and filter links: no underline on hover; the hover shows as a light panel instead. */
 .tabs a:hover, .filters a:hover { text-decoration: none; }
-/* Bill and rule pages: each side of who pushed sits under a rule, not in a box. */
+/* Bill and rule pages: each side of who weighed in sits under a rule, not in a box. */
 .push-side { border-top: 2px solid var(--ink); padding-top: var(--s3); }
 .push-side h3 .muted { font-weight: 400; margin-left: 4px; }
 .tabs a:hover:not([aria-current="page"]) { background: color-mix(in srgb, var(--panel) 70%, transparent); }

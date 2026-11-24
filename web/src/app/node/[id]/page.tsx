@@ -184,7 +184,7 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
 
     positions: <>
         {positionLinks.length === 0 && stanceFeed.length === 0 ? <p className="muted">No sourced positions on bills or rules yet.</p> : (
-          <table className="data-table"><thead><tr><th>Date</th><th>Target</th><th>Stance</th><th>Evidence</th></tr></thead><tbody>
+          <table className="data-table"><thead><tr><th>Date</th><th>On</th><th>Stance</th><th>Evidence</th></tr></thead><tbody>
             {[...positionLinks.map((l: any) => ({ date: l.date_start, target: l.other_name, tid: l.other_id, stance: l.stance ?? l.subtype, text: l.note ?? l.subtype, url: l.source_url })),
               ...stanceFeed.map((f: any) => ({ date: f.date, target: f.target_name ?? f.issues.join(", "), tid: f.target_id, stance: f.stance, text: f.excerpt ? `“${f.excerpt}”` : f.summary, url: f.url }))]
               .sort((a, b) => String(a.target).localeCompare(String(b.target)) || String(b.date).localeCompare(String(a.date)))
@@ -195,7 +195,7 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
               ))}
           </tbody></table>
         )}
-        <p className="muted">Grouped by target, newest first, so a change in stance sits above the old one.</p>
+        <p className="muted">Grouped by subject, newest first, so a change in stance sits above the old one.</p>
       </>,
 
     money: (p.filings.length === 0 ? <p className="muted">No filings on record yet.</p> : (

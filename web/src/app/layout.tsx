@@ -16,7 +16,7 @@ const mono = JetBrains_Mono({ variable: "--font-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: SITE_NAME,
-  description: "How frontier labs, investors, tech leaders and think tanks push on U.S. AI policy.",
+  description: "How frontier labs, investors, tech leaders and think tanks shape U.S. AI policy.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

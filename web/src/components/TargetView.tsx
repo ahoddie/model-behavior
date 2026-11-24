@@ -7,7 +7,7 @@ import RaceView from "./RaceView";
 import BackLink from "./BackLink";
 import type { Coverage } from "@/lib/data";
 
-const SIDES = [["support", "For"], ["support_if_amended", "For, if amended"], ["oppose", "Against"], ["", "Other pressure"]] as const;
+const SIDES = [["support", "For"], ["support_if_amended", "For, if amended"], ["oppose", "Against"], ["", "Other engagement"]] as const;
 
 export default function TargetView({ t, coverage }: { t: any; coverage: Coverage }) {
   const n = t.node;
@@ -22,7 +22,7 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
       {!isRace && t.facts.length > 0 && <ul className="facts">{t.facts.map((f: any, i: number) => <li key={i}>{f.text} <Src url={f.url} /></li>)}</ul>}
       <p className="mono"><Link href={`/map?focus=${n.id}`}>Trace on the map</Link></p>
 
-      {(!isRace || t.pushes.length > 0) && <h2>Who pushed</h2>}
+      {(!isRace || t.pushes.length > 0) && <h2>Who weighed in</h2>}
       <div className="grid2">
         {SIDES.map(([s, label]) => {
           const rows = t.pushes.filter((p: any) => sideOf(p.stance) === s);

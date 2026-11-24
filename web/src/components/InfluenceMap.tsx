@@ -408,7 +408,7 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
         {arrivalsRow}
       </div>
       <div className={`mapstage${focus ? " focused" : ""}${mode === "timeline" ? " timeline" : ""}`}>
-        <svg ref={svgRef} width={width} height={height} style={measured === null ? { visibility: "hidden" } : undefined} role="group" aria-label="Influence map: The Valley, Through, Lands on" className="map"
+        <svg ref={svgRef} width={width} height={height} style={measured === null ? { visibility: "hidden" } : undefined} role="group" aria-label="Network map: The Valley, Through, Lands on" className="map"
           onClick={() => { if (selected) setSelected(null); }}>
           <g ref={gRef}>
             {COL_TITLES.map((t, i) => (
