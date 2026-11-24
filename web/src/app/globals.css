@@ -371,7 +371,6 @@ em, i, cite, address, dfn, var { font-style: normal; }
 .home { --w: 1000px; }
 .home-intro, .home-sec { max-width: var(--w); margin: 0 auto; padding: var(--s7) var(--s5) 0; }
 .home-intro h1 { font-size: clamp(40px, 6vw, 68px); max-width: none; }
-.home-intro .lede { max-width: 62ch; font-size: 22px; margin: var(--s5) 0 var(--s4); }
 .home-intro p { max-width: 66ch; }
 .home-sec { scroll-margin-top: 48px; border-top: 3px solid var(--ink); margin-top: var(--s7); padding-top: var(--s5); }
 .home-sec h2 { margin-top: 0; font-size: 30px; }
