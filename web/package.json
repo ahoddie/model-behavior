@@ -14,7 +14,6 @@
     "sources": "tsx scripts/check-sources.ts",
     "analyze": "tsx scripts/analyze.ts",
     "index": "tsx scripts/index-search.ts",
-    "digest": "tsx scripts/digest.ts",
     "scheduler": "tsx scripts/scheduler.ts",
     "firehose": "tsx scripts/importers/social.ts --firehose",
     "typecheck": "tsc --noEmit",

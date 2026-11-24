@@ -2,7 +2,6 @@ node_modules/
 .next/
 web/.env.local
 data/raw/
-data/outbox/
 .DS_Store
 data/cache/
 *.log
