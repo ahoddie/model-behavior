@@ -64,7 +64,7 @@ export default function MoneyFlow({ start, flows }: { start: string; flows: Flow
   const out = new Map<string, number>(), inn = new Map<string, number>();
   return (
     <div className="flowwrap">
-      <svg viewBox={`0 0 ${W} ${height + 10}`} width="100%" role="img" aria-label="Money flow diagram">
+      <svg key={start} viewBox={`0 0 ${W} ${height + 10}`} width="100%" role="img" aria-label="Money flow diagram">
         {edges.filter((e) => pos.has(e.from) && pos.has(e.to)).sort((a, b) => b.amount - a.amount).map((e, i) => {
           const a = pos.get(e.from)!, b = pos.get(e.to)!;
           const w = Math.max(1.5, 60 * Math.sqrt(e.amount / max));
@@ -74,14 +74,14 @@ export default function MoneyFlow({ start, flows }: { start: string; flows: Flow
           const x1 = a.x + colW, x2 = b.x, mx = (x1 + x2) / 2;
           return (
             <a key={i} href={e.url} target="_blank" rel="noreferrer" aria-label={`${names.get(e.from)} to ${names.get(e.to)}: ${fmtMoney(e.amount)}`}>
-              <path d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`} className="edge edge-money" strokeWidth={w} style={{ opacity: e.stance === "oppose" ? 0.45 : 0.6 }} />
+              <path d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`} pathLength={1} className="edge edge-money" strokeWidth={w} style={{ opacity: e.stance === "oppose" ? 0.45 : 0.6, ["--c" as string]: depth.get(e.from) ?? 0 }} />
             </a>
           );
         })}
         {[...pos.entries()].map(([id, p]) => {
           // "Undisclosed donors" is a placeholder, not a profile, so it is drawn without a link.
           const box = (
-            <g transform={`translate(${p.x},${p.y})`} className={`item${selected === id ? " sel" : ""}`}>
+            <g transform={`translate(${p.x},${p.y})`} className={`item${selected === id ? " sel" : ""}`} style={{ ["--c" as string]: depth.get(id) ?? 0 }}>
               <rect width={colW} height={p.h} rx="2" />
               <title>{names.get(id) ?? id}</title>
               <text x="8" y="16" className="nlabel">{clip(names.get(id) ?? id)}</text>
