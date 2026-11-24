@@ -158,3 +158,9 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - State bill links (source_url) point to the public State Net bill text NCSL links, not to the legislature's own page; map bills keep their official link on the node.
 - ny-a3283-2025 (gene synthesis screening) isn't on NCSL's AI list, so it has no bill record or stage.
 - Thin states (under 15 AI bills for 2025–26): Wyoming 7; Alaska, DC, and South Dakota 9; Nebraska and New Hampshire 13. They look like small legislatures rather than gaps.
+
+## thin-people-01
+- anne-marie-slaughter: descriptor "CEO" looks stale; New America's staff page lists her as Senior Advisor.
+- anil-dash ("CEO of Glitch"), jane-hartley ("former ambassador to the UK"), adam-green ("PCCC cofounder"): descriptor claims with no supporting relation or source.
+- romesh-wadhwani / wadhwani-foundation: the writers disagree on whether the $5M CSIS gift was his own or the foundation's; check the CSIS release.
+- Descriptor typos: "Principle" (shaunna-thomas), "Quantitive" (dylan-mavrides).
