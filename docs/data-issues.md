@@ -118,3 +118,9 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - donovan-liam: node name "Liam Donavan"; the Transformer tracker (https://elections.transformernews.ai/pacs/C00928390) lists "Donovan Liam". Spelling and order unconfirmed.
 - brian-rice: a Wired statement says he "opposes federal binding rules on AI, favoring state regulation"; looks doubtful, not backed by the Verge statement.
 - duncan-crabtree-ireland: SAG-AFTRA's NO FAKES Act support is only in the descriptor.
+
+## people-06
+- justin-maturo: a fact names "Rep. Kelly Tran"; the LDA filing says only "RepTran" (https://lda.gov/filings/public/filing/90cc74f3-1bd5-40c1-bba0-8d6e00fbb200/print/).
+- palmer-luckey: descriptor's "$5.9M to Republicans" is unverified (inkl source blocked).
+- paul-nakasone: fact says "Vanderbilt Institute of National Defense"; node is "Vanderbilt Institute of National Security"; Vanderbilt's URL says Institute for National Defense and Global Security.
+- santi-ruiz: descriptor stresses his IFP fellowship; facts show his current role is at Anthropic.
