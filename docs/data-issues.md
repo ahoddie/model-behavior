@@ -51,3 +51,13 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - hoover: "oppose SB 1047" is set on the institution but is fellow Lee Ohanian's podcast view.
 - maga-inc: Taylor Budowich named director in 2022, before this committee's 2024 registration (C00892471).
 - dccc: name stored as "Dccc".
+
+## orgs-07
+- machine-intelligence-research-institute / miri: duplicate nodes.
+- ai-safety-fund: website on file (aisafetyfund.org) is a small donor-funded "AI Safety Research Fund"; the Frontier Model Forum's AI Safety Fund is aisfund.org. CDT's donor list doesn't say which gave.
+- CDT donor tiers: cdt.org/financials shows only 2025; money rows and the CZI descriptor also claim 2024.
+- perplexity: money row shows $200,000 in 2 gifts to Leading the Future; the fact and FEC PDF say $100,000 (likely double count).
+- new-york-times-company: $1.225M Ford Foundation grant is from Ford's Form 990, unverified.
+- haun-ventures: a16z investment row is doubtful; the cited TechCrunch story is about Haun leaving a16z.
+- Wrong types: new-york-times-company, oracle, amd typed lab; movement-voter-pac typed nonprofit (it's a hybrid PAC).
+- amd: export-control lobbying in the descriptor has no supporting fact.
