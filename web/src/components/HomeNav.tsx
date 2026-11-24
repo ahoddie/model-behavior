@@ -84,10 +84,10 @@ function StatementsMock() {
 }
 
 const PAGES = [
-  { href: "/map", name: "Network", note: "Who funds whom, and the bills and races it reaches", Mock: NetworkMock, wide: true },
-  { href: "/money", name: "Nodes", note: "Follow one giver's money, step by step", Mock: NodesMock },
-  { href: "/targets", name: "Policy", note: "Bills, rules, and races, and who weighed in", Mock: PolicyMock },
-  { href: "/statements", name: "Statements", note: "Where people stand, in their own words", Mock: StatementsMock },
+  { href: "/map", name: "Network", note: "The money behind AI policy drawn as one connected map", Mock: NetworkMock, wide: true },
+  { href: "/money", name: "Nodes", note: "Pick any giver and follow each dollar to where it lands", Mock: NodesMock },
+  { href: "/targets", name: "Policy", note: "AI bills and rules in play plus the races that drew the money", Mock: PolicyMock },
+  { href: "/statements", name: "Statements", note: "Where leaders stand on AI's open questions in their own words", Mock: StatementsMock },
 ];
 
 export default function HomeNav() {
