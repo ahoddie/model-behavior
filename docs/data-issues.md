@@ -220,3 +220,21 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - public-first: the LDA filing naming Energy and the Air Force (lda.gov …/303b23e4…) is for First Public Hydrogen Authority, not the super PAC (wrong client match). **Fixed:** 3 links and 3 filings removed; lda_skip set.
 - alliance-for-a-better-future: the LDA filing naming OMB and Interior (lda.gov …/5d998492…) is for Fund for a Better Future / Alliance for Wildfire Resilience (wrong client match). **Fixed:** 13 links and 5 filings removed; lda_skip set. Its text no longer says it lobbied Congress and OMB.
 - Agency lobbying counts in profile text for the House, Senate, White House Office, and Commerce are minimums: the money list behind them was capped at 15 counterparties.
+
+## Bill profile text (bills-01)
+
+- ca-sb813-2025: a fact gives the Senate concurrence vote as 37–0; the vote and action records say 39–0.
+- ca-ab1018-2025: a fact says the bill went to the inactive file Sept. 13, 2025; the bill record shows it came off that file Aug. 21, 2026 and awaited a Senate vote as of Aug. 30, 2026.
+- ca-ab1864-2026: descriptor calls it a "California AI bill" backed by Secure AI Project; its official title is about gene synthesis equipment manufacturers and providers. Its "latest action" fact (March 2026) is stale; it was signed Sept. 30, 2026.
+- ca-ab2023-2026, ca-ab2583-2026, ca-ab412-2025, ca-sb1119-2026: "latest action" facts are older than the bill records.
+- ca-sb7-2025: descriptor says the California Labor Federation sponsored it; the only relation on file has it urging a signature.
+
+## Bill profile text (bills-02)
+
+- il-sb315-2026: bill record names Sen. Harmon as sponsor; a Secure AI Project fact names Rep. Daniel Didech and Sen. Mary Edly-Allen.
+- ma-h5576-2026: stage is passed_legislature, but the latest action (July 30, 2026) sends it to a conference committee.
+- us-119-s3062: stage is in_committee, but it was reported and placed on the Senate calendar May 11, 2026.
+- us-119-hr2385, hr3447, hr6875: "latest action" facts show the referral; votes show later committee approvals.
+- tn-hb1898-2026: a fact names the sponsor "Zachary Cochran"; the bill record says Rep. Jason Zachary.
+- ny-a3283-2025: no bill record is linked to the node.
+- us-119-s1792: node source_url is an Encode lobbying filing, not the bill page.
