@@ -804,7 +804,8 @@ img.mark { background: var(--logo-bg); }
 
 /* Policy page: cards for bills and rules, compact tables for elections and lobbying, a sticky list of groups on wide screens. */
 .pol-page { max-width: 1290px; }
-.pol-page > .lede { max-width: 62ch; }
+.pol-page > .lede { max-width: none; }
+@media (min-width: 900px) { .pol-page > .lede { white-space: nowrap; } }
 .pol-body { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--s5); margin-top: var(--s4); }
 .pol-body:not(:has(.secnav)) { grid-template-columns: minmax(0, 1fr); }
 .pol-body .secnav { padding: var(--s4) 0 0; top: 48px; max-height: calc(100dvh - 48px); }
