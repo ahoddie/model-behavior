@@ -1321,3 +1321,6 @@ html.theme-vt::view-transition-new(root) { animation: mo-wipe 480ms var(--ease-i
 @supports (animation-delay: calc(sibling-index() * 1ms)) { .skyline path { animation-delay: calc(sibling-index() * 55ms + 150ms); } }
 .flowwrap .item { animation: mo-fade var(--dur-3) var(--ease-out) both; animation-delay: calc(var(--c, 0) * 220ms); }
 .flowwrap .edge-money { stroke-dasharray: 1; animation: mo-draw var(--dur-4) var(--ease-out) both; animation-delay: calc(var(--c, 0) * 220ms + 120ms); }
+.item-sec, .item-main h2[id] { scroll-margin-top: 24px; }
+.item-sec:focus, .item-main h2[id]:focus, .profile-sources:focus { outline: none; }
+@media (max-width: 760px) { .item-sec, .item-main h2[id] { scroll-margin-top: 60px; } }

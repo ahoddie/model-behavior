@@ -3,7 +3,7 @@
 // Preference: apple-touch-icon (square, large) > SVG icon > JSON-LD Organization logo > largest <link rel=icon> > /favicon.ico.
 // A raster under 32px is only used when no larger candidate works. SVGs with <script or on*= handlers are rejected.
 // robots.txt is checked before every request. logo_source_url records the homepage the icon was found on.
-// Usage: pnpm logos [--all] [--localize] [--site <id>=<homepage> ...]
+// Usage: pnpm logos [--all] [--localize] [--site <id>=<homepage> ...] [--wiki <id>=<Wikipedia title> ...]
 //   --all       re-check nodes that already have a logo
 //   --site      only these nodes, from the homepage given (for an org with no Website fact); repeatable
 //   --localize  download existing hot-linked logos (logo_url starting with http) and rewrite logo_url
@@ -153,7 +153,15 @@ function store(id: string, img: Img) {
 
 async function findLogo(site: string): Promise<{ img: Img; from: string } | null> {
   const res = await fetchOk(site);
-  if (!res.ok) throw new Error(`homepage ${res.status}`);
+  if (!res.ok) {
+    // Some homepages refuse automated reads; the site's conventional icon files often still load.
+    for (const path of ["/apple-touch-icon.png", "/apple-touch-icon-precomposed.png", "/favicon.svg", "/favicon.ico"]) {
+      const u = new URL(path, site).href;
+      const img = await download(u);
+      if (img && (img.px === null || img.px >= 32)) return { img, from: u };
+    }
+    throw new Error(`homepage ${res.status}`);
+  }
   const html = await res.text();
   let small: { img: Img; from: string } | null = null;
   for (const c of candidates(html, res.url)) {
@@ -167,6 +175,44 @@ async function findLogo(site: string): Promise<{ img: Img; from: string } | null
 
 // ---- main
 let rows: { id: string; name: string; site: string | null; logo: string | null }[];
+// --wiki <id>=<English Wikipedia title>: the logo in the article's infobox, for an org whose own
+// site refuses automated reads. logo_source_url records the article.
+const wikis = process.argv.flatMap((a, i) => (process.argv[i - 1] === "--wiki" ? [a.split("=") as [string, string]] : []));
+async function wikiLogo(title: string): Promise<{ img: Img; from: string } | null> {
+  // Wikipedia's robots.txt closes its APIs to crawlers but leaves articles open: read the article and take the first image
+  // in the infobox's image cell, at full size (the original file, not the thumbnail).
+  const r = await fetchOk(`https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`, 15000);
+  if (!r.ok) return null;
+  const html = await r.text();
+  // The infobox's logo cell first (class "infobox-image logo"), else its first image cell.
+  const at = html.search(/class="infobox-image logo/) >= 0 ? html.search(/class="infobox-image logo/) : html.search(/class="infobox-image/);
+  if (at < 0) return null;
+  let src = html.slice(at, at + 3000).match(/<img[^>]+src="([^"]+)"/)?.[1];
+  if (!src) return null;
+  src = src.split("?")[0];
+  if (src.startsWith("//")) src = `https:${src}`;
+  // A thumbnail (.../thumb/a/ab/Name.svg/220px-Name.svg.png, on thumb. or upload.wikimedia.org) -> the original file.
+  const orig = src.match(/\/wikipedia\/([a-z]+)\/thumb\/([0-9a-f]\/[0-9a-f]{2}\/[^/]+)\//);
+  if (orig) src = `https://upload.wikimedia.org/wikipedia/${orig[1]}/${orig[2]}`;
+  const img = await download(src);
+  return img ? { img, from: src } : null;
+}
+if (wikis.length) {
+  let n = 0;
+  for (const [id, title] of wikis) {
+    try {
+      const f = await wikiLogo(title);
+      if (!f) { console.warn(`${id}: no infobox image for ${title}`); continue; }
+      const page = `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
+      const local = store(id, f.img);
+      await pool.query(`UPDATE nodes SET logo_url=$2, logo_source_url=$3 WHERE id=$1`, [id, local, page]);
+      n++; console.log(`${id}: ${local} <- ${f.from} (${f.img.px ?? "svg"}px)`);
+    } catch (e) { console.warn(`${id}: ${(e as Error).message}`); }
+    await sleep(400);
+  }
+  console.log({ checked: wikis.length, found: n });
+  await notifySite(); await pool.end(); process.exit(0);
+}
 const sites = process.argv.flatMap((a, i) => (process.argv[i - 1] === "--site" ? [a.split("=") as [string, string]] : []));
 if (sites.length) {
   const named = new Map(sites);

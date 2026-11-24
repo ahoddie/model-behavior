@@ -11,9 +11,9 @@ import CoverageLine from "@/components/CoverageLine";
 import { fmtMoney, fmtDate, TYPE_LABEL, clusterName } from "@/lib/format";
 import TargetView from "@/components/TargetView";
 import ProfileHead, { ProfileSources, type SourceLine } from "@/components/ProfileHead";
-import MapIt, { linkCaption } from "@/components/MapIt";
+import { linkCaption } from "@/components/MapIt";
+import { ItemRail, ItemBar, type RailProps } from "@/components/ItemRail";
 import { getProfileText } from "@/lib/profile-text";
-import BackLink from "@/components/BackLink";
 import Src from "@/components/Src";
 import KnownRecord from "@/components/KnownRecord";
 import ProfileTabs, { TabLink } from "@/components/ProfileTabs";
@@ -76,20 +76,32 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
   for (const l of p.links) counts[l.type] = (counts[l.type] ?? 0) + 1;
   const caption = linkCaption(p.links.map((l: any) => ({ id: l.other_id, type: l.other_type })));
 
+  const rail: RailProps = {
+    sections: [{ id: "overview", label: "Overview" }, { id: "record", label: "Record" }, ...(sources.length ? [{ id: "sources", label: "Sources" }] : [])],
+    back: { fallback: "/map", label: "Network" },
+    map: { id, name: p.node.name, counts, caption },
+    cite: { title: p.node.name, path: `/node/${id}` },
+  };
+
   return (
-    <div className="page has-back actor-page">
-      <BackLink fallback="/map" />
-      <ProfileHead node={p.node} keyFacts={p.keyFacts} logoSource={p.node.logo_source_url} citePath={`/node/${id}`}
-        kicker={<>{TYPE_LABEL[p.node.type]} · <Link href={`/map?focus=${id}`}>{clusterName(p.node.cluster)}</Link></>}
-        headline={headline} description={description}
-        mapIt={<MapIt id={id} name={p.node.name} counts={counts} caption={caption} />}
-        mapChip={<MapIt id={id} name={p.node.name} counts={counts} size="chip" />} />
-      {noRecords && <KnownRecord node={p.node} />}
-      <Suspense fallback={<p className="mono muted" role="status">Loading the record…</p>}>
-        <Tabs sp={props.searchParams} id={id} />
-      </Suspense>
-      <ProfileSources sources={sources} />
-      <CoverageLine c={coverage} />
+    <div className="item-page actor-page">
+      <ItemRail {...rail} />
+      <article className="item-main">
+        <ItemBar {...rail} />
+        <div id="overview" className="item-sec" tabIndex={-1}>
+          <ProfileHead node={p.node} keyFacts={p.keyFacts} logoSource={p.node.logo_source_url}
+            kicker={<>{TYPE_LABEL[p.node.type]} · <Link href={`/map?focus=${id}`}>{clusterName(p.node.cluster)}</Link></>}
+            headline={headline} description={description} />
+        </div>
+        {noRecords && <KnownRecord node={p.node} />}
+        <div id="record" className="item-sec" tabIndex={-1}>
+          <Suspense fallback={<p className="mono muted" role="status">Loading the record…</p>}>
+            <Tabs sp={props.searchParams} id={id} />
+          </Suspense>
+        </div>
+        <ProfileSources sources={sources} />
+        <CoverageLine c={coverage} />
+      </article>
     </div>
   );
 }

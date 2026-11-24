@@ -158,3 +158,13 @@ export default function RaceView({ t }: { t: any }) {
     </>
   );
 }
+
+// Which of the race's blocks have anything in them, for the item rail's section links.
+export function raceSections(t: any) {
+  const facts: { text: string }[] = t.allFacts ?? t.facts;
+  const ids = new Set(t.candidates.map((c: any) => c.id));
+  return {
+    outside: t.candidatePushes.some((p: Push) => p.amount && (p.stance === "support" || p.stance === "oppose") && ids.has(p.candidate)),
+    candidates: facts.some((f) => CAND.test(f.text)),
+  };
+}

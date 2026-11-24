@@ -99,7 +99,7 @@ export function ProfileSources({ sources }: { sources: SourceLine[] }) {
     return [head, tail].filter(Boolean).join("; ");
   };
   return (
-    <section className="profile-sources" aria-labelledby="profile-sources-h">
+    <section id="sources" className="profile-sources" aria-labelledby="profile-sources-h" tabIndex={-1}>
       <h2 id="profile-sources-h">Sources</h2>
       <ul>{[...byUrl.values()].map((e) => { const l = line(e); return (
         <li key={e.url}>{l && <span className="lbl">{l}: </span>}<a href={e.url} target="_blank" rel="noreferrer" title={e.url}>{e.name}</a></li>

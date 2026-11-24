@@ -3,9 +3,9 @@ import { fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
 import ProfileHead from "./ProfileHead";
 import Src from "./Src";
 import CoverageLine from "./CoverageLine";
-import RaceView from "./RaceView";
-import BackLink from "./BackLink";
-import MapIt, { linkCaption } from "./MapIt";
+import RaceView, { raceSections } from "./RaceView";
+import { linkCaption } from "./MapIt";
+import { ItemRail, ItemBar, type RailProps } from "./ItemRail";
 import BillView from "./BillView";
 import type { Coverage } from "@/lib/data";
 
@@ -19,18 +19,33 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
   const isRace = n.type === "race";
   const counts: Record<string, number> = {};
   for (const r of t.pushes) counts[r.type] = (counts[r.type] ?? 0) + 1;
-  const caption = linkCaption(t.pushes.map((r: any) => ({ id: r.actor_id, type: r.actor_type })));
+  // A race's money goes to its candidates, so its pattern and count include them and the groups spending on them.
+  if (isRace) { counts.person = (counts.person ?? 0) + t.candidates.length; counts.money = (counts.money ?? 0) + t.candidatePushes.length; }
+  const caption = linkCaption([...t.pushes.map((r: any) => ({ id: r.actor_id, type: r.actor_type })),
+    ...(isRace ? [...t.candidates.map((c: any) => ({ id: c.id, type: "lawmaker" })), ...t.candidatePushes.map((p: any) => ({ id: p.actor_id, type: "pac" }))] : [])]);
+  const race = isRace ? raceSections(t) : null;
+  const weighed = (!isRace || t.pushes.length > 0) && t.pushes.length > 0;
+  const rail: RailProps = {
+    sections: [{ id: "overview", label: "Overview" },
+      ...(race?.outside ? [{ id: "race-outside", label: "Spending" }] : []), ...(race?.candidates ? [{ id: "race-cands", label: "Candidates" }] : []),
+      ...(weighed ? [{ id: "positions", label: "Positions" }] : []), ...(t.statements.length ? [{ id: "statements", label: "Statements" }] : [])],
+    back: isRace ? { fallback: "/targets?kind=elections", label: "Elections" } : { fallback: n.type === "rule" ? "/targets?kind=rules" : "/targets", label: "Policy" },
+    map: { id: n.id, name: n.name, counts, caption },
+    cite: { title: n.name, path: `/node/${n.id}` },
+  };
   return (
-    <div className="page has-back">
-      <BackLink fallback="/targets" />
-      <ProfileHead node={n} keyFacts={t.keyFacts} logoSource={n.logo_source_url} citePath={`/node/${n.id}`}
-        mapIt={<MapIt id={n.id} name={n.name} counts={counts} caption={caption} />}
-        mapChip={<MapIt id={n.id} name={n.name} counts={counts} size="chip" />}
+    <div className="item-page">
+      <ItemRail {...rail} />
+      <article className="item-main">
+      <ItemBar {...rail} />
+      <div id="overview" className="item-sec" tabIndex={-1}>
+      <ProfileHead node={n} keyFacts={t.keyFacts} logoSource={n.logo_source_url}
         kicker={<>{TYPE_LABEL[n.type]}{n.external_ids?.status ? <> · {n.external_ids.status} {n.external_ids.status_date && `(${fmtDate(n.external_ids.status_date)})`}</> : null}</>} />
+      </div>
       {isRace && <RaceView t={t} />}
       {!isRace && t.facts.length > 0 && <ul className="facts">{t.facts.map((f: any, i: number) => <li key={i}>{f.text} <Src url={f.url} /></li>)}</ul>}
 
-      {(!isRace || t.pushes.length > 0) && <h2>Who weighed in</h2>}
+      {weighed && <h2 id="positions" tabIndex={-1}>Who weighed in</h2>}
       <div className="grid2">
         {SIDES.map(([s, label]) => {
           const rows = t.pushes.filter((p: any) => sideOf(p.stance) === s);
@@ -52,7 +67,7 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
       </div>
 
       {t.statements.length > 0 && <>
-        <h2>What they said about it</h2>
+        <h2 id="statements" tabIndex={-1}>What they said about it</h2>
         <ul className="feed">{t.statements.map((f: any) => (
           <li key={f.id}><div className="when">{fmtDate(f.date)}</div>
             <div><Link href={`/node/${f.node_id}`}>{f.actor_name}</Link>{f.stance ? <span className="muted"> · {f.stance}</span> : null}
@@ -60,6 +75,7 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
         ))}</ul>
       </>}
       <CoverageLine c={coverage} />
+      </article>
     </div>
   );
 }

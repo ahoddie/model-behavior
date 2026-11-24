@@ -167,7 +167,7 @@ export default async function BillView({ t }: { t: any }) {
     ...(sides.length ? [{ id: "positions", label: "Positions" }] : []), ...(peopleRows.length ? [{ id: "people", label: "People" }] : []),
     ...(cites.list.length ? [{ id: "sources", label: "Sources" }] : [])];
   const rail: RailProps = {
-    sections, back: { fallback: "/targets", label: "All bills" },
+    sections, back: { fallback: "/targets?kind=bills", label: "All bills" },
     map: { id: n.id, name: number, counts, caption: linkCaption(t.pushes.map((r: any) => ({ id: r.actor_id, type: r.actor_type }))) },
     cite: { title: `${number}${title ? `: ${title}` : ""}`, path: `/node/${n.id}` },
   };
