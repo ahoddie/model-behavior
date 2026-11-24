@@ -778,9 +778,6 @@ img.mark { background: var(--logo-bg); }
 /* /money: random starting point, and a step table that keeps names, amounts, and dates on one line */
 .rand-btn { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 14px; color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: var(--radius); padding: 5px 12px; cursor: pointer; }
 .rand-btn:hover { border-color: var(--ink); }
-.money-steps td.nw { white-space: nowrap; }
-.money-steps .step-note { display: block; font-size: 14px; color: var(--muted); margin-top: 2px; }
-@media (max-width: 700px) { .money-steps td.nw { white-space: normal; } }
 
 /* Home, "What they care about": who agrees and who disagrees under each statement */
 /* Who agrees and who disagrees: two columns side by side, names in an aligned grid under a colored rule. */
