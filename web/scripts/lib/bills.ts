@@ -103,3 +103,51 @@ export async function linkCuratedBills(): Promise<number> {
   }
   return linked;
 }
+
+export type BillAction = { date: string; text: string; chamber?: "lower" | "upper" | "joint" | "executive" | null; kind?: string | null };
+export type BillVote = { date: string; chamber?: "lower" | "upper" | "joint" | null; motion: string; yes?: number | null; no?: number | null;
+  other?: number | null; result?: string | null; source_url?: string | null };
+
+// Coarse kind of an action from its wording, the same way for every source.
+export function actionKind(text: string): string {
+  const t = text.toLowerCase();
+  if (/veto/.test(t) && !/override/.test(t)) return "vetoed";
+  if (/became (public )?law|signed by (the )?(governor|president)|approved by (the )?governor|chaptered|enacted|public act/.test(t)) return "enacted";
+  if (/to governor|presented to (the )?(governor|president)|enrolled/.test(t)) return "governor";
+  if (/\bfail|died|tabled|postponed indefinitely|withdrawn|adjourned sine die/.test(t)) return "failed";
+  if (/passed|agreed to|third reading.*(ayes|yeas)|adopted/.test(t) && !/^(amendment|.*amendment (no\.|#|\d|sa|ha))|motion to reconsider|motion to table/.test(t)) return "passed";
+  if (/committee|referred|re-referred|hearing/.test(t)) return "committee";
+  if (/introduc|first reading|read first time|prefiled|filed/.test(t)) return "introduced";
+  return "other";
+}
+
+/** Replace a bill's action history and votes with the source's current list. */
+export async function saveHistory(billId: string, actions: BillAction[], votes: BillVote[] = []) {
+  const c = await pool.connect();
+  try {
+    await c.query("BEGIN");
+    await c.query(`DELETE FROM bill_actions WHERE bill_id=$1`, [billId]);
+    await c.query(`DELETE FROM bill_votes WHERE bill_id=$1`, [billId]);
+    const a = actions.filter((x) => /^\d{4}-\d{2}-\d{2}/.test(x.date) && x.text);
+    if (a.length) await c.query(
+      `INSERT INTO bill_actions (bill_id, seq, date, text, chamber, kind) SELECT $1, s, d::date, t, NULLIF(ch, ''), k
+       FROM unnest($2::int[], $3::text[], $4::text[], $5::text[], $6::text[]) AS u(s, d, t, ch, k)`,
+      [billId, a.map((_, i) => i + 1), a.map((x) => x.date.slice(0, 10)), a.map((x) => x.text.trim()), a.map((x) => x.chamber ?? ""), a.map((x) => x.kind ?? actionKind(x.text))]);
+    const v = votes.filter((x) => /^\d{4}-\d{2}-\d{2}/.test(x.date));
+    for (const [i, x] of v.entries())
+      await c.query(`INSERT INTO bill_votes (bill_id, seq, date, chamber, motion, yes, no, other, result, source_url) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [billId, i + 1, x.date.slice(0, 10), x.chamber ?? null, x.motion, x.yes ?? null, x.no ?? null, x.other ?? null, x.result ?? null, x.source_url ?? null]);
+    await c.query("COMMIT");
+  } catch (e) { await c.query("ROLLBACK"); throw e; } finally { c.release(); }
+}
+
+/**
+ * The id of a state bill already on file under another source's naming, so a second source (Open States after NCSL,
+ * say) refreshes that row instead of adding a duplicate. Matches state, identifier letters and number, and a year.
+ */
+export async function existingStateBill(st: string, identifier: string, years: string[]): Promise<string | null> {
+  const r = await pool.query(`SELECT id, session, external_ids FROM bills WHERE jurisdiction=$1 AND source <> 'research'
+    AND regexp_replace(lower(identifier), '[^a-z0-9]', '', 'g') = $2`, [st, norm(identifier)]);
+  const hit = r.rows.find((b: any) => [b.session, ...(b.external_ids?.years ?? [])].some((y: string) => years.some((x) => String(y).includes(x))));
+  return hit?.id ?? null;
+}

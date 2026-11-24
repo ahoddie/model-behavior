@@ -6,7 +6,7 @@
 import "../env.ts";
 import { pool } from "../../src/lib/db.ts";
 import { startRun, endRun, politeFetch, sleep } from "../lib/ingest.ts";
-import { aiMatch, upsertBill, linkCuratedBills, type Stage } from "../lib/bills.ts";
+import { aiMatch, upsertBill, linkCuratedBills, saveHistory, actionKind, existingStateBill, type Stage } from "../lib/bills.ts";
 
 const KEY = process.env.OPENSTATES_API_KEY;
 const API = "https://v3.openstates.org";
@@ -65,7 +65,9 @@ async function saveBill(b: any, onMap: Set<string>) {
   if (!st || st === "ca") return false;
   const abstracts = (b.abstracts ?? []).map((a: any) => a.abstract).join(" ");
   const ident = String(b.identifier);
-  const id = `${st}-${String(b.session).toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${ident.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+  const years = [...new Set([b.first_action_date, b.latest_action_date, ...(String(b.session).match(/\d{4}/g) ?? [])].filter(Boolean).map((x: string) => String(x).slice(0, 4)))];
+  // A bill NCSL already listed keeps its row (and id); Open States then becomes its source and refreshes it.
+  const id = (await existingStateBill(st, ident, years)) ?? `${st}-${String(b.session).toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${ident.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
   const nodeGuess = [...onMap].some((n) => n.startsWith(`${st}-${ident.toLowerCase().replace(/[^a-z0-9-]/g, "")}-`));
   const match = aiMatch(b.title ?? "", b.subject ?? []) ?? (aiMatch(abstracts) ? "title" : null) ?? (nodeGuess ? "curated" : null);
   if (!match) return false;
@@ -73,7 +75,6 @@ async function saveBill(b: any, onMap: Set<string>) {
   const end = await sessionEnd(b.jurisdiction.id, b.session);
   const { stage, date } = stageFor(actions, st === "ne", !!end && new Date(end) < new Date());
   const official = (b.sources ?? []).map((s: any) => s.url).find((u: string) => /^https?:\/\//.test(u) && !/openstates|pluralpolicy/.test(u));
-  const years = [...new Set([b.first_action_date, b.latest_action_date, ...(String(b.session).match(/\d{4}/g) ?? [])].filter(Boolean).map((x: string) => String(x).slice(0, 4)))];
   const org = b.from_organization?.classification;
   await upsertBill({
     id, jurisdiction: st, session: String(b.session), identifier: ident, bill_type: ident.replace(/[\s\d-]+.*$/, "").toLowerCase() || null,
@@ -83,6 +84,10 @@ async function saveBill(b: any, onMap: Set<string>) {
     source_url: official ?? b.openstates_url, data_url: `${API}/bills/${b.id}`, external_ids: { openstates: b.id, years },
     source_modified: b.updated_at,
   });
+  const ch = (o: string) => (o === "upper" ? "upper" : o === "lower" ? "lower" : o === "executive" ? "executive" : o === "legislature" ? "joint" : null) as any;
+  await saveHistory(id, (b.actions ?? []).map((a: any) => ({ date: String(a.date).slice(0, 10), text: a.description, chamber: ch(a.organization?.classification ?? ""),
+    kind: (a.classification ?? []).includes("became-law") || (a.classification ?? []).includes("executive-signature") ? "enacted"
+      : (a.classification ?? []).includes("executive-veto") ? "vetoed" : actionKind(a.description ?? "") })));
   return true;
 }
 

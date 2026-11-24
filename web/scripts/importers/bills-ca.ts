@@ -5,7 +5,7 @@
 import "../env.ts";
 import { pool } from "../../src/lib/db.ts";
 import { startRun, endRun, politeFetch } from "../lib/ingest.ts";
-import { aiMatch, upsertBill, linkCuratedBills, type Stage } from "../lib/bills.ts";
+import { aiMatch, upsertBill, linkCuratedBills, saveHistory, actionKind, type Stage, type BillVote } from "../lib/bills.ts";
 import { listZip, readZipEntry } from "../lib/remote-zip.ts";
 
 const BASE = "https://downloads.leginfo.legislature.ca.gov";
@@ -30,7 +30,8 @@ async function newestDaily(): Promise<string> {
 async function tables(url: string) {
   const entries = await listZip(url);
   const get = async (n: string) => { const e = entries.find((x) => x.name.toUpperCase() === n); if (!e) throw new Error(`${n} missing in ${url}`); return rows(await readZipEntry(url, e)); };
-  return { bills: await get("BILL_TBL.DAT"), versions: await get("BILL_VERSION_TBL.DAT"), authors: await get("BILL_VERSION_AUTHORS_TBL.DAT"), history: await get("BILL_HISTORY_TBL.DAT") };
+  return { bills: await get("BILL_TBL.DAT"), versions: await get("BILL_VERSION_TBL.DAT"), authors: await get("BILL_VERSION_AUTHORS_TBL.DAT"), history: await get("BILL_HISTORY_TBL.DAT"),
+    votes: await get("BILL_SUMMARY_VOTE_TBL.DAT"), motions: await get("BILL_MOTION_TBL.DAT"), locations: await get("LOCATION_CODE_TBL.DAT") };
 }
 
 // A two-year session ends on November 30 of its second year; anything still open then is dead.
@@ -56,7 +57,18 @@ export function stageFor(b: { measureState: string; status: string; currentHouse
   return s;
 }
 
-async function importTables(t: Awaited<ReturnType<typeof tables>>, curated: Map<string, string>) {
+async function importTables(t: Awaited<ReturnType<typeof tables>>, curated: Map<string, string>, extra: Set<string>) {
+  // Roll calls, floor and committee: summary vote rows joined to the motion wording and the place it was taken.
+  const motion = new Map(t.motions.map((m) => [m[0], m[1]]));
+  const place = new Map(t.locations.map((l) => [l[1], l[4] || l[5]]));
+  const votesBy = new Map<string, BillVote[]>();
+  for (const v of t.votes) {
+    const loc = v[1];
+    if (!votesBy.has(v[0])) votesBy.set(v[0], []);
+    votesBy.get(v[0])!.push({ date: v[2].slice(0, 10), chamber: /^(A|CX)/.test(loc) ? "lower" : /^(S|CS)/.test(loc) ? "upper" : null,
+      motion: [place.get(loc), motion.get(v[4])].filter(Boolean).join(": ") || "Vote", yes: Number(v[5]) || 0, no: Number(v[6]) || 0,
+      other: v[7] === "" ? null : Number(v[7]) || 0, result: /^\(?PASS/i.test(v[8]) ? "passed" : /^\(?FAIL/i.test(v[8]) ? "failed" : v[8] || null, source_url: null });
+  }
   const versions = new Map<string, { bill: string; date: string; subject: string }[]>();
   const subjectById = new Map<string, string>();
   for (const v of t.versions) {
@@ -78,7 +90,7 @@ async function importTables(t: Awaited<ReturnType<typeof tables>>, curated: Map<
     if (!MEASURES.test(type)) continue;
     const title = (subjectById.get(latestVersion) || versions.get(billId)?.at(-1)?.subject || "").replace(/\.$/, "").trim();
     const id = `ca-${session}-${type.toLowerCase()}${num}`;
-    const match = aiMatch(title) ?? (curated.has(billId) ? "curated" : null);
+    const match = aiMatch(title) ?? (curated.has(billId) ? "curated" : extra.has(billId) ? "ncsl" : null);
     if (!match || !title) continue;
     relevant++;
     const hist = (history.get(billId) ?? []).sort((x, y) => x.date.localeCompare(y.date) || x.seq - y.seq);
@@ -91,6 +103,8 @@ async function importTables(t: Awaited<ReturnType<typeof tables>>, curated: Map<
       sponsor: lead.get(latestVersion) ?? null, ai_match: match, source: "leginfo",
       source_url: `https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=${billId}`, data_url: null, external_ids: { leginfo_bill_id: billId },
     })) added++;
+    await saveHistory(id, hist.map((h) => ({ date: h.date, text: h.action, chamber: /^In Senate|Senate/.test(h.action) ? "upper" : /^In Assembly|Assembly/.test(h.action) ? "lower" : null,
+      kind: actionKind(h.action) })), (votesBy.get(billId) ?? []).sort((a, b) => a.date.localeCompare(b.date)));
   }
   return { added, relevant };
 }
@@ -107,16 +121,18 @@ export async function run() {
       const lid = n.lid ?? (m ? `${start}${start + 1}0${m[1].toUpperCase()}${m[2]}` : null);
       if (lid) curated.set(lid, n.id);
     }
+    // California bills NCSL lists as AI legislation (bills-ncsl), counted even when the subject line doesn't say AI.
+    const extra = new Set<string>((await pool.query(`SELECT key FROM bill_scan WHERE source='ncsl-ca'`)).rows.map((r: any) => r.key));
     const done = await pool.query(`SELECT key FROM bill_scan WHERE source='leginfo-archive'`);
     for (const year of PAST_SESSIONS) {
       if (done.rows.some((r: any) => r.key === year)) continue;
-      const r = await importTables(await tables(`${BASE}/pubinfo_${year}.zip`), curated);
+      const r = await importTables(await tables(`${BASE}/pubinfo_${year}.zip`), curated, extra);
       await pool.query(`INSERT INTO bill_scan (source, key, modified, relevant) VALUES ('leginfo-archive', $1, now(), true) ON CONFLICT DO NOTHING`, [year]);
       console.log(`bills-ca ${year} archive: ${r.relevant} about AI, ${r.added} new`);
       added += r.added;
     }
     const daily = await newestDaily();
-    const r = await importTables(await tables(daily), curated);
+    const r = await importTables(await tables(daily), curated, extra);
     console.log(`bills-ca current (${daily.split("/").at(-1)}): ${r.relevant} about AI, ${r.added} new`);
     added += r.added;
     await linkCuratedBills();

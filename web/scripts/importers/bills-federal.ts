@@ -6,7 +6,7 @@
 import "../env.ts";
 import { pool } from "../../src/lib/db.ts";
 import { startRun, endRun, politeFetch, sleep } from "../lib/ingest.ts";
-import { aiMatch, upsertBill, linkCuratedBills, scanned, markScanned, type Stage } from "../lib/bills.ts";
+import { aiMatch, upsertBill, linkCuratedBills, scanned, markScanned, saveHistory, actionKind, type Stage, type BillVote } from "../lib/bills.ts";
 import { listZipBuffer, readZipBufferEntry } from "../lib/remote-zip.ts";
 
 const BULK = "https://www.govinfo.gov/bulkdata";
@@ -28,7 +28,7 @@ const all = (x: string, t: string) => [...x.matchAll(new RegExp(`<${t}>([\\s\\S]
 const unxml = (s: string | null) => s?.replace(/<!\[CDATA\[|\]\]>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;|&#39;/g, "'") ?? null;
 const drop = (x: string, ...ts: string[]) => ts.reduce((s, t) => s.replace(new RegExp(`<${t}>[\\s\\S]*?</${t}>`, "g"), ""), x);
 
-type Action = { date: string; text: string; type: string; code: string | null };
+type Action = { date: string; text: string; type: string; code: string | null; roll: string | null; chamber: string | null };
 
 /** Stage from the action record. Floor passage is read from the action codes (8000 House, 17000 Senate) or their text. */
 export function stageFor(actions: Action[], hasLaw: boolean, congressOver: boolean): { stage: Stage; date: string | null } {
@@ -55,10 +55,17 @@ export function stageFor(actions: Action[], hasLaw: boolean, congressOver: boole
 export function parseBillStatus(xml: string) {
   const b = drop(tag(xml, "bill") ?? "", "relatedBills", "cosponsors", "titles", "summaries", "textVersions", "cboCostEstimates", "committeeReports",
     "committees", "amendments", "constitutionalAuthorityStatementText", "notes", "cdata");
-  const actionsXml = tag(b, "actions") ?? "";
+  // Actions are read before the committee blocks are stripped: each action's own committee code tells its chamber.
+  const actionsXml = (tag(drop(tag(xml, "bill") ?? "", "relatedBills", "amendments", "cosponsors", "titles", "summaries", "textVersions"), "actions") ?? "")
+    // Nested committee lists would split an action's <item> early; keep only the first committee's code.
+    .replace(/<committees>[\s\S]*?<\/committees>/g, (c) => `<cmte>${tag(c, "systemCode") ?? ""}</cmte>`)
+    .replace(/<recordedVotes>[\s\S]*?<\/recordedVotes>/g, (r) => `<rollUrl>${tag(r, "url") ?? ""}</rollUrl><rollChamber>${tag(r, "chamber") ?? ""}</rollChamber>`);
   const actions: Action[] = all(actionsXml, "item").filter((i) => tag(i, "actionDate")).map((i) => ({
     date: tag(i, "actionDate")!, text: unxml(tag(drop(i, "committees", "sourceSystem"), "text")) ?? "", type: tag(drop(i, "committees", "sourceSystem"), "type") ?? "",
-    code: tag(i, "actionCode") }));
+    code: tag(i, "actionCode"), roll: tag(i, "rollUrl") || null,
+    chamber: (tag(i, "rollChamber") || null) ?? (/^H/.test(tag(i, "actionCode") ?? "") ? "House" : /^S/.test(tag(i, "actionCode") ?? "") ? "Senate" : null)
+      // Committee actions carry no action code; the committee's system code says which chamber (hs..., ss...).
+      ?? ({ h: "House", s: "Senate" } as Record<string, string>)[(tag(i, "cmte") ?? "").slice(0, 1)] ?? null }));
   const subjXml = tag(b, "subjects") ?? "";
   const subjects = [...all(tag(subjXml, "legislativeSubjects") ?? "", "name"), ...(tag(subjXml, "policyArea") ? [tag(tag(subjXml, "policyArea")!, "name")!] : [])].map((s) => unxml(s)!);
   const latest = tag(b, "latestAction") ?? "";
@@ -97,6 +104,27 @@ async function save(xml: string, file: string, modified: string, current: number
     source: "govinfo", source_url: p.url ?? `https://www.congress.gov/bill/${p.congress}th-congress/${URL_KIND[p.type]}/${p.number}`,
     data_url: `${BULK}/BILLSTATUS/${p.congress}/${p.type}/${file}`, source_modified: modified,
   });
+  // History: Congress.gov lists most floor actions twice (the chamber's own record and the Library's); keep one of each.
+  const seen = new Set<string>();
+  const acts = [...p.actions].reverse().sort((a, b) => a.date.localeCompare(b.date)).filter((a) => {
+    const k = `${a.date}|${a.text.replace(/^(Passed\/agreed to in (House|Senate)): /, "")}`;
+    if (seen.has(k)) return false; seen.add(k); return true;
+  });
+  const ch = (c: string | null) => (c === "House" ? "lower" : c === "Senate" ? "upper" : null) as "lower" | "upper" | null;
+  // Roll calls: the tally is in the action's own wording ("Yeas and Nays: 409 - 2", "Yea-Nay Vote. 99 - 1").
+  const votes: BillVote[] = [];
+  const rolls = new Set<string>();
+  for (const a of acts) {
+    const t = a.text.match(/(?:Yeas and Nays|Yea-Nay Vote|Recorded Vote)[^]*?(\d+)\s*-\s*(\d+)/i);
+    if (!t) continue;
+    const key = a.roll ?? `${a.date}|${t[1]}-${t[2]}`;
+    if (rolls.has(key)) continue; rolls.add(key);
+    const roll = a.roll && /clerk\.house\.gov/.test(a.roll) ? "House" : a.roll && /senate\.gov/.test(a.roll) ? "Senate" : null;
+    votes.push({ date: a.date, chamber: ch(a.chamber ?? roll), motion: a.text, yes: Number(t[1]), no: Number(t[2]),
+      result: /agreed to|passed|adopted|ordered to be reported/i.test(a.text) ? "passed" : /failed|not agreed|rejected/i.test(a.text) ? "failed" : null, source_url: a.roll });
+  }
+  await saveHistory(`us-${p.congress}-${p.type}${p.number}`, acts.map((a) => ({ date: a.date, text: a.text, chamber: ch(a.chamber),
+    kind: a.type === "BecameLaw" ? "enacted" : a.type === "Veto" ? "vetoed" : actionKind(a.text) })), votes);
   return { relevant: true, added };
 }
 

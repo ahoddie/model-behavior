@@ -4,7 +4,7 @@ import "./env.ts";
 import { pool } from "../src/lib/db.ts";
 import { notifySite } from "./lib/ingest.ts";
 
-export const IMPORTERS = ["lda", "fec", "propublica", "regulations", "congress", "openstates", "bills-federal", "bills-ca", "bills-states", "state-lobbying", "news", "social", "blogs", "transcripts"] as const;
+export const IMPORTERS = ["lda", "fec", "propublica", "regulations", "congress", "openstates", "bills-federal", "bills-ncsl", "bills-ca", "bills-states", "state-lobbying", "news", "social", "blogs", "transcripts"] as const;
 
 export async function runImporters(names: string[]) {
   const results: Record<string, number | string> = {};

@@ -812,7 +812,24 @@ export async function billJurisdictionCounts() {
   return [...out.values()].sort((a, b) => a.jurisdiction_sort - b.jurisdiction_sort);
 }
 
-/** The public record for one bill, by its bills.id or by the id of the map node it belongs to. */
-export async function getBillRecord(id: string): Promise<BillRecord | null> {
-  return (await allBills()).find((b) => b.id === id || b.node_id === id) ?? null;
+export type BillActionRow = { seq: number; date: string; text: string; chamber: string | null; kind: string | null };
+export type BillVoteRow = { seq: number; date: string; chamber: string | null; motion: string; yes: number | null; no: number | null;
+  other: number | null; result: string | null; source_url: string | null };
+
+/** A bill's dated action history (oldest first) and roll-call tallies, as the source records them. */
+export async function getBillHistory(billId: string): Promise<{ actions: BillActionRow[]; votes: BillVoteRow[] }> {
+  "use cache";
+  cached();
+  try {
+    const [actions, votes] = await Promise.all([
+      q<BillActionRow>(`SELECT seq, date::text, text, chamber, kind FROM bill_actions WHERE bill_id=$1 ORDER BY seq`, [billId]),
+      q<BillVoteRow>(`SELECT seq, date::text, chamber, motion, yes, no, other, result, source_url FROM bill_votes WHERE bill_id=$1 ORDER BY seq`, [billId])]);
+    return { actions, votes };
+  } catch { return { actions: [], votes: [] }; }
+}
+
+/** The public record for one bill, by its bills.id or by the id of the map node it belongs to, with its history and votes. */
+export async function getBillRecord(id: string): Promise<(BillRecord & { actions: BillActionRow[]; votes: BillVoteRow[] }) | null> {
+  const b = (await allBills()).find((x) => x.id === id || x.node_id === id);
+  return b ? { ...b, ...(await getBillHistory(b.id)) } : null;
 }
