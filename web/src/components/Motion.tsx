@@ -9,34 +9,7 @@ const TARGETS = "[data-reveal], .home-sec, .rc, .tc, .pbal-bar, .pmeter, .race-t
 // React marks each element it owns with a "__reactFiber$…" key once it has hydrated it.
 const hydrated = (el: Element) => Object.keys(el).some((k) => k.startsWith("__reactFiber$"));
 
-// View transitions (page changes, and the theme switch) are skipped by the browser when the tab is hidden or another one
-// interrupts them. That rejects the transition's "ready" promise, which nobody else listens to, so it surfaced as a console
-// error. Every transition gets a quiet handler here; whoever started it still sees the rejection on its own.
-// While a transition's update runs, the screen shows a frozen picture of the old page. React's update waits for the
-// navigation to finish, so a slow render held that picture until the browser gave up (about 4 s) with a TimeoutError.
-// The update is capped at HOLD: after that the transition goes ahead with whatever is on the page, and the rest of the
-// render lands normally a moment later.
-const HOLD = 700;
-function quietTransitions() {
-  const doc = document as Document & { __quietVT?: boolean };
-  if (!doc.startViewTransition || doc.__quietVT) return;
-  doc.__quietVT = true;
-  const start = doc.startViewTransition.bind(doc);
-  type Arg = Parameters<typeof start>[0];
-  const capped = (update: () => unknown) => () =>
-    Promise.race([Promise.resolve(update()), new Promise((done) => setTimeout(done, HOLD))]);
-  doc.startViewTransition = ((arg?: Arg) => {
-    const opts = typeof arg === "function" ? { update: arg } : arg;
-    const t = start(opts?.update ? { ...opts, update: capped(opts.update) } as Arg : arg);
-    t.ready.catch(() => {});
-    t.finished.catch(() => {});
-    t.updateCallbackDone.catch(() => {});
-    return t;
-  }) as typeof doc.startViewTransition;
-}
-
 export default function Motion() {
-  useEffect(quietTransitions, []);
   useEffect(() => {
     if (matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) return;
     const root = document.documentElement;

@@ -7,7 +7,9 @@ import PageNames from "@/components/PageNames";
 import MainNav, { NavLinks } from "@/components/MainNav";
 import HeaderSearch from "@/components/HeaderSearch";
 import Motion from "@/components/Motion";
-import ThemeToggle, { THEME_SCRIPT } from "@/components/ThemeToggle";
+import { VT_SCRIPT } from "@/lib/motion";
+import ThemeToggle from "@/components/ThemeToggle";
+import { THEME_SCRIPT } from "@/lib/theme";
 import { Lockup } from "@/components/Logo";
 import { SITE_NAME } from "@/lib/brand";
 import "./globals.css";
@@ -25,7 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT + ";" + VT_SCRIPT }} />
         <a className="skip" href="#main">Skip to content</a>
         <header className="masthead">
           <span className="brand"><Link href="/" className="wordmark" aria-label={`${SITE_NAME} home`}><Lockup /></Link><span className="beta" title="Work in progress: data and features are still being checked">Beta</span></span>

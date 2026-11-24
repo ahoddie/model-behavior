@@ -1,10 +1,8 @@
 "use client";
 // Light and dark switch. The choice is saved in the browser; with no saved choice the site follows the device setting.
-// THEME_SCRIPT runs before the page paints (see layout.tsx) so a dark page never flashes light first.
+// THEME_SCRIPT (lib/theme.ts) runs before the page paints (see layout.tsx) so a dark page never flashes light first.
 import { useEffect, useState, type MouseEvent } from "react";
-
-const KEY = "theme";
-export const THEME_SCRIPT = `try{var t=localStorage.getItem("${KEY}");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t}catch(e){}`;
+import { THEME_KEY as KEY } from "@/lib/theme";
 
 export default function ThemeToggle() {
   const [dark, setDark] = useState(false);
