@@ -179,3 +179,8 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 ## thin-people-04
 - karthik-ganapathy ("former Sanders aide"; elsewhere a Semafor source calls him a former Bernie Sanders spokesman, so check), kemba-walden ("President, Paladin Global Institute"): descriptor claims with no supporting fact on their own nodes.
 - m-liss-hadley: node source is an FEC API URL with api_key=DEMO_KEY; the committee page is https://www.fec.gov/data/committee/C00930503/?cycle=2026&tab=about-committee.
+
+## thin-people-05
+- sarah-may-stern / sarah-stern: likely the same Hudson Institute board chair (990 "Chair" vs hudson.org "President of the Board of Trustees").
+- nathan-click ("longtime adviser to Gov. Gavin Newsom"), rob-flaherty ("Democratic campaign veteran"): descriptor claims with no supporting fact.
+- phil-cox: only source is InfluenceWatch citing the New York Times.
