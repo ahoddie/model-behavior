@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import CiteButton from "@/components/CiteButton";
 import { sourceName } from "@/lib/format";
 import Linked from "@/components/Linked";
 import Link from "@/components/Link";
@@ -215,7 +214,7 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
             <li key={f.id}>
               <div className="when">{fmtDate(f.date)}<br /><span className="tag">{f.kind}</span></div>
               <div>
-                {f.excerpt ? <blockquote>“{f.excerpt}” <Src url={f.url} archive={f.archive_url} /> <CiteButton small kind="quote" speaker={p.node.name} quote={f.excerpt} date={fmtDate(f.date)} url={f.url} archive={f.archive_url} outlet={sourceName(f.url)} /></blockquote> : <p style={{ margin: 0 }}>{f.summary} <Src url={f.url} archive={f.archive_url} /></p>}
+                {f.excerpt ? <blockquote>“{f.excerpt}” <Src url={f.url} archive={f.archive_url} /></blockquote> : <p style={{ margin: 0 }}>{f.summary} <Src url={f.url} archive={f.archive_url} /></p>}
                 <p className="mono muted" style={{ margin: "4px 0 0" }}>
                   {[f.platform, f.stance && `${f.stance}${f.target_name ? ` · ${f.target_name}` : ""}`, ...f.issues].filter(Boolean).join(" · ")}
                 </p>

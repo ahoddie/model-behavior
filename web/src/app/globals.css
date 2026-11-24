@@ -751,7 +751,7 @@ a.stance-src::after { content: none; }
 .topic-evidence { margin: 6px 0 8px; padding-left: 1em; font-size: 14px; }
 .topic-evidence li { margin-bottom: 6px; }
 .topic-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.topic-basis { font-size: 14px; margin: 4px 0 0; max-width: 70ch; }
+.topic-basis { font-size: 14px; margin: 4px 0 0; }
 @media (max-width: 800px) { .topic-cols, .topic-cols-4 { grid-template-columns: 1fr; } }
 
 /* Race pages: the seat line, outside spending around a center axis, candidate totals. */

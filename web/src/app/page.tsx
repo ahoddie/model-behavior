@@ -139,7 +139,7 @@ export default async function Home() {
         <p className="sec-lede">The latest public statements, word for word.</p>
         <ul className="record">{quotes.slice(0, 6).map((f: any) => (
           <li key={f.id}><div className="when">{fmtDate(f.date)}</div>
-            <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /> <CiteButton small kind="quote" speaker={f.name} quote={f.excerpt} date={fmtDate(f.date)} url={f.url} archive={f.archive_url} outlet={sourceName(f.url)} /></p>
+            <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /></p>
               <p className="note"><Link href={`/node/${f.node_id}`}>{f.name}</Link>{f.target_name && <> · on {f.target_id ? <Link href={`/node/${f.target_id}`}>{f.target_name}</Link> : f.target_name}</>}</p></div></li>
         ))}</ul>
         <p className="more"><Link href="/search">Search every statement</Link></p>
