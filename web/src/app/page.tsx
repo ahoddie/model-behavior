@@ -14,13 +14,14 @@ import TalkChart, { type TalkIssue, type ActorTopic } from "@/components/TalkCha
 import { sourceName } from "@/lib/format";
 import HomeNav from "@/components/HomeNav";
 
+// Ordered for someone new to this: who has the money, then the fights it lands on and who is on each side, then what
+// they say, and last the wider analysis by issue and over time. The page links (Network and the rest) sit under the title.
 const SECTIONS: { id: string; label: string; title: string }[] = [
   { id: "money", label: "Where money goes", title: "Where is the money going?" },
-  { id: "issues", label: "Policy priorities", title: "What do they care about?" },
   { id: "stances", label: "Positions", title: "Where do they stand?" },
-  { id: "trend", label: "Change over time", title: "How has that changed?" },
   { id: "words", label: "Quotes", title: "What are they saying?" },
-  { id: "map", label: "Network", title: "How is it all connected?" },
+  { id: "issues", label: "Policy priorities", title: "What do they care about?" },
+  { id: "trend", label: "Change over time", title: "How has that changed?" },
 ];
 
 const SIDES = [["support", "Supported"], ["mixed", "Mixed or conditional"], ["oppose", "Opposed"]] as const;
@@ -101,6 +102,49 @@ export default async function Home() {
         <p className="more"><Link href="/money">Trace the money</Link></p>
       </section>
 
+      <section id="stances" className="home-sec">
+        <div className="sec-head"><h2>Where do they stand?</h2><CiteButton kind="page" title="Where do they stand?" path="/#stances" asOf={asOf} /></div>
+        <p className="sec-lede">
+          The bills, orders, and rules with the most public positions. Each name links to its source.
+        </p>
+        {stances.slice(0, 4).map((t: any) => (
+          <article key={t.id} className="stance">
+            <h3><Link href={`/node/${t.id}`}>{t.name}</Link></h3>
+            {t.descriptor && <p className="note">{t.descriptor}</p>}
+            {(() => {
+              const sides = SIDES.map(([side, label]) => ({ side, label, who: t.actors.filter((a: any) => sideOf(a.stance) === side) })).filter((x) => x.who.length);
+              return (
+                <div className="stance-cols" style={{ ["--n" as any]: sides.length }}>
+                  {sides.map(({ side, label, who }) => (
+                    <div key={side} className={`stance-side ${side}`}>
+                      <h4>{label} <span className="muted">{who.length}</span></h4>
+                      <ul>{who.slice(0, SHOW).map((a: any) => (
+                        <li key={a.id}><Named node={a}><Link href={`/node/${a.id}`}>{a.name}</Link></Named>
+                          <a className="stance-src" href={a.url} target="_blank" rel="noreferrer" title={sourceName(a.url)} aria-label={`Source: ${sourceName(a.url)}`}>
+                            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden><path d="M3 1.5h5.5V7M8.5 1.5 1.5 8.5" fill="none" stroke="currentColor" strokeWidth="1.3" /></svg>
+                          </a></li>
+                      ))}{who.length > SHOW && <li className="who-rest"><Link href={`/node/${t.id}`}>and {who.length - SHOW} more</Link></li>}</ul>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </article>
+        ))}
+        <p className="more"><Link href="/targets">Every bill, rule, and race, with who weighed in</Link></p>
+      </section>
+
+      <section id="words" className="home-sec">
+        <div className="sec-head"><h2>What are they saying?</h2><CiteButton kind="page" title="What are they saying?" path="/#words" asOf={asOf} /></div>
+        <p className="sec-lede">The latest public statements, word for word.</p>
+        <ul className="record">{quotes.slice(0, 6).map((f: any) => (
+          <li key={f.id}><div className="when">{fmtDate(f.date)}</div>
+            <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /> <CiteButton small kind="quote" speaker={f.name} quote={f.excerpt} date={fmtDate(f.date)} url={f.url} archive={f.archive_url} outlet={sourceName(f.url)} /></p>
+              <p className="note"><Link href={`/node/${f.node_id}`}>{f.name}</Link>{f.target_name && <> · on {f.target_id ? <Link href={`/node/${f.target_id}`}>{f.target_name}</Link> : f.target_name}</>}</p></div></li>
+        ))}</ul>
+        <p className="more"><Link href="/search">Search every statement</Link></p>
+      </section>
+
       {analysis && <section id="issues" className="home-sec">
         <div className="sec-head"><h2>What do they care about?</h2><CiteButton kind="page" title="What do they care about?" path="/#issues" asOf={asOf} /></div>
         <p className="sec-lede">
@@ -144,38 +188,6 @@ export default async function Home() {
         </p>
       </section>}
 
-      <section id="stances" className="home-sec">
-        <div className="sec-head"><h2>Where do they stand?</h2><CiteButton kind="page" title="Where do they stand?" path="/#stances" asOf={asOf} /></div>
-        <p className="sec-lede">
-          The bills, orders, and rules with the most public positions. Each name links to its source.
-        </p>
-        {stances.map((t: any) => (
-          <article key={t.id} className="stance">
-            <h3><Link href={`/node/${t.id}`}>{t.name}</Link></h3>
-            {t.descriptor && <p className="note">{t.descriptor}</p>}
-            {(() => {
-              const sides = SIDES.map(([side, label]) => ({ side, label, who: t.actors.filter((a: any) => sideOf(a.stance) === side) })).filter((x) => x.who.length);
-              return (
-                <div className="stance-cols" style={{ ["--n" as any]: sides.length }}>
-                  {sides.map(({ side, label, who }) => (
-                    <div key={side} className={`stance-side ${side}`}>
-                      <h4>{label} <span className="muted">{who.length}</span></h4>
-                      <ul>{who.map((a: any) => (
-                        <li key={a.id}><Named node={a}><Link href={`/node/${a.id}`}>{a.name}</Link></Named>
-                          <a className="stance-src" href={a.url} target="_blank" rel="noreferrer" title={sourceName(a.url)} aria-label={`Source: ${sourceName(a.url)}`}>
-                            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden><path d="M3 1.5h5.5V7M8.5 1.5 1.5 8.5" fill="none" stroke="currentColor" strokeWidth="1.3" /></svg>
-                          </a></li>
-                      ))}</ul>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-          </article>
-        ))}
-        <p className="more"><Link href="/targets">Every bill, rule, and race</Link></p>
-      </section>
-
       <section id="trend" className="home-sec">
         <div className="sec-head"><h2>How has that changed?</h2><CiteButton kind="page" title="How has that changed?" path="/#trend" asOf={asOf} /></div>
         <p className="sec-lede">
@@ -187,25 +199,6 @@ export default async function Home() {
           <span><i className="sw sw-oppose" aria-hidden /> Opposed</span>
         </div>
         <TrendChart label="Public positions on bills and rules, by year" years={byYear} current={Number(today.slice(0, 4))} />
-      </section>
-
-      <section id="words" className="home-sec">
-        <div className="sec-head"><h2>What are they saying?</h2><CiteButton kind="page" title="What are they saying?" path="/#words" asOf={asOf} /></div>
-        <p className="sec-lede">The latest public statements, word for word.</p>
-        <ul className="record">{quotes.map((f: any) => (
-          <li key={f.id}><div className="when">{fmtDate(f.date)}</div>
-            <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /> <CiteButton small kind="quote" speaker={f.name} quote={f.excerpt} date={fmtDate(f.date)} url={f.url} archive={f.archive_url} outlet={sourceName(f.url)} /></p>
-              <p className="note"><Link href={`/node/${f.node_id}`}>{f.name}</Link>{f.target_name && <> · on {f.target_id ? <Link href={`/node/${f.target_id}`}>{f.target_name}</Link> : f.target_name}</>}</p></div></li>
-        ))}</ul>
-        <p className="more"><Link href="/search">Search every statement</Link></p>
-      </section>
-
-      <section id="map" className="home-sec">
-        <div className="sec-head"><h2>How is it all connected?</h2><CiteButton kind="page" title="How is it all connected?" path="/#map" asOf={asOf} /></div>
-        <p className="sec-lede">
-          Who funds whom, and the elections, bills, and rules it reaches.
-        </p>
-        <p className="more"><Link href="/map">Open the network</Link></p>
       </section>
       </div>
     </div>
