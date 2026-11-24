@@ -69,3 +69,8 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - defend-american-jobs, protect-progress: descriptors are bare FEC IDs; Wikipedia's Fairshake page says they're Fairshake affiliates (Republican and Democratic, respectively).
 - smart-justice-california-action-fund: descriptor is just "Organization".
 - law-ai: couldn't confirm what it does (site blocks fetching; 990 page didn't load).
+
+## orgs-10
+- isomorphic-labs / demis-hassabis: a Fortune fact (2026-08-05) says Hassabis became chairman of Isomorphic Labs; the article says chairman of Google DeepMind and Alphabet chief scientist.
+- jane-street: money row credits the firm as a METR funder; metr.org/about names "individuals from Jane Street", not the firm (money-credit rule).
+- founders-pledge: lawzero.org credits Jaan Tallinn "with Founders Pledge Inc."; the LawZero gift may be Tallinn's, given through Founders Pledge.
