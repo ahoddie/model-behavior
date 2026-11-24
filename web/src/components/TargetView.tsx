@@ -43,7 +43,7 @@ export default function TargetView({ t, coverage, text }: { t: any; coverage: Co
   const weighed = (!isRace || t.pushes.length > 0) && t.pushes.length > 0;
   const rail: RailProps = {
     sections: [{ id: "overview", label: "Overview" },
-      ...(race?.outside ? [{ id: "race-outside", label: "Spending" }] : []), ...(race?.candidates ? [{ id: "race-cands", label: "Candidates" }] : []),
+      ...(race?.result ? [{ id: "race-result", label: "Result" }] : []), ...(race?.outside ? [{ id: "race-outside", label: "Spending" }] : []), ...(race?.candidates ? [{ id: "race-cands", label: "Candidates" }] : []),
       ...(weighed ? [{ id: "positions", label: "Positions" }] : []), ...(t.statements.length ? [{ id: "statements", label: "Statements" }] : []),
       ...(sources.length ? [{ id: "sources", label: "Sources" }] : [])],
     back: isRace ? { fallback: "/targets?kind=elections", label: "Elections" } : { fallback: n.type === "rule" ? "/targets?kind=rules" : "/targets", label: "Policy" },

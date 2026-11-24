@@ -1,17 +1,18 @@
 import Link from "@/components/Link";
 import Select from "@/components/Select";
 import { fmtMoney, STATE_NAMES } from "@/lib/format";
+import { outcomeText, fmtPct, statusText, type CandidateResult, type RaceResult } from "@/lib/election";
 
 // The Elections tab: one panel per seat, each the same size whatever was spent there, so a quiet $1,000 check in one
 // district gets the same room as a multimillion-dollar fight in another. A seat is a race on record or, for a candidate
 // whose race has no page, the seat named in the candidate's description.
 
 type Spend = { cand: string; actor: string; actor_name: string; subtype: string; stance: string | null; amount: number; n: number };
-type Cand = { id: string; name: string; party: string | null; incumbent: boolean };
+type Cand = { id: string; name: string; party: string | null; incumbent: boolean; result: CandidateResult | null };
 type Line = { actor: string; actor_name: string; cand: Cand; kind: "for" | "against" | "gave"; amount: number };
 export type Seat = {
   key: string; cycle: string; st: string; office: "sen" | "house"; district: string | null; href: string;
-  cands: Cand[]; lines: Line[]; outside: number; given: number;
+  cands: Cand[]; lines: Line[]; outside: number; given: number; result: RaceResult | null;
 };
 
 const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
@@ -30,16 +31,16 @@ const fromRaceId = (id: string) => {
 };
 const candOf = (t: any): Cand => {
   const p = t.descriptor?.match(/\((DEM|REP|IND|LIB|GRE)\)/)?.[1];
-  return { id: t.id, name: t.name, party: p ? PARTY[p] : null, incumbent: /incumbent/i.test(t.descriptor ?? "") };
+  return { id: t.id, name: t.name, party: p ? PARTY[p] : null, incumbent: /incumbent/i.test(t.descriptor ?? ""), result: t.result ?? null };
 };
 
 export function seatsOf(ts: any[], spend: Spend[]): Seat[] {
   const seats = new Map<string, Seat>();
   const make = (key: string, cycle: string, s: { st: string; office: "sen" | "house"; district: string | null }, href: string) =>
-    seats.get(key) ?? seats.set(key, { key, cycle, ...s, href, cands: [], lines: [], outside: 0, given: 0 }).get(key)!;
+    seats.get(key) ?? seats.set(key, { key, cycle, ...s, href, cands: [], lines: [], outside: 0, given: 0, result: null }).get(key)!;
   for (const t of ts) if (t.type === "race") {
     const s = fromRaceId(t.id);
-    if (s) make(t.id, s.cycle, s, `/node/${t.id}`);
+    if (s) make(t.id, s.cycle, s, `/node/${t.id}`).result = t.result ?? null;
   }
   const candById = new Map<string, { c: Cand; seat: Seat }>();
   for (const t of ts) if (t.type === "lawmaker") {
@@ -65,7 +66,9 @@ export function seatsOf(ts: any[], spend: Spend[]): Seat[] {
     s.lines.sort((a, b) => b.amount - a.amount);
     // Candidates with money on record first, then incumbents, then by name.
     const got = (c: Cand) => s.lines.filter((l) => l.cand.id === c.id).reduce((a, l) => a + l.amount, 0);
-    s.cands.sort((a, b) => got(b) - got(a) || Number(b.incumbent) - Number(a.incumbent) || a.name.localeCompare(b.name));
+    // Once results are in, the winner leads.
+    const won = (c: Cand) => Number(c.result?.outcome === "won" || (!!s.result?.winner && s.result.winner === c.id));
+    s.cands.sort((a, b) => won(b) - won(a) || got(b) - got(a) || Number(b.incumbent) - Number(a.incumbent) || a.name.localeCompare(b.name));
     // A seat with one candidate and no race page opens that candidate.
     if (!s.key.startsWith("race-") && s.cands[0]) s.href = `/node/${s.cands[0].id}`;
   }
@@ -77,6 +80,21 @@ const officeName = (s: Seat) => (s.office === "sen" ? "U.S. Senate" : "U.S. Hous
 const lastName = (n: string) => n.split(/\s+/).pop();
 const SHOW = 4;
 
+// A candidate's outcome: from the race's own result row when there is one, else from the candidate's node.
+function candOutcome(s: Seat, c: Cand): string | null {
+  const row = s.result?.candidates.find((r) => r.id === c.id);
+  if (row && s.result!.status === "called") return `${row.winner ? "Won" : "Lost"}${row.pct != null ? `, ${fmtPct(row.pct)}` : ""}`;
+  return outcomeText(c.result);
+}
+// "Won by Jane Doe, 52.1%. Unofficial results as of Nov 20, 2026" or "Not yet called".
+function resultLine(s: Seat): string | null {
+  const r = s.result;
+  if (!r) return null;
+  if (r.status !== "called") return statusText(r);
+  const w = r.candidates.find((c) => c.winner);
+  return `${r.winner_name ?? w?.name ?? "Winner"} won${w?.pct != null ? ` with ${fmtPct(w.pct)}` : ""}. ${statusText(r)}`;
+}
+
 function Panel({ s }: { s: Seat }) {
   const quiet = !s.lines.length;
   return (
@@ -87,9 +105,11 @@ function Panel({ s }: { s: Seat }) {
         <ul className="rpanel-cands" aria-label="Candidates on record">{s.cands.map((c) => (
           <li key={c.id}><Link href={`/node/${c.id}`}>{c.name}</Link>
             {c.party && <abbr className="rpanel-party" title={PARTY_WORD[c.party]}>{c.party}</abbr>}
-            {c.incumbent && <span className="rpanel-inc">incumbent</span>}</li>
+            {c.incumbent && <span className="rpanel-inc">incumbent</span>}
+            {candOutcome(s, c) && <span className="rpanel-out">{candOutcome(s, c)}</span>}</li>
         ))}</ul>
       )}
+      {resultLine(s) && <p className="rpanel-result">{resultLine(s)}</p>}
       {quiet ? <p className="rpanel-none">No AI-related money on record</p> : (
         <ul className="rpanel-money" aria-label="AI-related money on record">
           {s.lines.slice(0, SHOW).map((l, i) => (

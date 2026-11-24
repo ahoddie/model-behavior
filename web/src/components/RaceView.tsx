@@ -1,6 +1,7 @@
 import Link from "@/components/Link";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import Src from "./Src";
+import { fmtPct, statusText, type RaceResult } from "@/lib/election";
 
 const STATES: Record<string, string> = {
   al: "Alabama", ak: "Alaska", az: "Arizona", ar: "Arkansas", ca: "California", co: "Colorado", ct: "Connecticut", de: "Delaware",
@@ -73,15 +74,49 @@ export default function RaceView({ t }: { t: any }) {
   const pct = (v: number) => `${(v / scale) * 100}%`;
   const s = seat(n.id);
   const incumbent = cands.find((c) => c.status === "incumbent");
+  const result: RaceResult | null = n.external_ids?.result ?? null;
+  // FEC lists a retiring incumbent's committee as a candidate for the seat; the general-election result shows who ran.
+  const incumbentOff = !!(incumbent && result && result.status !== "not_up" && result.candidates.length
+    && !result.candidates.some((c) => last(c.name) === last(incumbent.name)));
 
   return (
     <>
       {s && (
         <p className="race-seat">
           <span>{s.place}</span>
-          <span>{incumbent ? <>Incumbent: {profileOf(incumbent.name)?.name ?? tidy(incumbent.name)}</> : cands.length ? "Open seat" : null}</span>
+          <span>{incumbent ? <>Incumbent: {profileOf(incumbent.name)?.name ?? tidy(incumbent.name)}{incumbentOff ? ", not on the November ballot" : null}</> : cands.length ? "Open seat" : null}</span>
           {count && <span>{count.n} {count.n === 1 ? "candidate" : "candidates"} registered <Src url={count.url} /></span>}
         </p>
+      )}
+
+      {result && (
+        <section className="race-block" aria-labelledby="race-result">
+          <h2 id="race-result">Result</h2>
+          <p className="race-note">
+            {result.status === "called" ? <>General election, {fmtDate(result.election)}. {statusText(result)}.</> : <>{statusText(result)}.</>}
+            {result.note ? <> {result.note}</> : null} <Src url={result.source_url} />
+          </p>
+          {result.candidates.length > 0 && (
+            <div className="race-table-wrap">
+              <table className="data-table race-result">
+                <thead><tr><th>Candidate</th><th>Party</th><th className="num">Votes</th><th className="num">Share</th></tr></thead>
+                <tbody>{result.candidates.map((c, i) => {
+                  const prof = c.id ? t.candidates.find((x: any) => x.id === c.id) : null;
+                  return (
+                    <tr key={i}>
+                      <td><span className="race-name">{prof ? <Link href={`/node/${prof.id}`}>{prof.name}</Link> : c.name}</span>
+                        {c.winner && <span className="race-meta">Winner</span>}</td>
+                      <td>{c.party ? PARTY[c.party] ?? c.party : ""}</td>
+                      <td className="num">{c.votes != null ? c.votes.toLocaleString("en-US") : ""}</td>
+                      <td className="num">{fmtPct(c.pct)}</td>
+                    </tr>
+                  );
+                })}</tbody>
+              </table>
+            </div>
+          )}
+          <p className="race-note">Source: {result.source_name}.</p>
+        </section>
       )}
 
       {rows.length > 0 && (
@@ -164,6 +199,7 @@ export function raceSections(t: any) {
   const facts: { text: string }[] = t.allFacts ?? t.facts;
   const ids = new Set(t.candidates.map((c: any) => c.id));
   return {
+    result: !!t.node.external_ids?.result,
     outside: t.candidatePushes.some((p: Push) => p.amount && (p.stance === "support" || p.stance === "oppose") && ids.has(p.candidate)),
     candidates: facts.some((f) => CAND.test(f.text)),
   };
