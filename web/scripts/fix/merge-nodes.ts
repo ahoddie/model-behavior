@@ -22,6 +22,7 @@ export const PAIRS: { kept: string; merged: string; why: string; evidence: strin
   { kept: "smart-justice-california-action-fund", merged: "ent_pac_smart-justice-california-action-fund_8cfde2", why: "Same committee: both cite Abundant Future's FEC filing (C00922229) naming Smart Justice California Action Fund as donor.", evidence: ["https://docquery.fec.gov/cgi-bin/forms/C00922229/1962725/"] },
   { kept: "us-ndaa-fy2026-ai-preemption", merged: "us-ndaa-ai-preemption-2025", why: "Same effort: the Nov-Dec 2025 push to add state AI-law preemption to the FY2026 NDAA.", evidence: ["https://ari.us/ai-law-preemption-dropped-from-ndaa/", "https://www.citizen.org/news/house-gop-attempts-to-slip-ai-preemption-into-the-ndaa/"] },
   { kept: "sarah-may-stern", merged: "sarah-stern", why: "Hudson Institute's 2025 Form 990 lists Sarah May Stern as Chair; hudson.org lists Sarah Stern as President of the Board of Trustees: the same board leader.", evidence: ["https://projects.propublica.org/nonprofits/organizations/131945157/202611739349301606/full", "https://www.hudson.org/hudson-institute-names-joel-scanlon-president-ceo"] },
+  { kept: "lawmaker-chris-gober", merged: "chris-gober", why: "Same person: the TX-10 Republican candidate is the Austin election lawyer who ran Elon Musk's America PAC.", evidence: ["https://news.bloomberglaw.com/business-and-practice/elon-musk-pacs-lawyer-files-for-congressional-seat-in-texas", "https://ballotpedia.org/Chris_Gober"] },
 ];
 
 const DRY = process.argv.includes("--dry-run");

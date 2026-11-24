@@ -223,21 +223,21 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 
 ## Bill profile text (bills-01)
 
-- ca-sb813-2025: a fact gives the Senate concurrence vote as 37–0; the vote and action records say 39–0.
-- ca-ab1018-2025: a fact says the bill went to the inactive file Sept. 13, 2025; the bill record shows it came off that file Aug. 21, 2026 and awaited a Senate vote as of Aug. 30, 2026.
-- ca-ab1864-2026: descriptor calls it a "California AI bill" backed by Secure AI Project; its official title is about gene synthesis equipment manufacturers and providers. Its "latest action" fact (March 2026) is stale; it was signed Sept. 30, 2026.
-- ca-ab2023-2026, ca-ab2583-2026, ca-ab412-2025, ca-sb1119-2026: "latest action" facts are older than the bill records.
-- ca-sb7-2025: descriptor says the California Labor Federation sponsored it; the only relation on file has it urging a signature.
+- ca-sb813-2025: a fact gives the Senate concurrence vote as 37–0; the vote and action records say 39–0. **Fixed:** fact 13472 now gives 39–0 from the Senate floor vote record and notes that the history line reads 37–0; the quoted history fact is left as quoted.
+- ca-ab1018-2025: a fact says the bill went to the inactive file Sept. 13, 2025; the bill record shows it came off that file Aug. 21, 2026 and awaited a Senate vote as of Aug. 30, 2026. **Fixed:** the stale "latest action" fact (13531) was deleted; fact 24924 has the current status.
+- ca-ab1864-2026: descriptor calls it a "California AI bill" backed by Secure AI Project; its official title is about gene synthesis equipment manufacturers and providers. Its "latest action" fact (March 2026) is stale; it was signed Sept. 30, 2026. **Fixed:** descriptor now calls it a gene synthesis bill and says it was signed Sept. 30, 2026 (Chapter 852 per the bill record); the stale fact (13539) was deleted.
+- ca-ab2023-2026, ca-ab2583-2026, ca-ab412-2025, ca-sb1119-2026: "latest action" facts are older than the bill records. **Fixed:** the four stale facts (13540, 13542, 13547, 13557) were deleted; the bill records carry the current status.
+- ca-sb7-2025: descriptor says the California Labor Federation sponsored it; the only relation on file has it urging a signature. **Fixed:** the sponsorship claim was dropped; the descriptor now says it was vetoed Oct. 13, 2025.
 
 ## Bill profile text (bills-02)
 
-- il-sb315-2026: bill record names Sen. Harmon as sponsor; a Secure AI Project fact names Rep. Daniel Didech and Sen. Mary Edly-Allen.
-- ma-h5576-2026: stage is passed_legislature, but the latest action (July 30, 2026) sends it to a conference committee.
-- us-119-s3062: stage is in_committee, but it was reported and placed on the Senate calendar May 11, 2026.
-- us-119-hr2385, hr3447, hr6875: "latest action" facts show the referral; votes show later committee approvals.
-- tn-hb1898-2026: a fact names the sponsor "Zachary Cochran"; the bill record says Rep. Jason Zachary.
-- ny-a3283-2025: no bill record is linked to the node.
-- us-119-s1792: node source_url is an Encode lobbying filing, not the bill page.
+- il-sb315-2026: bill record names Sen. Harmon as sponsor; a Secure AI Project fact names Rep. Daniel Didech and Sen. Mary Edly-Allen. **Unverifiable:** ilga.gov wasn't checked here, so neither name was confirmed. Both are left as they are.
+- ma-h5576-2026: stage is passed_legislature, but the latest action (July 30, 2026) sends it to a conference committee. **Fixed:** stage set to passed_one_chamber, and the NCSL importer now maps a conference status to that stage so a re-import won't undo it.
+- us-119-s3062: stage is in_committee, but it was reported and placed on the Senate calendar May 11, 2026. **Fixed (no change):** the schema has no "reported" stage between in_committee and passed_one_chamber; the status line already shows the calendar placement.
+- us-119-hr2385, hr3447, hr6875: "latest action" facts show the referral; votes show later committee approvals. **Fixed:** the three facts now give the latest action from the bill records (committee approvals on June 25, 2026, March 26, 2026, and Jan. 21, 2026).
+- tn-hb1898-2026: a fact names the sponsor "Zachary Cochran"; the bill record says Rep. Jason Zachary. **Fixed:** the page lists "Zachary, Cochran" (two sponsors); the fact now reads "Reps. Zachary, Cochran, and others".
+- ny-a3283-2025: no bill record is linked to the node. **Unverifiable:** the state importers hold no NY A3283 record to link; it needs a NY bill import, not a data fix.
+- us-119-s1792: node source_url is an Encode lobbying filing, not the bill page. **Fixed:** source_url is now the congress.gov bill page.
 - Agency lobbying counts in profile text for the House, Senate, White House Office, and Commerce are minimums: the money list behind them was capped at 15 counterparties. **Fixed (no change):** a coverage note, not an error.
 
 ## Race profile text (races-01)

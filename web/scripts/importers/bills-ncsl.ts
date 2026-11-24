@@ -63,6 +63,8 @@ export function stageFor(b: NcslBill): { stage: Stage; date: string | null } {
   if (s.startsWith("vetoed") || s.startsWith("override pending")) return { stage: "vetoed", date: last(/veto/i) ?? b.lastAction };
   if (s.startsWith("to governor")) return { stage: "passed_legislature", date: last(/to governor|enrolled/i) ?? b.lastAction };
   if (s.startsWith("failed")) return { stage: "failed", date: b.lastAction };
+  // In conference: each chamber passed its own version, so the legislature has not passed one bill (ma-h5576-2026).
+  if (/conference/.test(s)) return { stage: "passed_one_chamber", date: last(/\bPassed (SENATE|HOUSE|ASSEMBLY|LEGISLATURE)\b/i) ?? b.lastAction };
   const passed = new Set(b.history.filter((h) => /\bPassed (SENATE|HOUSE|ASSEMBLY|LEGISLATURE)\b/i.test(h.text)).map((h) => h.text.match(/Passed (\w+)/i)![1].toUpperCase()));
   if (passed.size >= 2 || (b.st === "ne" && passed.size >= 1)) return { stage: "passed_legislature", date: last(/\bPassed (SENATE|HOUSE|ASSEMBLY|LEGISLATURE)\b/i) };
   if (passed.size === 1) return { stage: "passed_one_chamber", date: last(/\bPassed (SENATE|HOUSE|ASSEMBLY|LEGISLATURE)\b/i) };
