@@ -5,7 +5,7 @@
 import { usePathname } from "next/navigation";
 import Link from "@/components/Link";
 
-export const NAV = [["/map", "Network"], ["/money", "Funding"], ["/targets", "Policy"], ["/topics", "Stances"], ["/about", "About"]] as const;
+export const NAV = [["/map", "Network"], ["/money", "Funding"], ["/targets", "Policy"], ["/statements", "Statements"], ["/about", "About"]] as const;
 
 export function NavLinks({ path }: { path?: string | null }) {
   return <>{NAV.map(([href, label]) => (

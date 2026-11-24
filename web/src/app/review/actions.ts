@@ -94,7 +94,7 @@ export async function decideQueued(form: FormData) {
   revalidatePath("/review");
 }
 
-// A reviewer's check of one machine reading for the Stances page. Confirmed readings appear there with the reviewer's answer.
+// A reviewer's check of one machine reading for the Statements page. Confirmed readings appear there with the reviewer's answer.
 export async function decideStance(form: FormData) {
   await localOnly();
   const feed = Number(form.get("feed_id"));

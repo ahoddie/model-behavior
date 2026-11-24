@@ -4,7 +4,7 @@ import { fmtDate } from "@/lib/format";
 import Src from "@/components/Src";
 import SectionNav from "@/components/SectionNav";
 
-export const metadata = { title: "Stances · Model Behavior" };
+export const metadata = { title: "Statements · Model Behavior" };
 
 const ANSWER = ["disagrees strongly", "disagrees", "no clear side", "agrees", "agrees strongly"];
 
@@ -54,9 +54,9 @@ export default async function Topics() {
   const topics = (await getTopics()).filter((t) => t.agree.length + t.mixed.length + t.neutral.length + t.disagree.length > 0);
   return (
     <div className="home">
-      <SectionNav items={topics.map((t) => ({ id: t.id, label: t.label }))} label="Stances" />
+      <SectionNav items={topics.map((t) => ({ id: t.id, label: t.label }))} label="Statements" />
       <div className="home-main page">
-        <h1>Stances</h1>
+        <h1>Statements</h1>
         {topics.map((t) => (
           <section key={t.id} id={t.id} className="topic">
             <h2>{t.positive}</h2>

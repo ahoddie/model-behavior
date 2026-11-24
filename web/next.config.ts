@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/", has: [{ type: "query", key: "focus" }], destination: "/map", permanent: false },
       { source: "/", has: [{ type: "query", key: "view", value: "time" }], destination: "/map", permanent: false },
+      // The Stances page is now Statements.
+      { source: "/topics", destination: "/statements", permanent: true },
     ];
   },
 };

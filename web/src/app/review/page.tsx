@@ -65,7 +65,7 @@ export default async function Review(props: PageProps<"/review">) {
 
       {readings.length > 0 && <section id="stances" style={{ marginBottom: "var(--s5)" }}>
         <h2>Stance readings ({readings.length})</h2>
-        <p className="note">A quote reaches the Stances page only after you confirm it here. Confirm only when the quote itself takes a side on the statement. Reject it when the side must be inferred or the quote is about something else.</p>
+        <p className="note">A quote reaches the Statements page only after you confirm it here. Confirm only when the quote itself takes a side on the statement. Reject it when the side must be inferred or the quote is about something else.</p>
         {readings.map((r) => (
           <form key={`${r.feed_id}-${r.topic_id}`} action={decideStance} className="panel review-item">
             <input type="hidden" name="feed_id" value={r.feed_id} />

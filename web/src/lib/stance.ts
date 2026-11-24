@@ -1,4 +1,4 @@
-// How the Stances page places one actor on one topic, and how it keeps one quote from counting twice. Pure functions: no database.
+// How the Statements page places one actor on one topic, and how it keeps one quote from counting twice. Pure functions: no database.
 export type Side = "agree" | "disagree" | "mixed" | "neutral";
 type Dated = { v: number; date: string | null };
 

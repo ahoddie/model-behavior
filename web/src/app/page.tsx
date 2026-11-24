@@ -16,7 +16,7 @@ import { sourceName } from "@/lib/format";
 const SECTIONS: { id: string; label: string; title: string }[] = [
   { id: "money", label: "Where money goes", title: "Where is the money going?" },
   { id: "issues", label: "Policy priorities", title: "What do they care about?" },
-  { id: "stances", label: "Stances", title: "Where do they stand?" },
+  { id: "stances", label: "Positions", title: "Where do they stand?" },
   { id: "trend", label: "Change over time", title: "How has that changed?" },
   { id: "words", label: "Quotes", title: "What are they saying?" },
   { id: "map", label: "Network", title: "How is it all connected?" },
@@ -44,9 +44,9 @@ function Who({ sides, topicId }: { sides?: { agree: IssueActor[]; disagree: Issu
   if (!sides || !(sides.agree.length + sides.disagree.length)) return null;
   return (
     <div className="who">
-      <Side label="Agree" side="support" actors={sides.agree} more={topicId && `/topics#${topicId}`} />
-      <Side label="Disagree" side="oppose" actors={sides.disagree} more={topicId && `/topics#${topicId}`} />
-      {topicId && <Link className="who-more" href={`/topics#${topicId}`}>Read their quotes</Link>}
+      <Side label="Agree" side="support" actors={sides.agree} more={topicId && `/statements#${topicId}`} />
+      <Side label="Disagree" side="oppose" actors={sides.disagree} more={topicId && `/statements#${topicId}`} />
+      {topicId && <Link className="who-more" href={`/statements#${topicId}`}>Read their quotes</Link>}
     </div>
   );
 }

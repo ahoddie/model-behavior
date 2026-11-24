@@ -14,7 +14,7 @@ import { q } from "./db";
 // under way, and it makes one request at a time so a reader's request always gets a turn.
 const g = globalThis as unknown as { __mbWarm?: { timer?: ReturnType<typeof setTimeout>; pass: number } };
 const state = (g.__mbWarm ??= { pass: 0 });
-const PAGES = ["/", "/map", "/money", "/targets", "/topics", "/data", "/search"];
+const PAGES = ["/", "/map", "/money", "/targets", "/statements", "/data", "/search"];
 // turbopackIgnore: these are runtime paths, not files for the bundler to trace into the build.
 const dist = join(/*turbopackIgnore: true*/ process.cwd(), process.env.NEXT_DIST_DIR || ".next");
 const marker = join(dist, "cache", "warmed");
