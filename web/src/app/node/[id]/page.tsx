@@ -188,7 +188,17 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
                 <div><p>{l.dir === "out"
                   ? <>{l.subtype ? cap(l.subtype) : "Payment"} of {dollars(l.amount)} to <Link href={`/node/${l.other_id}`}>{l.other_name}</Link>.</>
                   : <>Received {dollars(l.amount)} from <Link href={`/node/${l.other_id}`}>{l.other_name}</Link>.</>}<Src url={l.source_url} /></p>
+                  {l.recommended_by && <p className="note">Recommended by <Link href={`/node/${l.recommended_by.id}`}>{l.recommended_by.name}</Link>.<Src url={l.recommended_by.source_url} /></p>}
                   {l.note && <p className="note">{l.note}</p>}</div></li>
+            ))}</ul>
+          </section>}
+          {p.recommended.length > 0 && <section>
+            <h2>Grants it recommended</h2>
+            <p className="note">Grants {p.node.name} recommended that another funder paid. They are counted once, under the funder that paid, and are not in {p.node.name}&apos;s totals.</p>
+            <ul className="record">{p.recommended.map((r: any) => (
+              <li key={r.id}><div className="when">{fmtDate(r.date_start) || "Undated"}</div>
+                <div><p>Recommended {dollars(r.amount)} to <Link href={`/node/${r.other_id}`}>{r.other_name}</Link>, paid by <Link href={`/node/${r.payer_id}`}>{r.payer_name}</Link>.<Src url={r.source_url} /></p>
+                  {r.note && <p className="note">{r.note}</p>}</div></li>
             ))}</ul>
           </section>}
         </>;
@@ -259,7 +269,7 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
             <table className="data-table"><tbody>
               {ls.map((l: any) => (
                 <tr key={l.id}><td className="mono">{l.dir === "out" ? "→" : "←"}</td><td><Link href={`/node/${l.other_id}`}>{l.other_name}</Link> <Link href={`/map?focus=${l.other_id}`} className="mono">map</Link></td>
-                  <td>{l.subtype}{l.stance ? ` · ${l.stance}` : ""}</td><td className="num">{fmtMoney(l.amount)}</td><td className="mono">{fmtDate(l.date_start)}</td><td>{l.note} <Src url={l.source_url} /></td></tr>
+                  <td>{l.subtype}{l.stance ? ` · ${l.stance}` : ""}</td><td className="num">{fmtMoney(l.amount)}</td><td className="mono">{fmtDate(l.date_start)}</td><td>{l.recommended_by ? <>Recommended by <Link href={`/node/${l.recommended_by.id}`}>{l.recommended_by.name}</Link>. </> : null}{l.note} <Src url={l.source_url} /></td></tr>
               ))}
             </tbody></table>
           </section>

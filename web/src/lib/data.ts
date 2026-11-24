@@ -118,17 +118,26 @@ export async function getProfile(id: string) {
   cached();
   const s = await getNodeSummary(id);
   if (!s) return null;
-  const [feed, filings, links] = await Promise.all([q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, coalesce(t.name, f.context) AS target_name FROM feed_items f LEFT JOIN nodes t ON t.id=f.target_id
+  const [feed, filings, links, recommended] = await Promise.all([q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, coalesce(t.name, f.context) AS target_name FROM feed_items f LEFT JOIN nodes t ON t.id=f.target_id
                              WHERE f.node_id=$1 AND f.status='approved' ORDER BY f.date DESC, f.id DESC`, [id]),
   q<any>(`SELECT *, pdate(filed_date, filed_prec) AS filed_date, amount::float8 AS amount FROM filings WHERE node_id=$1
                                 ORDER BY coalesce(filed_date, to_date(substring(period from '\\d{4}'), 'YYYY')) DESC NULLS LAST, id DESC`, [id]),
   q<any>(`
     SELECT l.id::int, l.type, l.subtype, l.amount::float8 AS amount, pdate(l.date_start, l.date_start_prec) AS date_start, pdate(l.date_end, l.date_end_prec) AS date_end, l.stance, l.note, l.source_url,
       CASE WHEN l.from_id=$1 THEN 'out' ELSE 'in' END AS dir,
-      o.id AS other_id, o.name AS other_name, o.type AS other_type, o.descriptor AS other_descriptor
+      o.id AS other_id, o.name AS other_name, o.type AS other_type, o.descriptor AS other_descriptor,
+      (SELECT jsonb_build_object('id', rn.id, 'name', rn.name, 'source_url', r.source_url) FROM links_removed r JOIN nodes rn ON rn.id = r.from_id
+        WHERE r.kept_id = l.id AND r.reason LIKE 'recommended:%' LIMIT 1) AS recommended_by
     FROM links_shown l JOIN nodes o ON o.id = CASE WHEN l.from_id=$1 THEN l.to_id ELSE l.from_id END
-    WHERE l.from_id=$1 OR l.to_id=$1 ORDER BY l.date_start DESC NULLS LAST`, [id])]);
-  return { ...s, feed, filings, links };
+    WHERE l.from_id=$1 OR l.to_id=$1 ORDER BY l.date_start DESC NULLS LAST`, [id]),
+  // Grants this node recommended and another funder paid (docs/data-issues.md, Good Ventures and Coefficient Giving): listed
+  // apart, never counted in its totals; the payer's link carries the money.
+  q<any>(`
+    SELECT r.id::int, r.amount::float8 AS amount, pdate(r.date_start, r.date_start_prec) AS date_start, r.note, r.source_url,
+      t.id AS other_id, t.name AS other_name, pn.id AS payer_id, pn.name AS payer_name
+    FROM links_removed r JOIN links k ON k.id = r.kept_id JOIN nodes t ON t.id = r.to_id JOIN nodes pn ON pn.id = k.from_id
+    WHERE r.from_id=$1 AND r.reason LIKE 'recommended:%' ORDER BY r.date_start DESC NULLS LAST`, [id])]);
+  return { ...s, feed, filings, links, recommended };
 }
 
 /** Places where what an actor says and what its money does point different ways. Each flag carries both sources. */
@@ -215,7 +224,7 @@ export async function getTarget(id: string) {
       (SELECT coalesce(sum(m.amount),0)::float8 FROM links_shown m WHERE m.from_id=a.id AND m.type='money' AND m.subtype IN ('contribution','independent expenditure','donation','transfer')) AS actor_political_money
     FROM links_shown l JOIN nodes a ON a.id=l.from_id WHERE l.to_id=$1 ORDER BY l.amount DESC NULLS LAST, l.date_start DESC NULLS LAST`, [id]),
   q<any>(`SELECT f.*, pdate(f.date, f.date_prec) AS date, n.name AS actor_name FROM feed_items f JOIN nodes n ON n.id=f.node_id WHERE f.target_id=$1 AND f.status='approved' ORDER BY f.date DESC`, [id]),
-  s.node.type === "race" ? q<any>(`SELECT id, name, descriptor FROM nodes WHERE type='lawmaker' AND external_ids->>'race'=$1`, [id]) : [] as any[]]);
+  s.node.type === "race" ? q<any>(`SELECT id, name, descriptor, external_ids->'result' AS result FROM nodes WHERE type='lawmaker' AND external_ids->>'race'=$1`, [id]) : [] as any[]]);
   const candidatePushes = candidates.length ? await q<any>(`
     SELECT l.to_id AS candidate, l.stance, l.amount::float8 AS amount, pdate(l.date_start, l.date_start_prec) AS date_start, l.note, l.source_url, a.id AS actor_id, a.name AS actor_name
     FROM links_shown l JOIN nodes a ON a.id=l.from_id WHERE l.to_id = ANY($1) ORDER BY l.amount DESC NULLS LAST`, [candidates.map((c) => c.id)]) : [];
@@ -234,7 +243,7 @@ export async function listTargets() {
       (SELECT count(*)::int FROM nodes c WHERE c.type='lawmaker' AND c.external_ids->>'race'=n.id) AS candidates,
       (SELECT coalesce(sum(l2.amount),0)::float8 FROM links_shown l2 JOIN nodes c ON c.id=l2.to_id
         WHERE l2.type='money' AND c.type='lawmaker' AND c.external_ids->>'race'=n.id) AS race_money,
-      n.external_ids->>'race' AS race,
+      n.external_ids->>'race' AS race, n.external_ids->'result' AS result,
       (SELECT coalesce(sum(l3.amount),0)::float8 FROM links_shown l3 WHERE l3.type='money' AND l3.to_id=n.id) AS shown_money
     FROM nodes n
     LEFT JOIN LATERAL (SELECT max(extract(year FROM coalesce(date_end, date_start)))::int AS y FROM links WHERE to_id=n.id OR from_id=n.id) ly ON true
