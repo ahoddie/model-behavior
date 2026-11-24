@@ -251,17 +251,19 @@ export async function listTargets() {
     GROUP BY n.id, ly.y ORDER BY coalesce(sum(l.amount) FILTER (WHERE l.type='money'),0) DESC, count(l.id) DESC, n.name`);
 }
 
+// A money link with no stated amount (a named backer whose gift the source doesn't size) is left out of the trace: drawn as a
+// flow it would read as $0. It still shows on both profiles.
 export async function moneyFlows(start: string, depth = 4) {
   "use cache";
   cached();
   const rows = await q<any>(`
     WITH RECURSIVE walk(id, from_id, to_id, amount, date_start, note, source_url, subtype, stance, d, path) AS (
       SELECT id, from_id, to_id, amount::float8, pdate(date_start, date_start_prec) AS date_start, note, source_url, subtype, stance, 1, ARRAY[from_id, to_id]
-        FROM links_shown WHERE from_id=$1 AND type='money' AND subtype <> 'lobbying'
+        FROM links_shown WHERE from_id=$1 AND type='money' AND subtype <> 'lobbying' AND amount > 0
       UNION ALL
       SELECT l.id, l.from_id, l.to_id, l.amount::float8, pdate(l.date_start, l.date_start_prec) AS date_start, l.note, l.source_url, l.subtype, l.stance, w.d+1, w.path || l.to_id
         FROM links_shown l JOIN walk w ON l.from_id=w.to_id
-        WHERE l.type='money' AND l.subtype <> 'lobbying' AND w.d < $2 AND NOT l.to_id = ANY(w.path))
+        WHERE l.type='money' AND l.subtype <> 'lobbying' AND l.amount > 0 AND w.d < $2 AND NOT l.to_id = ANY(w.path))
     SELECT DISTINCT ON (w.id) w.*, f.name AS from_name, t.name AS to_name, t.type AS to_type FROM walk w
       JOIN nodes f ON f.id=w.from_id JOIN nodes t ON t.id=w.to_id ORDER BY w.id, w.d`, [start, depth]);
   return rows;
@@ -271,7 +273,7 @@ export async function moneyStarts() {
   "use cache";
   cached();
   return q<{ id: string; name: string; type: string; out: number }>(`
-    SELECT n.id, n.name, n.type, coalesce(sum(l.amount), 0)::float8 AS out FROM nodes n JOIN links_shown l ON l.from_id=n.id AND l.type='money' AND l.subtype <> 'lobbying'
+    SELECT n.id, n.name, n.type, coalesce(sum(l.amount), 0)::float8 AS out FROM nodes n JOIN links_shown l ON l.from_id=n.id AND l.type='money' AND l.subtype <> 'lobbying' AND l.amount > 0
     GROUP BY n.id ORDER BY coalesce(sum(l.amount), 0) DESC, n.name`);
 }
 

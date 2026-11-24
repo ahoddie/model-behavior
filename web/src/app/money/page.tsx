@@ -24,10 +24,10 @@ function mergeFlows(links: any[], chain: any[]) {
   const fec = (u: string) => /\bfec\.gov\b/.test(u ?? "");
   const same = (l: any, c: any) => l.from_id === c.from_id && l.to_id === c.to_id &&
     (fec(l.source_url) || l.amount == null || c.amount == null || Math.abs(l.amount - c.amount) <= Math.max(1, 0.01 * c.amount));
-  return [...filed, ...links.filter((l) => !filed.some((c) => same(l, c)))];
+  return [...filed, ...links.filter((l) => !filed.some((c) => same(l, c)))].filter((f) => f.amount > 0);
 }
 
-const loadStarts = async () => mergeStarts(await moneyStarts(), await moneyChainStarts());
+const loadStarts = async () => mergeStarts(await moneyStarts(), await moneyChainStarts()).filter((s) => s.out > 0);
 const flowsFrom = async (start: string) => mergeFlows(await moneyFlows(start), await moneyChainFlows(start));
 
 // Only the choice of starting point waits for the URL. Awaited here, outside the boundary, the cached list of starting points

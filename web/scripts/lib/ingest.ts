@@ -130,6 +130,25 @@ export async function insertLink(l: any, origin = "research"): Promise<boolean> 
   l = { ...l, from: await canonicalId(l.from), to: await canonicalId(l.to) };
   for (const k of ["from", "to"]) if (!(await nodeExists(l[k]))) return reject("links", `unknown node ${l[k]}`, l);
   if (l.from === l.to) return reject("links", "self link", l);
+  const key = [l.from, l.to, type, l.subtype ?? null, l.source_url.trim(), num(l.amount), isoDate(l.date_start ?? l.date)];
+  // A row someone removed (a duplicate, or one its source doesn't support) stays out, unless an identical row is live (a kept twin).
+  const removed = await pool.query(
+    `SELECT r.reason FROM links_removed r
+      WHERE (r.from_id, r.to_id, r.type, r.subtype, r.source_url, r.amount, r.date_start) IS NOT DISTINCT FROM ($1, $2, $3, $4, $5, $6::numeric, $7::date)
+        AND NOT EXISTS (SELECT 1 FROM links x WHERE (x.from_id, x.to_id, x.type, x.subtype, x.source_url, x.amount, x.date_start)
+                                                  IS NOT DISTINCT FROM ($1, $2, $3, $4, $5, $6::numeric, $7::date))
+      LIMIT 1`, key);
+  if (removed.rowCount) return reject("links", `removed earlier (${removed.rows[0].reason ?? "no reason"})`, l);
+  // A PAC gift reported on both the PAC's FEC filing and its sponsor's LD-203 is one gift: keep whichever row arrived first.
+  const ld203 = /^https?:\/\/(www\.)?lda\.(senate\.)?gov\/filings\/public\/contribution\//i, fec = /^https?:\/\/([a-z]+\.)?fec\.gov\//i;
+  const src = l.source_url.trim();
+  if (type === "money" && key[5] != null && key[6] != null && (ld203.test(src) || fec.test(src))) {
+    const other = ld203.test(src) ? "fec.gov/" : "lda.gov/filings/public/contribution/";
+    const twin = await pool.query(
+      `SELECT id FROM links WHERE type='money' AND from_id=$1 AND to_id=$2 AND amount=$3::numeric AND date_start=$4::date AND source_url ILIKE '%' || $5 || '%' LIMIT 1`,
+      [l.from, l.to, key[5], key[6], other]);
+    if (twin.rowCount) return reject("links", `same gift as link ${twin.rows[0].id} (FEC and LD-203)`, l);
+  }
   const r = await pool.query(
     `INSERT INTO links (from_id,to_id,type,subtype,amount,date_start,date_end,stance,note,source_url,origin,date_start_prec,date_end_prec)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT ON CONSTRAINT links_uniq DO UPDATE
