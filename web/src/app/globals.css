@@ -349,6 +349,7 @@ table.data-table td { padding: 10px 8px; }
 table.data-table td.num { font-family: var(--f-body); }
 .filters { font-size: 15px; }
 .page > .lede + .filters { margin-top: var(--s5); }
+.page.wide > .lede { max-width: none; }
 .legend, .sitefoot { font-size: 14px; }
 .sel, .sel-btn, .sel-find { font-size: 14px; }
 .coverage { font-size: 14px; color: var(--muted); margin: 4px 0 var(--s4); }
