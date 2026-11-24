@@ -60,6 +60,21 @@ export async function getGraph() {
   return { nodes, links };
 }
 
+// People linked to a profile, so a note that names one of them by surname alone ("Bengio's lab") still links them.
+async function neighborPeople(id: string) {
+  return q<{ id: string; name: string }>(`
+    SELECT DISTINCT o.id, o.name FROM links l JOIN nodes o ON o.id = CASE WHEN l.from_id=$1 THEN l.to_id ELSE l.from_id END
+    WHERE (l.from_id=$1 OR l.to_id=$1) AND o.type='person'`, [id]);
+}
+
+// Full names of every tracked actor link first; what is left is matched against the surnames of the people linked to this
+// profile. A surname two of those people share is skipped.
+function pageLinker(all: { id: string; name: string }[], people: { id: string; name: string }[], self: string) {
+  const link = buildLinker(all);
+  const surnames = buildLinker(people.map((p) => ({ id: p.id, name: p.name.replace(/\s*\([^)]*\)\s*$/, "").trim().split(/\s+/).pop() ?? "" })));
+  return (text: string): Part[] => link(text, self).flatMap((p) => (p.id ? [p] : surnames(p.t, self)));
+}
+
 // Names of other tracked actors inside a note link to their profiles. One cached list serves every profile.
 async function nodeNames() {
   "use cache";
@@ -92,9 +107,10 @@ export async function getNodeSummary(id: string) {
   ]);
   if (!node) return null;
   keyFacts.sort((a, b) => FACT_ORDER.indexOf(a.label) - FACT_ORDER.indexOf(b.label));
-  const link = buildLinker(names);
-  const facts: { text: string; url: string; parts: Part[] }[] = raw.map((f) => ({ ...f, parts: link(f.text, id) }));
-  return { node, facts, keyFacts, stats };
+  const link = pageLinker(names, await neighborPeople(id), id);
+  const facts: { text: string; url: string; parts: Part[] }[] = raw.map((f) => ({ ...f, parts: link(f.text) }));
+  const descriptorParts = node.descriptor ? link(node.descriptor) : [];
+  return { node, facts, keyFacts: keyFacts.map((f) => ({ ...f, parts: link(f.text) })), descriptorParts, stats };
 }
 
 export async function getProfile(id: string) {

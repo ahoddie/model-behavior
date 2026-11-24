@@ -1,5 +1,6 @@
 // Turns names of tracked actors inside a sentence into links. Plain string matching, no model:
-// exact names (and names with a trailing parenthetical removed, e.g. "Coefficient Giving (fmr. Open Philanthropy)"),
+// exact names (and names with a trailing parenthetical removed, e.g. "Coefficient Giving (fmr. Open Philanthropy)", or the
+// former name inside it),
 // longest first, whole words only. Names shared by two profiles, and very short names, are skipped to avoid wrong links.
 export type Part = { t: string; id?: string };
 
@@ -8,7 +9,9 @@ const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 export function buildLinker(nodes: { id: string; name: string }[]) {
   const byName = new Map<string, string | null>();
   for (const n of nodes) {
-    for (const v of new Set([n.name, n.name.replace(/\s*\([^)]*\)\s*$/, "")])) {
+    // A former or new name in the parenthetical ("Coefficient Giving (fmr. Open Philanthropy)") links too.
+    const other = n.name.match(/\((?:fmr\.|formerly|now)\s+([^)]+)\)\s*$/)?.[1];
+    for (const v of new Set([n.name, n.name.replace(/\s*\([^)]*\)\s*$/, ""), ...(other ? [other] : [])])) {
       const k = v.trim();
       if (k.length < 5) continue;
       byName.set(k, byName.has(k) && byName.get(k) !== n.id ? null : n.id);

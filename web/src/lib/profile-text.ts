@@ -1,6 +1,7 @@
 // Headline, description and sources for a person's or organization's profile (table profile_text, filled from
 // data/profiles/*.json by scripts/load-profile-text.ts). Links in a description are written [shown text](node-id);
 // parseDescription turns them into the parts components/Linked.tsx renders.
+import { cacheLife, cacheTag } from "next/cache";
 import { q } from "./db";
 import type { Part } from "./linkify";
 
@@ -24,7 +25,11 @@ export function parseDescription(text: string): Part[] {
 // Plain text, links removed, for meta descriptions and search.
 export const plainDescription = (text: string) => text.replace(LINK, "$1");
 
+// Cached with the rest of the record (lib/data.ts), so a profile page can read it outside a Suspense boundary.
 export async function getProfileText(id: string): Promise<ProfileText | null> {
+  "use cache";
+  cacheLife("record");
+  cacheTag("record");
   const [r] = await q<{ headline: string; description: string; sources: ProfileSource[]; thin: boolean }>(
     `SELECT headline, description, sources, thin FROM profile_text WHERE node_id=$1`, [id]);
   return r ? { ...r, parts: parseDescription(r.description) } : null;

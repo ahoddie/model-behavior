@@ -5,6 +5,7 @@ import Src from "./Src";
 import CoverageLine from "./CoverageLine";
 import RaceView from "./RaceView";
 import BackLink from "./BackLink";
+import MapIt, { linkCaption } from "./MapIt";
 import type { Coverage } from "@/lib/data";
 
 const SIDES = [["support", "For"], ["support_if_amended", "For, if amended"], ["oppose", "Against"], ["", "Other engagement"]] as const;
@@ -13,14 +14,18 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
   const n = t.node;
   const sideOf = (s: string | null) => (s === "support" || s === "oppose" || s === "support_if_amended" ? s : "");
   const isRace = n.type === "race";
+  const counts: Record<string, number> = {};
+  for (const r of t.pushes) counts[r.type] = (counts[r.type] ?? 0) + 1;
+  const caption = linkCaption(t.pushes.map((r: any) => ({ id: r.actor_id, type: r.actor_type })));
   return (
     <div className="page has-back">
       <BackLink fallback="/targets" />
       <ProfileHead node={n} keyFacts={t.keyFacts} logoSource={n.logo_source_url} citePath={`/node/${n.id}`}
+        mapIt={<MapIt id={n.id} name={n.name} counts={counts} caption={caption} />}
+        mapChip={<MapIt id={n.id} name={n.name} counts={counts} size="chip" />}
         kicker={<>{TYPE_LABEL[n.type]}{n.external_ids?.status ? <> · {n.external_ids.status} {n.external_ids.status_date && `(${fmtDate(n.external_ids.status_date)})`}</> : null}</>} />
       {isRace && <RaceView t={t} />}
       {!isRace && t.facts.length > 0 && <ul className="facts">{t.facts.map((f: any, i: number) => <li key={i}>{f.text} <Src url={f.url} /></li>)}</ul>}
-      <p className="mono"><Link href={`/map?focus=${n.id}`}>Trace on the map</Link></p>
 
       {(!isRace || t.pushes.length > 0) && <h2>Who weighed in</h2>}
       <div className="grid2">

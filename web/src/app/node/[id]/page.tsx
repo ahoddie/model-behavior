@@ -10,7 +10,9 @@ import StanceBar from "@/components/StanceBar";
 import CoverageLine from "@/components/CoverageLine";
 import { fmtMoney, fmtDate, TYPE_LABEL, clusterName } from "@/lib/format";
 import TargetView from "@/components/TargetView";
-import ProfileHead from "@/components/ProfileHead";
+import ProfileHead, { ProfileSources, type SourceLine } from "@/components/ProfileHead";
+import MapIt, { linkCaption } from "@/components/MapIt";
+import { getProfileText } from "@/lib/profile-text";
 import BackLink from "@/components/BackLink";
 import Src from "@/components/Src";
 import KnownRecord from "@/components/KnownRecord";
@@ -53,21 +55,40 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
     </>;
   }
 
-  const [[pr, , lobbyIssues, flags], coverage] = await Promise.all([loadActor(id), getCoverage(id)]);
+  const [[pr, , lobbyIssues, flags], coverage, text] = await Promise.all([loadActor(id), getCoverage(id), getProfileText(id)]);
   const p = pr!;
   const noRecords = !p.keyFacts.length && !p.facts.length && !p.feed.length && !p.filings.length && !p.links.length && !lobbyIssues.length && !flags.length;
 
+  // The written headline and description when there is one (table profile_text); until then the descriptor and the first
+  // few sourced notes stand in, as one paragraph with the same links.
+  const notes = p.facts.slice(0, 3);
+  const headline = text ? { text: text.headline } : { text: p.node.descriptor ?? "", parts: p.descriptorParts };
+  const description = text ? { text: text.description, parts: text.parts }
+    : notes.length ? { text: notes.map((f) => f.text).join(" "), parts: notes.flatMap((f, i) => [...(i ? [{ t: " " }] : []), ...f.parts]) } : null;
+  const sources: SourceLine[] = [
+    ...(text ? text.sources.map((x) => ({ ...x, lead: true })) : [
+      ...(p.node.descriptor ? [{ label: "Summary", name: sourceName(p.node.source_url), url: p.node.source_url }] : []),
+      ...notes.map((f) => ({ label: "Background", name: sourceName(f.url), url: f.url })),
+    ]),
+    ...p.keyFacts.filter((f) => f.label !== "Website").map((f) => ({ label: f.label, name: sourceName(f.url), url: f.url })),
+  ];
+  const counts = { money: 0, position: 0, person: 0, idea: 0 } as Record<string, number>;
+  for (const l of p.links) counts[l.type] = (counts[l.type] ?? 0) + 1;
+  const caption = linkCaption(p.links.map((l: any) => ({ id: l.other_id, type: l.other_type })));
+
   return (
-    <div className="page has-back">
+    <div className="page has-back actor-page">
       <BackLink fallback="/map" />
       <ProfileHead node={p.node} keyFacts={p.keyFacts} logoSource={p.node.logo_source_url} citePath={`/node/${id}`}
-        kicker={<>{TYPE_LABEL[p.node.type]} · <Link href={`/map?focus=${id}`}>{clusterName(p.node.cluster)}</Link></>} />
-      <p className="mono"><Link href={`/map?focus=${id}`}>Trace on the map</Link></p>
-      {p.facts.length > 0 && <ul className="facts">{p.facts.map((f, i) => <li key={i}><Linked parts={(f as any).parts} text={f.text} /> <Src url={f.url} /></li>)}</ul>}
+        kicker={<>{TYPE_LABEL[p.node.type]} · <Link href={`/map?focus=${id}`}>{clusterName(p.node.cluster)}</Link></>}
+        headline={headline} description={description}
+        mapIt={<MapIt id={id} name={p.node.name} counts={counts} caption={caption} />}
+        mapChip={<MapIt id={id} name={p.node.name} counts={counts} size="chip" />} />
       {noRecords && <KnownRecord node={p.node} />}
       <Suspense fallback={<p className="mono muted" role="status">Loading the record…</p>}>
         <Tabs sp={props.searchParams} id={id} />
       </Suspense>
+      <ProfileSources sources={sources} />
       <CoverageLine c={coverage} />
     </div>
   );
@@ -100,7 +121,7 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
             <h2>In {p.node.name}&apos;s words</h2>
             <ul className="record">{quotes.slice(0, 8).map((f: any) => (
               <li key={f.id}><div className="when">{fmtDate(f.date) || "Undated"}</div>
-                <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /> <CiteButton small kind="quote" speaker={p.node.name} quote={f.excerpt} date={fmtDate(f.date)} url={f.url} archive={f.archive_url} outlet={sourceName(f.url)} /></p>
+                <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /></p>
                   {f.target_name && <p className="note">On {f.target_id ? <Link href={`/node/${f.target_id}`}>{f.target_name}</Link> : f.target_name}</p>}</div></li>
             ))}</ul>
             {quotes.length > 8 && <p className="more"><TabLink href={href("feed")}>All {p.feed.length} statements</TabLink></p>}
