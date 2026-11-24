@@ -900,3 +900,7 @@ img.mark { background: var(--logo-bg); }
 .facts .src-wrap, .keyfacts .src-wrap { opacity: .6; transition: opacity .12s; }
 .facts li:hover .src-wrap, .keyfacts div:hover .src-wrap, .src-wrap:focus-within { opacity: 1; }
 .page > .coverage:last-child { margin-top: var(--s5); padding-top: var(--s3); border-top: 1px solid var(--rule); }
+
+/* About: the same page width as Funding, with lines kept to a readable length. */
+.page.about { max-width: 1240px; }
+.about p { max-width: 66ch; }
