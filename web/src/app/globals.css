@@ -239,8 +239,15 @@ svg.map:active { cursor: grabbing; }
 
 /* The summary panel always opens at its full size: the height of the screen below the sticky toolbar. The map's stage
    grows to hold it when the drawing around a selection is short, so the panel is never squeezed to the drawing's height. */
-.nodepanel { position: absolute; top: 12px; right: 0; width: 380px; height: max(420px, calc(100dvh - var(--tools-h, 0px) - 24px)); overflow-y: auto; padding: var(--s4); z-index: 6; }
-.mapstage:has(> .nodepanel) { min-height: calc(max(420px, calc(100dvh - var(--tools-h, 0px) - 24px)) + 24px); }
+/* The summary panel fills its frame and scrolls inside it, never past it. On the map the frame is the stage, capped at the
+   screen below the sticky toolbar; the stage grows to that height when the drawing around a selection is short. */
+.nodepanel { position: absolute; top: 12px; right: 0; width: 380px; height: min(calc(100% - 24px), calc(100dvh - var(--tools-h, 0px) - 24px)); overflow-y: auto; padding: var(--s4); z-index: 6; }
+.mapstage:has(> .nodepanel) { min-height: max(444px, calc(100dvh - var(--tools-h, 0px))); }
+.nodepanel .lede { font-size: 16px; line-height: 1.45; max-width: none; margin: 6px 0 0; }
+.nodepanel .profile-desc { font-size: 15px; line-height: 1.55; margin: 0 0 var(--s3); }
+.nodepanel h3 { margin-top: var(--s4); }
+.nodepanel .profile-sources { margin-top: var(--s5); }
+.nodepanel .profile-sources ul { columns: 1; font-size: 13px; }
 .nodepanel h2 { font-size: 28px; margin-top: 4px; }
 .nodepanel .close { position: absolute; top: 8px; right: 8px; border: 0; font-size: 20px; padding: 0 8px; }
 .facts { padding-left: 18px; margin: var(--s3) 0; }
@@ -266,7 +273,8 @@ button.linkish:hover { text-decoration-color: var(--ink); }
 .review-item .filters label { flex-direction: row; align-items: center; }
 .flowwrap { position: relative; margin: var(--s4) 0; background: var(--panel); border: 1px solid var(--ink); padding: var(--s3); }
 /* On Nodes the chart can be short, so the panel may run past its bottom edge over the notes below. */
-.flowwrap .nodepanel { right: 12px; background: var(--paper); border: 1px solid var(--ink); }
+/* On Funding the panel covers the trace box exactly, top to bottom, its border laid on the box border. */
+.flowwrap .nodepanel { top: -1px; bottom: -1px; right: -1px; height: auto; background: var(--paper); border: 1px solid var(--ink); }
 .filters a[aria-current="page"] { color: var(--ink); font-weight: 700; text-decoration: underline; }
 
 /* Dropdowns (components/Select.tsx, NameSearch.tsx) */
