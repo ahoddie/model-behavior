@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import LastUpdated from "@/components/LastUpdated";
 import MainNav, { NavLinks } from "@/components/MainNav";
 import HeaderSearch from "@/components/HeaderSearch";
+import Motion from "@/components/Motion";
 import ThemeToggle, { THEME_SCRIPT } from "@/components/ThemeToggle";
 import { Lockup } from "@/components/Logo";
 import { SITE_NAME } from "@/lib/brand";
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         </header>
         <main id="main">{children}</main>
+        <Motion />
         <footer className="sitefoot mono">
           <Suspense fallback={null}><LastUpdated /></Suspense>
           <Link href="/data?view=methodology">Methodology</Link>

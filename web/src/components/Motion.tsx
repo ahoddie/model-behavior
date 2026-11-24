@@ -1,0 +1,48 @@
+"use client";
+// Reveal on first view. Targets (TARGETS) that start below the fold are held back with the attribute data-pre, and let go
+// the first time they scroll into sight; the CSS in globals.css ("Motion") eases them into place: sections rise, chart bars
+// grow. Anything already on screen, and anything React has not hydrated yet, is never touched, so nothing visible blinks
+// out and the server's HTML always matches. It never runs for a reader who asked for reduced motion.
+import { useEffect } from "react";
+
+const TARGETS = "[data-reveal], .home-sec, .rc, .tc, .pbal-bar, .pmeter, .race-track";
+// React marks each element it owns with a "__reactFiber$…" key once it has hydrated it.
+const hydrated = (el: Element) => Object.keys(el).some((k) => k.startsWith("__reactFiber$"));
+
+export default function Motion() {
+  useEffect(() => {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) return;
+    const root = document.documentElement;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { e.target.removeAttribute("data-pre"); io.unobserve(e.target); }
+    }, { rootMargin: "0px 0px -8% 0px" });
+    const seen = new WeakSet<Element>();
+    let pending = false;
+    const scan = () => {
+      pending = false;
+      for (const el of document.querySelectorAll(TARGETS)) {
+        if (seen.has(el)) continue;
+        if (!hydrated(el)) { pending = true; continue; }
+        seen.add(el);
+        const r = el.getBoundingClientRect();
+        if (r.top < innerHeight && r.bottom > 0) continue;
+        el.setAttribute("data-pre", "");
+        io.observe(el);
+      }
+    };
+    root.classList.add("mo");
+    scan();
+    // Parts of the page hydrate late, and navigation, tabs and filters bring new targets: look again once per frame
+    // when the page changes, and a few times while some targets are still waiting to hydrate.
+    let raf = 0, tries = 0;
+    const mo = new MutationObserver((muts) => {
+      // The map redraws its SVG often; those changes never add targets, so they are skipped.
+      if (raf || !muts.some((m) => m.addedNodes.length && !(m.target instanceof SVGElement))) return;
+      raf = requestAnimationFrame(() => { raf = 0; scan(); });
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+    const retry = window.setInterval(() => { if (pending && tries++ < 20) scan(); else clearInterval(retry); }, 400);
+    return () => { io.disconnect(); mo.disconnect(); cancelAnimationFrame(raf); clearInterval(retry); root.classList.remove("mo"); };
+  }, []);
+  return null;
+}

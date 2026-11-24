@@ -24,8 +24,8 @@ export default function RankChart({ rows, unit, fmt = (n) => n.toLocaleString(),
   const pct = (v: number) => `${(v / max) * 100}%`;
   return (
     <div className="rc" role="group" aria-label={label} style={{ ["--rc-step" as string]: pct(step) }}>
-      <ol className="rc-rows">{rows.map((r) => (
-        <li key={r.id} className={`rc-row${selected === r.id ? " rc-open" : ""}`} title={`${r.name}: ${fmt(r.value)} ${unit}${r.note ? `. ${r.note}` : ""}`}>
+      <ol className="rc-rows">{rows.map((r, i) => (
+        <li key={r.id} className={`rc-row${selected === r.id ? " rc-open" : ""}`} style={{ ["--i" as string]: i }} title={`${r.name}: ${fmt(r.value)} ${unit}${r.note ? `. ${r.note}` : ""}`}>
           <div className="rc-label">{r.label}</div>
           <div className="rc-track">
             {onSelect ? (

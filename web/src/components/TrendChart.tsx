@@ -19,8 +19,8 @@ export default function TrendChart({ years, current, label }: { years: TrendYear
       <div className="tc-y" aria-hidden>{ticks.map((t) => <span key={t} style={{ bottom: pct(t) }}>{t}</span>)}</div>
       <div className="tc-plot">
         {ticks.slice(1).map((t) => <i key={t} className="tc-grid" style={{ bottom: pct(t) }} aria-hidden />)}
-        <ol className="tc-cols">{years.map((y) => (
-          <li key={y.y} title={`${y.y}: ${y.support} supported, ${y.mixed} mixed or conditional, ${y.oppose} opposed`}>
+        <ol className="tc-cols">{years.map((y, i) => (
+          <li key={y.y} style={{ ["--i" as string]: i }} title={`${y.y}: ${y.support} supported, ${y.mixed} mixed or conditional, ${y.oppose} opposed`}>
             <span className="tc-val" style={{ bottom: pct(total(y)) }}>{total(y)}</span>
             <span className="tc-stack" style={{ height: pct(total(y)) }}>
               {PARTS.filter(([k]) => y[k] > 0).map(([k, word]) => (

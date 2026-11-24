@@ -135,6 +135,48 @@ table.data-table td.num { text-align: right; font-family: var(--f-body); }
   *, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; scroll-behavior: auto !important; }
 }
 
+/* Motion. One small vocabulary for the whole site: transforms and opacity only, short, and gone under reduced motion
+   (the rule above zeroes every duration; the reveal states below are only armed by components/Motion.tsx when the reader
+   has not asked for less motion, so nothing is ever left hidden). */
+:root {
+  --dur-1: 120ms;  /* color and border changes on hover */
+  --dur-2: 200ms;  /* small state changes: carets, chips, toggles */
+  --dur-3: 320ms;  /* things arriving: panels, sections, tab content */
+  --dur-4: 700ms;  /* charts growing into place */
+  --ease-out: cubic-bezier(.22, 1, .36, 1);      /* quick start, soft landing: most entrances */
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);   /* moves between two resting places */
+  --ease-spring: cubic-bezier(.3, 1.4, .5, 1);   /* a small overshoot, for the playful bits */
+}
+@keyframes mo-fade { from { opacity: 0; } }
+@keyframes mo-rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes mo-slide-l { from { opacity: 0; transform: translateX(16px); } }
+.fade-in { animation: mo-fade var(--dur-3) var(--ease-out) both; }
+.rise-in { animation: mo-rise var(--dur-3) var(--ease-out) both; }
+/* A card that answers the pointer: it lifts a hair and its border darkens. */
+.lift { transition: transform var(--dur-2) var(--ease-out), border-color var(--dur-1), box-shadow var(--dur-2) var(--ease-out); }
+.lift:hover { transform: translateY(-2px); box-shadow: 0 6px 18px -12px color-mix(in srgb, var(--ink) 55%, transparent); }
+.lift:active { transform: translateY(0); transition-duration: 60ms; }
+/* Rise on first view: Motion.tsx adds .mo to <html>, holds back below-the-fold targets with data-pre, and lets each go once it scrolls into sight. */
+.mo [data-reveal], .mo .home-sec { transition: opacity var(--dur-3) var(--ease-out), transform calc(var(--dur-3) * 1.5) var(--ease-out); }
+.mo [data-reveal][data-pre], .mo .home-sec[data-pre] { opacity: 0; transform: translateY(14px); }
+/* Disclosures open smoothly where the browser can animate to auto height (Chromium); elsewhere they open as before. */
+@supports (interpolate-size: allow-keywords) {
+  :root { interpolate-size: allow-keywords; }
+  details::details-content { height: 0; overflow: clip; transition: height var(--dur-3) var(--ease-out), content-visibility var(--dur-3) allow-discrete; }
+  details[open]::details-content { height: auto; }
+}
+/* Charts grow into place the first time they are seen: bars from their baseline, one row a beat after the last. */
+.mo .rc-bar { transform-origin: left center; transition: transform var(--dur-4) var(--ease-out) calc(var(--i, 0) * 45ms), background-color var(--dur-1), filter var(--dur-1); }
+.mo .rc-val { transition: opacity var(--dur-3) var(--ease-out) calc(var(--i, 0) * 45ms + 250ms); }
+.mo .rc[data-pre] .rc-bar { transform: scaleX(0); }
+.mo .rc[data-pre] .rc-val, .mo .tc[data-pre] .tc-val { opacity: 0; }
+.mo .tc-stack { transform-origin: bottom; transition: transform var(--dur-4) var(--ease-out) calc(var(--i, 0) * 70ms); }
+.mo .tc-val { transition: opacity var(--dur-3) var(--ease-out) calc(var(--i, 0) * 70ms + 300ms); }
+.mo .tc[data-pre] .tc-stack { transform: scaleY(0); }
+.mo .pbal-bar, .mo .pmeter i, .mo .race-track { transition: transform var(--dur-4) var(--ease-out); transform-origin: left center; }
+.mo .race-side.against .race-track { transform-origin: right center; }
+.mo .pbal-bar[data-pre], .mo .pmeter[data-pre] i, .mo .race-track[data-pre] { transform: scaleX(0); }
+
 /* Influence map */
 .home-head { padding: var(--s5) var(--s5) 0; display: flex; justify-content: space-between; align-items: end; gap: var(--s5); flex-wrap: wrap; }
 .home-head p { max-width: 560px; margin: 0; color: var(--muted); }
