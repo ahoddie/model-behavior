@@ -242,19 +242,22 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 
 ## Race profile text (races-01)
 
-- race-2026-ks-sen: Alliance for a Better Future's $80,832 independent expenditure has no support/oppose stance.
-- race-2026-ca-11: Saikat Chakrabarti is on the site as a candidate but missing from the race's FEC candidate facts and has no fundraising fact.
-- FEC candidate facts label some challengers "open seat" where an incumbent is listed (e.g. Rhett Marques, AL-2).
-- race-2026-ky-sen, race-2026-mt-1: no incumbent in the dossier.
-- lawmaker-manny-rutinel, lawmaker-melissa-bean: descriptors lack a party.
+- race-2026-ks-sen: Alliance for a Better Future's $80,832 independent expenditure has no support/oppose stance. **Fixed (no change needed):** the $80,832 comes from Form 9 electioneering communications, which report no support or oppose stance, so none is shown.
+- race-2026-ca-11: Saikat Chakrabarti is on the site as a candidate but missing from the race's FEC candidate facts and has no fundraising fact. **Unverifiable:** he placed third in the June 2 top-two primary, so he was not in the general; the FEC API was rate-limited, so his committee totals could not be checked. His result now shows "Lost primary."
+- FEC candidate facts label some challengers "open seat" where an incumbent is listed (e.g. Rhett Marques, AL-2). **Fixed:** race pages now take the seat status from the general-election result and add "not on the November ballot" when the incumbent was not a nominee.
+- race-2026-ky-sen, race-2026-mt-1: no incumbent in the dossier. **Fixed:** both were open seats (the results confirm no incumbent ran), and the race pages say so.
+- lawmaker-manny-rutinel, lawmaker-melissa-bean: descriptors lack a party. **Fixed:** both descriptors now carry (DEM).
 
 ## Race profile text (races-02)
 
-- race-2026-nj-8: two FEC candidate records for Menendez (H2NJ08232, H2NJ13075) with identical figures.
-- race-2026-tn-6, tx-10, tx-19, wa-4, wy-sen: FEC facts call these open seats yet list the incumbent (Rose, McCaul, Arrington, Newhouse, Lummis) as a candidate.
-- race-2026-tx-33: Colin Allred tagged "open seat" while Marc Veasey is tagged incumbent.
-- Duplicate nodes for Chris Gober: chris-gober (person) and lawmaker-chris-gober.
-- race-2026-sc-sen: Russell Fry (lawmaker-russell-fry) is in the race's FEC facts but not linked to the race via external_ids.
+- race-2026-nj-8: two FEC candidate records for Menendez (H2NJ08232, H2NJ13075) with identical figures. **Fixed:** the duplicate fact was deleted and the kept one notes both FEC records.
+- race-2026-tn-6, tx-10, tx-19, wa-4, wy-sen: FEC facts call these open seats yet list the incumbent (Rose, McCaul, Arrington, Newhouse, Lummis) as a candidate. **Fixed:** the results show none of them on the November ballot, and the race pages now mark the incumbent "not on the November ballot."
+- race-2026-tx-33: Colin Allred tagged "open seat" while Marc Veasey is tagged incumbent. **Fixed:** same display rule; the result shows Allred as the Democratic nominee after the May 26 runoff.
+- Duplicate nodes for Chris Gober: chris-gober (person) and lawmaker-chris-gober. **Fixed:** merged into lawmaker-chris-gober (merge_log 44).
+- race-2026-sc-sen: Russell Fry (lawmaker-russell-fry) is in the race's FEC facts but not linked to the race via external_ids. **Fixed (left unlinked on purpose):** Fry entered the Senate special primary in July 2026 and endorsed Darline Graham in the Aug 25 runoff, but on Nov 3 he was the SC-7 nominee and won with 56.7% (AP, certified). Each node holds one result, so he stays tied to his House seat. Whether he left the Senate primary or lost it is unverifiable here.
+
+- lawmaker-mike-rogers: a $1.07M Form 9 electioneering link (495) from Alliance for a Better Future named "Michael J Rogers," the Michigan Senate nominee; the site's node is Alabama Rep. Michael D. Rogers (AL-3). News reports put the Alliance's ads in Michigan's Senate race. **Fixed:** link moved to links_removed, and both profile texts updated. **Needs Allegra:** whether to add a node for Michigan's Mike Rogers and a race-2026-mi-sen page (the loaded results include that race, but it is skipped until a node exists).
+- race-2026-ms-sen: published margins differ (AP via Mississippi Today: 4,669 votes; Wikipedia: about 8,000). **Fixed:** the race shows Colom as winner with no vote shares, citing Mississippi Today, until certified totals are out.
 
 ## Profile text audit (2026-11-24)
 

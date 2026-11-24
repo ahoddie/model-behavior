@@ -25,7 +25,7 @@ export type CandidateResult = {
 
 export const OUTCOME_LABEL: Record<Outcome, string> = {
   won: "Won", lost: "Lost", lost_primary: "Lost primary", withdrew: "Withdrew", died: "Died before the election",
-  not_on_ballot: "Not on the ballot", runoff: "Runoff", uncalled: "Not yet called", not_up: "Seat not up",
+  not_on_ballot: "Not on the ballot", runoff: "Runoff", uncalled: "Too close to call", not_up: "Seat not up",
 };
 
 export const fmtPct = (p: number | null | undefined) => (p == null ? "" : `${p.toFixed(1)}%`);
@@ -37,10 +37,10 @@ export function outcomeText(r: CandidateResult | null | undefined): string | nul
   return r.pct != null && (r.outcome === "won" || r.outcome === "lost" || r.outcome === "runoff" || r.outcome === "uncalled") ? `${label}, ${fmtPct(r.pct)}` : label;
 }
 
-// "Certified results", "Unofficial results as of Nov 20, 2026", "Not yet called", or a runoff line.
+// "Certified results", "Unofficial results as of Nov 20, 2026", "Too close to call", or a runoff line.
 export function statusText(r: RaceResult): string {
   if (r.status === "not_up") return "Seat not up in this election";
   if (r.status === "runoff") return r.runoff_date ? `Runoff on ${fmtDate(r.runoff_date)}` : "Goes to a runoff";
-  if (r.status === "uncalled") return "Not yet called";
+  if (r.status === "uncalled") return "Too close to call";
   return r.official ? "Certified results" : r.as_of ? `Unofficial results as of ${fmtDate(r.as_of)}` : "Unofficial results";
 }
