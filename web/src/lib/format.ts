@@ -54,7 +54,9 @@ export const billPlace = (id: string, name = ""): string => {
   return m ?? "other";
 };
 
-// A bill's lifecycle stage, in the order a bill moves through them.
+// A bill's lifecycle stage, in the order a bill moves through them. The last three are where a bill ends.
+export const BILL_STAGES = ["proposed", "introduced", "in_committee", "passed_one_chamber", "passed_legislature", "enacted", "vetoed", "failed"] as const;
+export type BillStage = (typeof BILL_STAGES)[number];
 export const STAGE_LABEL: Record<string, string> = {
   proposed: "Proposed", introduced: "Introduced", in_committee: "In committee", passed_one_chamber: "Passed one chamber",
   passed_legislature: "Passed the legislature", enacted: "Enacted", vetoed: "Vetoed", failed: "Failed",

@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { q } from "./db";
 import { buildLinker, type Part } from "./linkify";
 import { placeActor, countSharedQuotesOnce, newestFirst, type Side } from "./stance";
+import { BILL_STAGES, type BillStage } from "./format";
 
 // Every public read is cached under one tag with the "record" profile (next.config.ts): served from cache, refreshed in
 // the background once it is a minute old. Writes clear it: review actions call updateTag("record"); importers and the
@@ -204,7 +205,8 @@ export async function getTarget(id: string) {
     FROM links_shown l JOIN nodes a ON a.id=l.from_id WHERE l.to_id = ANY($1) ORDER BY l.amount DESC NULLS LAST`, [candidates.map((c) => c.id)]) : [];
   // Race pages lay out every FEC line for the seat, so they read all notes, not the summary's first eight.
   const allFacts = s.node.type === "race" ? await q<{ text: string; url: string }>(`SELECT text, url FROM facts WHERE node_id=$1 AND label IS NULL ORDER BY id`, [id]) : s.facts;
-  return { ...s, pushes, statements, candidates, candidatePushes, allFacts };
+  const bill = s.node.type === "bill" ? await getBillRecord(id) : null;
+  return { ...s, pushes, statements, candidates, candidatePushes, allFacts, bill };
 }
 
 export async function listTargets() {
@@ -721,4 +723,51 @@ export async function getNameIndex() {
   const aliases = await q<{ node_id: string; alias: string }>(`SELECT node_id, alias FROM entity_aliases`);
   const merged = await q<{ merged_id: string; kept_id: string }>(`SELECT merged_id, kept_id FROM merge_log WHERE action='merge' AND status='applied' AND reverted_at IS NULL`);
   return { nodes, aliases, merged };
+}
+
+// ── Public bill records (table bills) ──
+// Every AI-relevant bill found in an official source: Congress (GovInfo), California (LegInfo), other states (Open States).
+// Bills on the map carry node_id. Sorted federal first, then states by name, then most recent action first.
+export type BillRecord = { id: string; jurisdiction: string; jurisdiction_name: string; jurisdiction_sort: number; level: "federal" | "state";
+  session: string; identifier: string; chamber: string | null; title: string; introduced_date: string | null; stage: BillStage; stage_date: string | null;
+  status_text: string | null; status_date: string | null; sponsor: string | null; subjects: string[]; ai_match: string; source: string;
+  source_url: string; node_id: string | null; updated_at: string };
+const BILL_COLS = `b.id, b.jurisdiction, j.name AS jurisdiction_name, j.sort AS jurisdiction_sort, j.level, b.session, b.identifier, b.chamber, b.title,
+  b.introduced_date::text, b.stage, b.stage_date::text, b.status_text, b.status_date::text, b.sponsor, b.subjects, b.ai_match, b.source, b.source_url,
+  b.node_id, b.updated_at::text`;
+
+async function allBills(): Promise<BillRecord[]> {
+  "use cache";
+  cached();
+  // Like billStages: a database without the bills migration gives an empty list rather than an error.
+  try {
+    return await q<BillRecord>(`SELECT ${BILL_COLS} FROM bills b JOIN jurisdictions j ON j.code=b.jurisdiction
+      ORDER BY j.sort, b.status_date DESC NULLS LAST, b.identifier`);
+  } catch { return []; }
+}
+
+/** Bills, filtered in memory from one cached list. jurisdiction: 'us', a state code, 'federal' or 'state'. stage: one or more stages. */
+export async function listBills(f: { jurisdiction?: string; stage?: string | string[]; q?: string; onMap?: boolean; session?: string } = {}) {
+  const stages = f.stage ? new Set(Array.isArray(f.stage) ? f.stage : f.stage.split(",")) : null;
+  const words = f.q?.toLowerCase().split(/\s+/).filter(Boolean) ?? [];
+  return (await allBills()).filter((b) =>
+    (!f.jurisdiction || b.jurisdiction === f.jurisdiction || b.level === f.jurisdiction)
+    && (!stages || stages.has(b.stage)) && (!f.session || b.session === f.session) && (f.onMap === undefined || !!b.node_id === f.onMap)
+    && words.every((w) => `${b.identifier} ${b.title} ${b.sponsor ?? ""}`.toLowerCase().includes(w)));
+}
+
+/** Counts by jurisdiction and stage, for filters: [{ jurisdiction, jurisdiction_name, stage, n }]. */
+export async function billCounts() {
+  const out = new Map<string, { jurisdiction: string; jurisdiction_name: string; jurisdiction_sort: number; stage: string; n: number }>();
+  for (const b of await allBills()) {
+    const k = `${b.jurisdiction}|${b.stage}`;
+    const r = out.get(k) ?? { jurisdiction: b.jurisdiction, jurisdiction_name: b.jurisdiction_name, jurisdiction_sort: b.jurisdiction_sort, stage: b.stage, n: 0 };
+    r.n++; out.set(k, r);
+  }
+  return [...out.values()].sort((a, b) => a.jurisdiction_sort - b.jurisdiction_sort || BILL_STAGES.indexOf(a.stage as BillStage) - BILL_STAGES.indexOf(b.stage as BillStage));
+}
+
+/** The public record for one bill, by its bills.id or by the id of the map node it belongs to. */
+export async function getBillRecord(id: string): Promise<BillRecord | null> {
+  return (await allBills()).find((b) => b.id === id || b.node_id === id) ?? null;
 }
