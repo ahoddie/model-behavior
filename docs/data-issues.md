@@ -184,3 +184,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - sarah-may-stern / sarah-stern: likely the same Hudson Institute board chair (990 "Chair" vs hudson.org "President of the Board of Trustees").
 - nathan-click ("longtime adviser to Gov. Gavin Newsom"), rob-flaherty ("Democratic campaign veteran"): descriptor claims with no supporting fact.
 - phil-cox: only source is InfluenceWatch citing the New York Times.
+
+## thin-people-06
+- tyler-winklevoss: America PAC gift dated 2024-01-01 (placeholder); InfluenceWatch is the only source.
+- taylor-barkley: relation typed "executive"; the 2024 Form 990 lists him as "Director".
