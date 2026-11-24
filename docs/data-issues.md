@@ -18,7 +18,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 
 ## orgs-01
 - abundant-future: FEC money row shows $3.5M from Public First Action; a Transformer fact says $500,000.
-- nvidia / jensen-huang: "Leader: Jensen Huang (CEO)" fact and jensen-huang descriptor are stale; a Nov 12, 2026 8-K on file says he resigned as CEO (https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000082/nvidiaannouncesceotransiti.htm).
+- nvidia / jensen-huang: "Leader: Jensen Huang (CEO)" fact and jensen-huang descriptor are stale; a Nov 12, 2026 8-K on file says he resigned as CEO (https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000082/nvidiaannouncesceotransiti.htm). **Fixed, and the premise is out of date:** the 8-K is genuine (EDGAR accession 0001045810-26-000082, Item 5.02), but a second 8-K filed Nov 23, 2026 (0001045810-26-000090) says the board reinstated Huang as President and CEO on Nov 22. The Leader fact and descriptor are correct again; reinstatement facts were added to both nodes, and the nvidia and jensen-huang texts now say he resigned and was reinstated ten days later.
 - open-philanthropy: founded 2011 per one fact; the Karnofsky relation says co-founded 2014. Facts' founders differ from the descriptor ("Good Ventures and GiveWell").
 - scale-ai: "Meta took 49%" appears only in the descriptor, with no supporting fact.
 
@@ -95,7 +95,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 
 ## people-02
 - eliezer-yudkowsky: a statement credited to him (supports an IPCC-like body for AI) is ITIF's Hodan Omaar's, crediting the idea to Eric Schmidt and Mustafa Suleyman (https://itif.org/publications/2023/12/06/statement-to-the-us-senate-ai-insight-forum-on-risk-alignment-and-doomsday-scenarios/).
-- jensen-huang: descriptor "Nvidia founder and CEO" is stale (8-K: resigned Nov 12, 2026).
+- jensen-huang: descriptor "Nvidia founder and CEO" is stale (8-K: resigned Nov 12, 2026). **Fixed:** not stale after all; he was reinstated Nov 22, 2026 (see orgs-01). His text now says "co-founded" (NVIDIA had three founders).
 - Duplicate agency nodes: ftc / agency-federal-trade-commission-ftc; national-security-council / agency-natl-security-council-nsc; commerce-department / agency-commerce-dept-of-doc. **Fixed:** merged (33, 34, 32). These were first merged on 2026-11-15; the research loader re-created the old ids on 2026-11-17. Ingest now follows applied merges (`canonicalId` in scripts/lib/ingest.ts), so a reload can't bring them back.
 - ron-conway: a Verge statement summary says he "regrets funding pro-AI efforts and now opposes federal AI regulation"; looks unreliable, check against the article.
 
@@ -199,14 +199,14 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - Money rows don't carry support/oppose for super PAC spending in the dossier; it's only in links.stance.
 
 ## lawmakers-01
-- lawmaker-darline-graham: facts give "Role: U.S. Senator, SC" and website dgraham.senate.gov, apparently copied from Lindsey Graham; FEC S6SC04437 is a challenger. Building the Future and American Mission report ~$4.6M of general-election spending supporting her, and the FEC API records the candidate as "GRAHAM, DARLINE" (S6SC04437). A fact on lindsey-graham (Ballotpedia, 2026-07-13) says he died in office on July 11, 2026, so she is likely the replacement candidate; her node's "Role: U.S. Senator" and Senate website facts still look copied and should be checked.
+- lawmaker-darline-graham: facts give "Role: U.S. Senator, SC" and website dgraham.senate.gov, apparently copied from Lindsey Graham; FEC S6SC04437 is a challenger. Building the Future and American Mission report ~$4.6M of general-election spending supporting her, and the FEC API records the candidate as "GRAHAM, DARLINE" (S6SC04437). A fact on lindsey-graham (Ballotpedia, 2026-07-13) says he died in office on July 11, 2026, so she is likely the replacement candidate; her node's "Role: U.S. Senator" and Senate website facts still look copied and should be checked. **Fixed:** verified. senate.gov lists Darline Graham (R) as South Carolina's senator, and her official site (dgraham.senate.gov) says she was appointed on July 13, 2026, to fill the vacancy caused by Lindsey O. Graham's death, and took the oath on July 14. The Role and Website facts are correct, not copied. Her descriptor and text now say she was appointed, and an appointment fact was added.
 - lawmaker-celeste-maloy: House Clerk lists UT-2; FEC lists her 2026 race in UT-3.
 - lawmaker-roger-marshall: node source_url uses old House ID H6KS01179; facts use S0KS00315.
 - lawmaker-colin-allred: node source_url H6TX33082 differs from facts' H8TX32098.
 - lawmaker-thomas-feely: campaigns as "Jay Feely".
 
 ## lawmakers-03
-- lawmaker-lindsey-graham: descriptor calls him an "incumbent" 2026 candidate; a fact (Ballotpedia, 2026-07-13) says he died in office on July 11, 2026.
+- lawmaker-lindsey-graham: descriptor calls him an "incumbent" 2026 candidate; a fact (Ballotpedia, 2026-07-13) says he died in office on July 11, 2026. **Fixed:** confirmed by his Senate office's July 12 statement, senate.gov (which no longer lists him), and Wikipedia. The descriptor now reads "Former U.S. senator from South Carolina (R, 2003–2026); died in office July 11, 2026". FEC still shows him as an incumbent candidate, since FEC doesn't update for deaths.
 - lawmaker-jared-moskowitz: House Clerk lists FL-23 (https://clerk.house.gov/members/M001217); FEC and descriptor list FL-25 for 2026.
 - lawmaker-nikki-budzinski: stance blank for Public First Action's ~$105,000 independent expenditure (https://docquery.fec.gov/cgi-bin/forms/C30003586/1952561/).
 
