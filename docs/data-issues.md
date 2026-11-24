@@ -239,3 +239,11 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - ny-a3283-2025: no bill record is linked to the node.
 - us-119-s1792: node source_url is an Encode lobbying filing, not the bill page.
 - Agency lobbying counts in profile text for the House, Senate, White House Office, and Commerce are minimums: the money list behind them was capped at 15 counterparties. **Fixed (no change):** a coverage note, not an error.
+
+## Race profile text (races-01)
+
+- race-2026-ks-sen: Alliance for a Better Future's $80,832 independent expenditure has no support/oppose stance.
+- race-2026-ca-11: Saikat Chakrabarti is on the site as a candidate but missing from the race's FEC candidate facts and has no fundraising fact.
+- FEC candidate facts label some challengers "open seat" where an incumbent is listed (e.g. Rhett Marques, AL-2).
+- race-2026-ky-sen, race-2026-mt-1: no incumbent in the dossier.
+- lawmaker-manny-rutinel, lawmaker-melissa-bean: descriptors lack a party.
