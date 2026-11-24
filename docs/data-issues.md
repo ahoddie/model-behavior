@@ -139,3 +139,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - holmes-wilson: "Co-Founder, Quiet" has no support.
 - chris-hyams: "Not Employed" is stale; Fortune says he teaches at Huston-Tillotson University.
 - carlos-trujillo: one fact says "2025 filing"; the others say 2026.
+
+## people-10
+- gary-marcus: descriptor says he "testified to the Senate in 2023"; no fact on file supports it.
+- zane-grube: descriptor says "Trader"; the source gives only his employer (Jane Street).
