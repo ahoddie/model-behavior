@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "@/components/Link";
-import { listTargets, targetSides, billStages, type SideName } from "@/lib/data";
+import { listTargets, targetSides, billStages, raceSpending, type SideName } from "@/lib/data";
+import RacePanels, { seatsOf } from "@/components/RacePanels";
 import { fmtMoney, clusterName, landsRank, billPlace, STATE_NAMES, STAGE_LABEL } from "@/lib/format";
 import Select from "@/components/Select";
 import SectionNav from "@/components/SectionNav";
@@ -13,7 +14,6 @@ const KINDS = [
   ["elections", "Elections", (g: string) => g.startsWith("e-")],
   ["lobbied", "Agencies and offices engaged", (g: string) => g.startsWith("g-") || g === "administration"],
 ] as const;
-const cycleOf = (g: string) => g.match(/^e-(\d{4})-/)?.[1];
 type Side = { names: SideName[]; n: number };
 type Sides = Partial<Record<"support" | "mixed" | "oppose", Side>>;
 const total = (sd?: Sides) => Object.values(sd ?? {}).reduce((x, s) => x + (s?.n ?? 0), 0);
@@ -45,7 +45,7 @@ function Balance({ sd }: { sd: Sides }) {
 }
 
 type Sp = PageProps<"/targets">["searchParams"];
-const load = () => Promise.all([listTargets(), targetSides(), billStages()]);
+const load = () => Promise.all([listTargets(), targetSides(), billStages(), raceSpending()]);
 
 // Only the choice of tab and cycle waits for the URL. Awaited here, outside the boundary, the cached list is stored with the
 // prebuilt page; the same call inside the boundary is answered from that copy, so no tab runs a query.
@@ -64,9 +64,9 @@ export default async function Targets({ searchParams }: PageProps<"/targets">) {
 
 async function Listing({ sp: spP }: { sp: Sp }) {
   const sp = await spP;
-  const [ts, sides, stages] = await load();
+  const [ts, sides, stages, spend] = await load();
+  const seats = seatsOf(ts.filter((t) => t.grp.startsWith("e-")), spend);
   const kind = (KINDS.find(([k]) => k === sp.kind) ?? KINDS[0]);
-  const want = typeof sp.cycle === "string" ? sp.cycle : "";
   // Bills are grouped by where they sit: Congress first, then each state on its own, A to Z.
   const placeOf = (t: any) => `b-${stages[t.id]?.jurisdiction ?? billPlace(t.id, t.name)}`;
   // Bills can be narrowed to one stage; "none" keeps the bills with no public record matched yet.
@@ -79,29 +79,14 @@ async function Listing({ sp: spP }: { sp: Sp }) {
     .filter((t) => !stageWant || stageOf(t) === stageWant);
   const placeName = (g: string) => (g === "b-us" ? "Federal" : g === "b-other" ? "Other" : STATE_NAMES[g.slice(2)] ?? g.slice(2).toUpperCase());
   const billRank = (g: string) => (g === "b-us" ? "0" : g === "b-other" ? "2" : `1${placeName(g)}`);
-  const cycles = [...new Set(ts.map((t) => cycleOf(t.grp)).filter(Boolean) as string[])].sort().reverse();
   const groups = [...new Set(inKind.map((t) => t.grp as string))]
-    .filter((g) => kind[0] !== "elections" || !want || cycleOf(g) === want)
     .sort((a, b) => (kind[0] === "bills" ? billRank(a).localeCompare(billRank(b)) : landsRank(a) - landsRank(b)));
   // Cards: rows with positions first, then by money, so the busiest debates lead. Tables: by the value their bar draws,
-  // so the bars step down in order.
-  const isCands = (g: string) => g.endsWith("-candidates");
-  const drawn = (t: any) => (t.type === "lawmaker" ? t.shown_money : t.race_money) ?? 0;
+  // so the bars step down in order. Elections draw their own panels (RacePanels).
   const rowsOf = (g: string) => inKind.filter((t) => t.grp === g).sort((a, b) =>
-    kind[0] === "elections" ? drawn(b) - drawn(a) || b.candidates - a.candidates || a.name.localeCompare(b.name)
-    : kind[0] === "lobbied" ? (b.lobbying ?? 0) - (a.lobbying ?? 0) || b.actors - a.actors || a.name.localeCompare(b.name)
+    kind[0] === "lobbied" ? (b.lobbying ?? 0) - (a.lobbying ?? 0) || b.actors - a.actors || a.name.localeCompare(b.name)
     : total(sides[b.id] as Sides) - total(sides[a.id] as Sides) || b.money - a.money);
-  // Under a "2026 races" heading the year and the word "race" are already said.
-  const raceName = (n: string) => n.replace(/^\d{4}\s+/, "").replace(/\s+race$/i, "");
-  const groupName = (g: string) => kind[0] === "bills" ? placeName(g) : (kind[0] === "elections" && isCands(g) ? clusterName(g).replace(/election$/, "candidates") : clusterName(g));
-  const byId = new Map<string, any>(ts.map((t) => [t.id, t]));
-  // Each race's candidates, best funded first.
-  const candsOf = new Map<string, any[]>();
-  for (const t of ts) if (t.type === "lawmaker" && t.race) candsOf.set(t.race, [...(candsOf.get(t.race) ?? []), t]);
-  for (const list of candsOf.values()) list.sort((a, b) => b.shown_money - a.shown_money || a.name.localeCompare(b.name));
-  // Bars are scaled to the largest value of their kind in the tab, so every group shares one ruler.
-  const maxRace = Math.max(1, ...inKind.filter((t) => t.type !== "lawmaker").map(drawn));
-  const maxCand = Math.max(1, ...inKind.filter((t) => t.type === "lawmaker").map(drawn));
+  const groupName = (g: string) => (kind[0] === "bills" ? placeName(g) : clusterName(g));
   const maxFilings = Math.max(1, ...inKind.map((t) => t.lobbying ?? 0));
   const Bar = ({ v, max, tone }: { v: number; max: number; tone?: string }) => (
     <td className="pbar" aria-hidden><span className={`pmeter${tone ? ` pmeter-${tone}` : ""}`}>{v > 0 && <i style={{ width: `${(100 * v) / max}%` }} />}</span></td>
@@ -113,19 +98,12 @@ async function Listing({ sp: spP }: { sp: Sp }) {
       <nav className="tabs" aria-label="Kinds">
         {KINDS.map(([k, label, test]) => (
           <Link key={k} href={`/targets?kind=${k}`} scroll={false} aria-current={kind[0] === k ? "page" : undefined}>
-            {label} <span className="muted">({ts.filter((t) => test(t.grp)).length})</span>
+            {label} <span className="muted">({k === "elections" ? seats.length : ts.filter((t) => test(t.grp)).length})</span>
           </Link>
         ))}
       </nav>
 
-      {kind[0] === "elections" && (
-        <form className="filters" action="/targets">
-          <input type="hidden" name="kind" value="elections" />
-          <Select label="Election" name="cycle" defaultValue={want} submitOnChange
-            options={[{ value: "", label: "Every cycle" }, ...cycles.map((c) => ({ value: c, label: `${c} election (${Number(c) - 1}–${c.slice(2)})` }))]} />
-          <noscript><button type="submit">Show</button></noscript>
-        </form>
-      )}
+      {kind[0] === "elections" && <RacePanels seats={seats} sp={sp} />}
 
       {kind[0] === "bills" && stageCounts.size > 1 && (
         <form className="filters" action="/targets">
@@ -138,8 +116,8 @@ async function Listing({ sp: spP }: { sp: Sp }) {
         </form>
       )}
 
-      <div className="pol-body">
-        {groups.length > 1 && <SectionNav key={kind[0] + want + stageWant} items={groups.map((g) => ({ id: g, label: groupName(g), count: kind[0] === "bills" ? rowsOf(g).length : undefined }))} label="Groups" />}
+      {kind[0] !== "elections" && <div className="pol-body">
+        {groups.length > 1 && <SectionNav key={kind[0] + stageWant} items={groups.map((g) => ({ id: g, label: groupName(g), count: kind[0] === "bills" ? rowsOf(g).length : undefined }))} label="Groups" />}
         <div className="pol-main">
           {groups.map((g) => {
             const rows = rowsOf(g);
@@ -168,52 +146,7 @@ async function Listing({ sp: spP }: { sp: Sp }) {
                       </li>
                     );
                   })}</ul>
-                ) : kind[0] === "elections" ? (() => {
-                  const cands = isCands(g);
-                  const paid = rows.filter((t) => drawn(t) > 0), quiet = rows.filter((t) => !(drawn(t) > 0));
-                  const sum = paid.reduce((x, t) => x + drawn(t), 0);
-                  const max = cands ? maxCand : maxRace;
-                  return (
-                    <>
-                      {paid.length > 0 && (
-                        <p className="pstats">
-                          {fmtMoney(sum)} in outside money on record, across {paid.length} {cands ? (paid.length === 1 ? "candidate" : "candidates") : (paid.length === 1 ? "race" : "races")}.
-                          {" "}The largest is <Link href={`/node/${paid[0].id}`}>{cands ? paid[0].name : raceName(paid[0].name)}</Link>, at {fmtMoney(drawn(paid[0]))}.
-                        </p>
-                      )}
-                      {paid.length > 0 && (
-                        <table className="data-table ptable">
-                          <thead><tr><th className="prank"><span className="vh">Rank</span></th><th>{cands ? "Candidate" : "Race"}</th>
-                            <th className="pwho">{cands ? "Race" : "Candidates on record"}</th><th colSpan={2}>Outside money on record</th></tr></thead>
-                          <tbody>{paid.map((t, i) => {
-                            const list = candsOf.get(t.id) ?? [];
-                            const race = cands && t.race ? byId.get(t.race) : undefined;
-                            return (
-                              <tr key={t.id}>
-                                <td className="prank">{i + 1}</td>
-                                <td className="pname"><Link href={`/node/${t.id}`}>{cands ? t.name : raceName(t.name)}</Link></td>
-                                <td className="pwho">{cands
-                                  ? (race ? <Link href={`/node/${race.id}`}>{raceName(race.name)}</Link> : <span className="muted">Not on record</span>)
-                                  : list.length ? <>
-                                      {list.slice(0, 3).map((c, k) => <span key={c.id}>{k > 0 && ", "}<Link href={`/node/${c.id}`}>{c.name}</Link></span>)}
-                                      {list.length > 3 && <span className="muted">, and {list.length - 3} more</span>}
-                                    </> : <span className="muted">{t.candidates || "None"}</span>}</td>
-                                <td className="pamt">{fmtMoney(drawn(t))}</td>
-                                <Bar v={drawn(t)} max={max} tone="money" />
-                              </tr>
-                            );
-                          })}</tbody>
-                        </table>
-                      )}
-                      {quiet.length > 0 && (
-                        <div className="pquiet">
-                          <h3>No outside money on record <span className="muted">{quiet.length}</span></h3>
-                          <ul>{quiet.map((t) => <li key={t.id}><Link href={`/node/${t.id}`}>{cands ? t.name : raceName(t.name)}</Link></li>)}</ul>
-                        </div>
-                      )}
-                    </>
-                  );
-                })() : (
+                ) : (
                   // One lobbying report covers many agencies, so no dollar figure is split out per agency.
                   <table className="data-table ptable">
                     <thead><tr><th className="prank"><span className="vh">Rank</span></th><th>Body</th><th className="num">Organizations</th><th colSpan={2}>Lobbying filings</th></tr></thead>
@@ -232,7 +165,7 @@ async function Listing({ sp: spP }: { sp: Sp }) {
             );
           })}
         </div>
-      </div>
+      </div>}
     </>
   );
 }

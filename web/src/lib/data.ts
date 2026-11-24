@@ -315,6 +315,17 @@ export async function getHome() {
 
 // Lands on: each target's latest stated position per actor, grouped into sides, so a row says who stood where.
 export type SideName = { id: string; name: string; type: string; logo_url: string | null };
+// Every AI-related dollar on record that reached a candidate: one row per group, candidate, kind, and side.
+export async function raceSpending() {
+  "use cache";
+  cached();
+  return q<{ cand: string; actor: string; actor_name: string; subtype: string; stance: string | null; amount: number; n: number }>(`
+    SELECT l.to_id AS cand, l.from_id AS actor, f.name AS actor_name, coalesce(l.subtype, 'contribution') AS subtype, l.stance,
+      coalesce(sum(l.amount), 0)::float8 AS amount, count(*)::int AS n
+    FROM links_shown l JOIN nodes c ON c.id=l.to_id AND c.type='lawmaker' JOIN nodes f ON f.id=l.from_id
+    WHERE l.type='money' GROUP BY 1, 2, 3, 4, 5`);
+}
+
 // Each bill node's lifecycle stage and place, from the public bill records (table bills, linked by node_id).
 // Read apart from listTargets so the page still loads on a database that has not had the bills migration.
 export async function billStages(): Promise<Record<string, { stage: string; jurisdiction: string }>> {
