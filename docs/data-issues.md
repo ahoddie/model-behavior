@@ -36,3 +36,10 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - us-ndaa-ai-preemption-2025 / us-ndaa-fy2026-ai-preemption: likely duplicate bill nodes.
 - cindy-cohn: descriptor says Executive Director; Data & Society's Form 990 lists her as a director.
 - Descriptor claims with no source: IFS "polling 3 to 1", Chamber of Progress member list, AI Futures Project "AI 2040: Plan A".
+
+## orgs-06
+- ff-pac: Wikipedia says Future Forward formed in 2020; FEC shows registration Feb 8, 2018.
+- tech-justice-law-project: descriptor mentions suits against OpenAI; the record shows only the Character.AI suit.
+- sag-aftra: "2026 studio contract with AI protections" in the descriptor has no supporting fact.
+- consumer-reports: "active on AI and privacy policy" in the descriptor has no supporting fact.
+- craft-ventures: descriptor says founded by David Sacks; Wikipedia says Sacks and Bill Lee.
