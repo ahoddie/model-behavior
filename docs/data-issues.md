@@ -209,3 +209,9 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - lawmaker-lindsey-graham: descriptor calls him an "incumbent" 2026 candidate; a fact (Ballotpedia, 2026-07-13) says he died in office on July 11, 2026.
 - lawmaker-jared-moskowitz: House Clerk lists FL-23 (https://clerk.house.gov/members/M001217); FEC and descriptor list FL-25 for 2026.
 - lawmaker-nikki-budzinski: stance blank for Public First Action's ~$105,000 independent expenditure (https://docquery.fec.gov/cgi-bin/forms/C30003586/1952561/).
+
+## agencies-02
+- Duplicate agency pairs (lobbying rows sit on the second id): ftc / agency-federal-trade-commission-ftc; ostp / agency-office-of-science-and-technology-policy-ostp; national-security-council / agency-natl-security-council-nsc; white-house / agency-executive-office-of-the-president-eop; commerce-department / agency-commerce-dept-of-doc; osd / agency-office-of-the-secretary-of-defense.
+- commerce-department: descriptor says it runs CAISI; its source (ifp.org/author/saif-khan) doesn't say so.
+- nscai: descriptor gives 2018–2021; Wikidata Q66087960 says founded 2019.
+- white-house (David Sacks stepped down March 2026) and ostp (Sriram Krishnan left June 2026): the sources cited for these relations predate the events.
