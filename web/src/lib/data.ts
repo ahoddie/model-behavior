@@ -833,3 +833,39 @@ export async function getBillRecord(id: string): Promise<(BillRecord & { actions
   const b = (await allBills()).find((x) => x.id === id || x.node_id === id);
   return b ? { ...b, ...(await getBillHistory(b.id)) } : null;
 }
+
+/** Per actor: federal lobbying on record (LDA filings, all issues) and political giving, for the bill page's position cards. */
+export async function actorSpending(ids: string[]): Promise<Record<string, { lobbying: number; giving: number }>> {
+  "use cache";
+  cached();
+  if (!ids.length) return {};
+  const rows = await q<{ id: string; lobbying: number; giving: number }>(`
+    SELECT n.id,
+      (SELECT coalesce(sum(f.amount),0)::float8 FROM filings f WHERE f.node_id=n.id AND f.filing_type='LDA') AS lobbying,
+      (SELECT coalesce(sum(m.amount),0)::float8 FROM links_shown m WHERE m.from_id=n.id AND m.type='money'
+        AND m.subtype IN ('contribution','independent expenditure','donation','transfer')) AS giving
+    FROM nodes n WHERE n.id = ANY($1)`, [ids]);
+  return Object.fromEntries(rows.map((r) => [r.id, { lobbying: r.lobbying, giving: r.giving }]));
+}
+
+/** Names, types, logos and descriptors for a set of nodes. */
+export async function nodeCards(ids: string[]): Promise<Record<string, { id: string; name: string; type: string; logo_url: string | null; descriptor: string | null }>> {
+  "use cache";
+  cached();
+  if (!ids.length) return {};
+  const rows = await q<any>(`SELECT id, name, type, logo_url, descriptor FROM nodes WHERE id = ANY($1)`, [ids]);
+  return Object.fromEntries(rows.map((r: any) => [r.id, r]));
+}
+
+/** The profile of a bill's author, matched from the sponsor line ("Sen. Wiener") by surname; null unless one person fits. */
+export async function billAuthor(sponsor: string | null): Promise<{ id: string; name: string } | null> {
+  "use cache";
+  cached();
+  const surname = sponsor?.replace(/\bet al\.?/i, "").replace(/\([^)]*\)/g, "").trim().split(/[\s,]+/).filter(Boolean).pop();
+  if (!surname || surname.length < 3) return null;
+  const rows = await q<{ id: string; name: string; type: string }>(
+    `SELECT id, name, type FROM nodes WHERE type IN ('lawmaker','person') AND name ~* ('(^|\\s)' || $1 || '$')`, [surname.replace(/[^\p{L}'-]/gu, "")]);
+  const lawmakers = rows.filter((r) => r.type === "lawmaker");
+  const pick = lawmakers.length === 1 ? lawmakers[0] : rows.length === 1 ? rows[0] : null;
+  return pick ? { id: pick.id, name: pick.name } : null;
+}

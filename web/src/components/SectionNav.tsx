@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 
 // A sticky list of the page's sections on wide screens. The section in view is marked.
-export default function SectionNav({ items, label = "On this page" }: { items: { id: string; label: string; count?: number }[]; label?: string }) {
+export default function SectionNav({ items, label = "On this page", className = "secnav" }: { items: { id: string; label: string; count?: number }[]; label?: string; className?: string }) {
   const [active, setActive] = useState(items[0]?.id);
   // While a click's glide is running, the clicked section stays marked so the marker doesn't step through the ones passed.
   const gliding = useRef(0);
@@ -45,7 +45,7 @@ export default function SectionNav({ items, label = "On this page" }: { items: {
     return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("wheel", stop); window.removeEventListener("touchstart", stop); if (raf) cancelAnimationFrame(raf); };
   }, [items]);
   return (
-    <nav className="secnav" aria-label={label}>
+    <nav className={className} aria-label={label}>
       <ol>{items.map((i) => (
         <li key={i.id}><a href={`#${i.id}`} onClick={(e) => go(e, i.id)} aria-current={active === i.id ? "location" : undefined}>{i.label}{i.count != null && <span className="secnav-n">{i.count}</span>}</a></li>
       ))}</ol>

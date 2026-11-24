@@ -3,8 +3,9 @@
 // Preference: apple-touch-icon (square, large) > SVG icon > JSON-LD Organization logo > largest <link rel=icon> > /favicon.ico.
 // A raster under 32px is only used when no larger candidate works. SVGs with <script or on*= handlers are rejected.
 // robots.txt is checked before every request. logo_source_url records the homepage the icon was found on.
-// Usage: pnpm logos [--all] [--localize]
+// Usage: pnpm logos [--all] [--localize] [--site <id>=<homepage> ...]
 //   --all       re-check nodes that already have a logo
+//   --site      only these nodes, from the homepage given (for an org with no Website fact); repeatable
 //   --localize  download existing hot-linked logos (logo_url starting with http) and rewrite logo_url
 import "./env.ts";
 import { createHash } from "node:crypto";
@@ -166,7 +167,12 @@ async function findLogo(site: string): Promise<{ img: Img; from: string } | null
 
 // ---- main
 let rows: { id: string; name: string; site: string | null; logo: string | null }[];
-if (localize) {
+const sites = process.argv.flatMap((a, i) => (process.argv[i - 1] === "--site" ? [a.split("=") as [string, string]] : []));
+if (sites.length) {
+  const named = new Map(sites);
+  rows = (await pool.query(`SELECT id, name, logo_url AS logo FROM nodes WHERE id = ANY($1) ORDER BY id`, [[...named.keys()]])).rows
+    .map((r: any) => ({ ...r, site: named.get(r.id)! }));
+} else if (localize) {
   rows = (await pool.query(
     `SELECT n.id, n.name, n.logo_url AS logo, (SELECT f.url FROM facts f WHERE f.node_id=n.id AND f.label='Website' ORDER BY f.id DESC LIMIT 1) AS site
      FROM nodes n WHERE n.type IN ${TYPES} AND n.logo_url ~ '^https?:' ORDER BY n.id`)).rows;

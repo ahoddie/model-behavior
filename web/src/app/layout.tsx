@@ -3,6 +3,7 @@ import { Archivo, Literata, JetBrains_Mono } from "next/font/google";
 import Link from "@/components/Link";
 import { Suspense, ViewTransition } from "react";
 import LastUpdated from "@/components/LastUpdated";
+import PageNames from "@/components/PageNames";
 import MainNav, { NavLinks } from "@/components/MainNav";
 import HeaderSearch from "@/components/HeaderSearch";
 import Motion from "@/components/Motion";
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             "page" view transition in globals.css). Plain state changes, like the map's, never start one. */}
         <main id="main"><ViewTransition default="page">{children}</ViewTransition></main>
         <Motion />
+        <Suspense fallback={null}><PageNames /></Suspense>
         <footer className="sitefoot mono">
           <Suspense fallback={null}><LastUpdated /></Suspense>
           <Link href="/data?view=methodology">Methodology</Link>

@@ -18,7 +18,8 @@ function text(c: PageCite | QuoteCite, origin: string) {
   return `${c.speaker}, “${c.quote}” ${c.outlet || host(c.url)}${c.date ? `, ${c.date}` : ""}. ${c.url}${c.archive ? ` (archived: ${c.archive})` : ""}`;
 }
 
-export default function CiteButton(props: (PageCite | QuoteCite) & { small?: boolean }) {
+// plain: the word alone, a quiet text button (the item rail).
+export default function CiteButton(props: (PageCite | QuoteCite) & { small?: boolean; plain?: boolean }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
@@ -35,9 +36,9 @@ export default function CiteButton(props: (PageCite | QuoteCite) & { small?: boo
   }, [open]);
   const value = open ? text(props, origin) : "";
   return (
-    <span className={`cite${props.small ? " cite-sm" : ""}`} ref={box}>
+    <span className={`cite${props.small ? " cite-sm" : ""}${props.plain ? " cite-plain" : ""}`} ref={box}>
       <button type="button" className="cite-btn" aria-expanded={open} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setSide(r.left + 430 > window.innerWidth ? "right" : "left"); setOpen((o) => !o); setCopied(false); }}>
-        <span aria-hidden>“</span> Cite
+        {!props.plain && <><span aria-hidden>“</span> </>}Cite
       </button>
       {open && (
         <span className={`cite-card cite-${side}`} role="dialog" aria-label="Citation">

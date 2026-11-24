@@ -6,12 +6,15 @@ import CoverageLine from "./CoverageLine";
 import RaceView from "./RaceView";
 import BackLink from "./BackLink";
 import MapIt, { linkCaption } from "./MapIt";
+import BillView from "./BillView";
 import type { Coverage } from "@/lib/data";
 
 const SIDES = [["support", "For"], ["support_if_amended", "For, if amended"], ["oppose", "Against"], ["", "Other engagement"]] as const;
 
 export default function TargetView({ t, coverage }: { t: any; coverage: Coverage }) {
   const n = t.node;
+  // Bills have their own page (docs/bill-page-spec.md).
+  if (n.type === "bill") return <BillView t={t} />;
   const sideOf = (s: string | null) => (s === "support" || s === "oppose" || s === "support_if_amended" ? s : "");
   const isRace = n.type === "race";
   const counts: Record<string, number> = {};
