@@ -130,3 +130,12 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - todor-markov: descriptor says "Research Scientist, Meta Superintelligence Labs"; no fact supports it, and his site names no employer.
 - stewart-barber: descriptor says "White House legislative affairs"; NVIDIA's LD-1 lists only "White House (2019–2021)".
 - linkify false match: "White House Office" (a node name) matches inside "White House Office of Management and Budget".
+
+## people-08
+- brian-singerman: descriptor "Managing Partner, Quiet Capital" is wrong; TechCrunch says Lee Linden is managing partner and Singerman is raising a new fund, GPx, with him.
+- brad-smith: a statement about Lord Booth-Smith and AISI (Transformer, 2026-10-16) is credited to him by mistake.
+- edward-fenster: descriptor stale; Sunrun's bio says co-executive chair only until July 2026, now vice-chair.
+- clark-minor: a fact lists his HHS CIO job as past; FedScoop says his exit is unconfirmed and HHS still lists him as CIO.
+- holmes-wilson: "Co-Founder, Quiet" has no support.
+- chris-hyams: "Not Employed" is stale; Fortune says he teaches at Huston-Tillotson University.
+- carlos-trujillo: one fact says "2025 filing"; the others say 2026.
