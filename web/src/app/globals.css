@@ -230,6 +230,7 @@ button.linkish:hover { text-decoration-color: var(--ink); }
 .sel-list { max-height: 280px; overflow-y: auto; margin: 0; padding: 3px 0; list-style: none; }
 .sel-find { display: block; width: calc(100% - 8px); margin: 4px; border: 1px solid var(--rule); font-family: var(--f-body); font-size: 12px; }
 .sel-wide .sel-pop { min-width: 340px; }
+.sel-pop.sel-pop-end { left: auto; right: 0; }
 .sel-list li.sel-none { color: var(--muted); cursor: default; }
 .sel-box { position: relative; display: inline-flex; }
 .sel-list li {

@@ -1,7 +1,7 @@
 "use client";
 // Site-wide dropdown. Follows the WAI-ARIA select-only combobox pattern, so it works by keyboard and screen reader.
 // Pass `name` to use it inside a plain <form>: a hidden input carries the value.
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export type Opt = { value: string; label: string };
@@ -34,9 +34,22 @@ export default function Select({ label, options, value, defaultValue, onChange, 
     return () => document.removeEventListener("pointerdown", off);
   }, [open]);
   useEffect(() => { if (open && canSearch) findRef.current?.focus({ preventScroll: true }); }, [open, canSearch]);
+  // The active option is kept in view by scrolling the list alone: scrollIntoView would also move the page.
   useEffect(() => {
-    if (open) list.current?.querySelector<HTMLElement>(`[data-i="${active}"]`)?.scrollIntoView({ block: "nearest" });
+    const ul = list.current, li = ul?.querySelector<HTMLElement>(`[data-i="${active}"]`);
+    if (!open || !ul || !li) return;
+    const top = li.offsetTop - ul.offsetTop;
+    if (top < ul.scrollTop) ul.scrollTop = top;
+    else if (top + li.offsetHeight > ul.scrollTop + ul.clientHeight) ul.scrollTop = top + li.offsetHeight - ul.clientHeight;
   }, [open, active]);
+  // A list that would run past the right edge of the window opens leftward from the button's right edge instead,
+  // so opening a dropdown at the end of a row never widens the page.
+  const [flip, setFlip] = useState(false);
+  useLayoutEffect(() => {
+    if (!open) { setFlip(false); return; }
+    const pop = root.current?.querySelector<HTMLElement>(".sel-pop");
+    if (pop && pop.getBoundingClientRect().right > document.documentElement.clientWidth - 8) setFlip(true);
+  }, [open]);
 
   const show = () => { setFind(""); setActive(selIdx); setOpen(true); };
   const pick = (i: number) => {
@@ -98,7 +111,7 @@ export default function Select({ label, options, value, defaultValue, onChange, 
       </button>
       {name && <input type="hidden" name={name} value={cur} />}
       {open && (
-        <div className="sel-pop">
+        <div className={`sel-pop${flip ? " sel-pop-end" : ""}`}>
         {canSearch && (
           <input ref={findRef} type="search" className="sel-find" placeholder="Type to filter" value={find} aria-label={`Filter ${label}`}
             role="combobox" aria-expanded aria-controls={`${id}-list`} aria-autocomplete="list"
