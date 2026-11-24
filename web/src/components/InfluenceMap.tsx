@@ -393,11 +393,12 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
   return (
     <div className="mapwrap" ref={wrap}>
       {fromUrl}
+      {/* The timeline's bar and its month row ride in the sticky toolbar too, so the scrubber stays in reach while scrolling. */}
       <div className="maptools">
         {filters}
+        {timeline}
+        {arrivalsRow}
       </div>
-      {timeline}
-      {arrivalsRow}
       <div className={`mapstage${focus ? " focused" : ""}${mode === "timeline" ? " timeline" : ""}`}>
         <svg ref={svgRef} width={width} height={height} style={measured === null ? { visibility: "hidden" } : undefined} role="group" aria-label="Influence map: The Valley, Through, Lands on" className="map"
           onClick={() => { if (selected) setSelected(null); }}>

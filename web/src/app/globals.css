@@ -521,6 +521,9 @@ em, i, cite, address, dfn, var { font-style: normal; }
 .maptools { display: block; padding: var(--s3) 0; }
 .tool-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s3) var(--s5); flex-wrap: wrap; }
 .tool-row + .tool-row { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--rule); }
+/* In the timeline, the play bar and the month's names sit under the filters inside the sticky toolbar. */
+.maptools .timebar { margin-top: 10px; padding: 10px 0 0; border-top: 1px solid var(--rule); }
+.maptools .tl-arrivals { margin: 10px 0 0; padding: 0; border-bottom: 0; }
 .tool-right { display: flex; align-items: center; gap: var(--s3); }
 .tool-filters { justify-content: flex-start; }
 .chips { display: inline-flex; align-items: center; gap: 4px; }
