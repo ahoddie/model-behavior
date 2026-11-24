@@ -21,3 +21,18 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - nvidia / jensen-huang: "Leader: Jensen Huang (CEO)" fact and jensen-huang descriptor are stale; a Nov 12, 2026 8-K on file says he resigned as CEO (https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000082/nvidiaannouncesceotransiti.htm).
 - open-philanthropy: founded 2011 per one fact; the Karnofsky relation says co-founded 2014. Facts' founders differ from the descriptor ("Good Ventures and GiveWell").
 - scale-ai: "Meta took 49%" appears only in the descriptor, with no supporting fact.
+
+## orgs-03
+- lawmaker-mike-rogers: node says AL-3 House, but American Mission/ABF spending in Sept 2026 went to Senate races; likely the Michigan Senate candidate (unconfirmed).
+- macarthur-foundation: a GrantedAI fact dates Humanity AI's announcement to Feb 25, 2026; MacArthur's press release says Oct 14, 2025.
+- macarthur-foundation money: $9.8M to ai-now and $4M to brookings cite GrantedAI, which says $2M each.
+- cset: Open Philanthropy money totals $160.25M; CSET's own page says total funding was just over $100M by 2021; may overlap Good Ventures' $52.9M.
+- humanity-ai: "co-chaired by MacArthur and Omidyar" has no supporting fact. dream-nyc: "donors include Anthropic and OpenAI staff" has no supporting fact.
+
+## orgs-04
+- smp: lobbying row (SMP to the House) is for SMP Automotive Systems Alabama, a Vogel Group client, not the super PAC (https://lda.gov/filings/public/filing/4e4a55d6-06fc-4f87-8291-7e7ec42b1c8c).
+- ifp: founding year 2022 (Wikipedia) vs 2021 (descriptor, Caleb Watney's IFP bio).
+- sarah-stern / sarah-may-stern: likely the same person.
+- us-ndaa-ai-preemption-2025 / us-ndaa-fy2026-ai-preemption: likely duplicate bill nodes.
+- cindy-cohn: descriptor says Executive Director; Data & Society's Form 990 lists her as a director.
+- Descriptor claims with no source: IFS "polling 3 to 1", Chamber of Progress member list, AI Futures Project "AI 2040: Plan A".
