@@ -164,3 +164,10 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - anil-dash ("CEO of Glitch"), jane-hartley ("former ambassador to the UK"), adam-green ("PCCC cofounder"): descriptor claims with no supporting relation or source.
 - romesh-wadhwani / wadhwani-foundation: the writers disagree on whether the $5M CSIS gift was his own or the foundation's; check the CSIS release.
 - Descriptor typos: "Principle" (shaunna-thomas), "Quantitive" (dylan-mavrides).
+
+## thin-people-02
+- avril-haines: descriptor says "Incoming" president; the Sept 28 start date has passed (no year on file).
+- cameron-winklevoss: $250,000 America PAC gift dated 2024-01-01 (looks like a placeholder date).
+- cody-venzke: date_start 2025-01-01, but the source is a December 2025 release (placeholder date).
+- california-leads: a relation note says "Meta-funded"; its profile record shows Google and Meta.
+- connor-leahy: descriptor says he founded EleutherAI and Conjecture; no supporting fact.
