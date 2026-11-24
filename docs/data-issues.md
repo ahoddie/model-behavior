@@ -92,3 +92,9 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - Duplicate nodes: ent_pac_smart-justice-california-action-fund_8cfde2 / smart-justice-california-action-fund.
 - workers-vote, working-families-party-pac, wfw-action-fund: typed nonprofit; FEC lists them as a super PAC or hybrid PACs.
 - shaunna-thomas: descriptor reads "Principle, SLT Strategies" (Principal). UltraViolet's text links her as its co-founder on name match only; confirm it's the same person as the Guardrails Alliance co-founder.
+
+## people-02
+- eliezer-yudkowsky: a statement credited to him (supports an IPCC-like body for AI) is ITIF's Hodan Omaar's, crediting the idea to Eric Schmidt and Mustafa Suleyman (https://itif.org/publications/2023/12/06/statement-to-the-us-senate-ai-insight-forum-on-risk-alignment-and-doomsday-scenarios/).
+- jensen-huang: descriptor "Nvidia founder and CEO" is stale (8-K: resigned Nov 12, 2026).
+- Duplicate agency nodes: ftc / agency-federal-trade-commission-ftc; national-security-council / agency-natl-security-council-nsc; commerce-department / agency-commerce-dept-of-doc.
+- ron-conway: a Verge statement summary says he "regrets funding pro-AI efforts and now opposes federal AI regulation"; looks unreliable, check against the article.
