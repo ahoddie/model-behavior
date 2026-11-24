@@ -1,7 +1,7 @@
 import Link from "@/components/Link";
 import Select from "@/components/Select";
 import { fmtMoney, STATE_NAMES } from "@/lib/format";
-import { outcomeText, fmtPct, statusText, type CandidateResult, type RaceResult } from "@/lib/election";
+import { outcomeText, fmtPct, statusText, shortStatusText, type CandidateResult, type RaceResult } from "@/lib/election";
 
 // The Elections tab: one panel per seat, each the same size whatever was spent there, so a quiet $1,000 check in one
 // district gets the same room as a multimillion-dollar fight in another. A seat is a race on record or, for a candidate
@@ -87,12 +87,16 @@ function candOutcome(s: Seat, c: Cand): string | null {
   return outcomeText(c.result);
 }
 // "Won by Jane Doe, 52.1%. Unofficial results as of Nov 20, 2026" or "Not yet called".
-function resultLine(s: Seat): string | null {
+// The result sentence, only when the winner is not among the listed candidates (whose own line already says "Won, 54.7%");
+// otherwise just a short status note.
+function resultLine(s: Seat): { text: string; note: boolean } | null {
   const r = s.result;
   if (!r) return null;
-  if (r.status !== "called") return statusText(r);
+  if (r.status !== "called") return { text: statusText(r), note: false };
   const w = r.candidates.find((c) => c.winner);
-  return `${r.winner_name ?? w?.name ?? "Winner"} won${w?.pct != null ? ` with ${fmtPct(w.pct)}` : ""}. ${statusText(r)}`;
+  const listed = !!(r.winner ?? w?.id) && s.cands.some((c) => c.id === (r.winner ?? w?.id));
+  if (listed) return { text: shortStatusText(r), note: true };
+  return { text: `${r.winner_name ?? w?.name ?? "Winner"} won${w?.pct != null ? ` with ${fmtPct(w.pct)}` : ""}. ${statusText(r)}`, note: false };
 }
 
 function Panel({ s }: { s: Seat }) {
@@ -109,7 +113,7 @@ function Panel({ s }: { s: Seat }) {
             {candOutcome(s, c) && <span className="rpanel-out">{candOutcome(s, c)}</span>}</li>
         ))}</ul>
       )}
-      {resultLine(s) && <p className="rpanel-result">{resultLine(s)}</p>}
+      {(() => { const l = resultLine(s); return l && <p className={l.note ? "rpanel-result rpanel-result-note" : "rpanel-result"}>{l.text}</p>; })()}
       {quiet ? <p className="rpanel-none">No AI-related money on record</p> : (
         <ul className="rpanel-money" aria-label="AI-related money on record">
           {s.lines.slice(0, SHOW).map((l, i) => (

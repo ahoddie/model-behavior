@@ -134,14 +134,9 @@ export async function getProfile(id: string) {
   // apart, never counted in its totals; the payer's link carries the money.
   q<any>(`
     SELECT r.id::int, r.amount::float8 AS amount, pdate(r.date_start, r.date_start_prec) AS date_start, r.note, r.source_url,
-      t.id AS other_id, t.name AS other_name, pn.id AS payer_id, pn.name AS payer_name, rf.id AS recommender_id, rf.name AS recommender_name,
-      CASE WHEN r.from_id=$1 THEN 'out' ELSE 'in' END AS dir
-    FROM links_removed r LEFT JOIN links k ON k.id = r.kept_id JOIN nodes t ON t.id = r.to_id LEFT JOIN nodes pn ON pn.id = k.from_id
-      JOIN nodes rf ON rf.id = r.from_id
-    -- 'recommended:' rows have a matched payer link (kept_id); 'recommended; payer record not matched' rows have none and
-    -- are also listed on the grantee's page, since no payer link there carries them.
-    WHERE r.reason LIKE 'recommended%' AND (r.from_id=$1 OR (r.to_id=$1 AND r.kept_id IS NULL))
-    ORDER BY r.date_start DESC NULLS LAST`, [id])]);
+      t.id AS other_id, t.name AS other_name, pn.id AS payer_id, pn.name AS payer_name
+    FROM links_removed r JOIN links k ON k.id = r.kept_id JOIN nodes t ON t.id = r.to_id JOIN nodes pn ON pn.id = k.from_id
+    WHERE r.from_id=$1 AND r.reason LIKE 'recommended:%' ORDER BY r.date_start DESC NULLS LAST`, [id])]);
   return { ...s, feed, filings, links, recommended };
 }
 

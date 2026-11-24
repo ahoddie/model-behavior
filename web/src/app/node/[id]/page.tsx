@@ -192,23 +192,13 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
                   {l.note && <p className="note">{l.note}</p>}</div></li>
             ))}</ul>
           </section>}
-          {p.recommended.some((r: any) => r.dir === "out") && <section>
+          {p.recommended.length > 0 && <section>
             <h2>Grants it recommended</h2>
             <p className="note">Grants {p.node.name} recommended that another funder paid. They are counted once, under the funder that paid, and are not in {p.node.name}&apos;s totals.</p>
-            <ul className="record">{p.recommended.filter((r: any) => r.dir === "out").map((r: any) => (
+            <ul className="record">{p.recommended.map((r: any) => (
               <li key={r.id}><div className="when">{fmtDate(r.date_start) || "Undated"}</div>
-                <div><p>Recommended {dollars(r.amount)} to <Link href={`/node/${r.other_id}`}>{r.other_name}</Link>, {r.payer_id
-                  ? <>paid by <Link href={`/node/${r.payer_id}`}>{r.payer_name}</Link>.</>
-                  : <>payer record not matched.</>}<Src url={r.source_url} /></p>
+                <div><p>Recommended {dollars(r.amount)} to <Link href={`/node/${r.other_id}`}>{r.other_name}</Link>, paid by <Link href={`/node/${r.payer_id}`}>{r.payer_name}</Link>.<Src url={r.source_url} /></p>
                   {r.note && <p className="note">{r.note}</p>}</div></li>
-            ))}</ul>
-          </section>}
-          {p.recommended.some((r: any) => r.dir === "in") && <section>
-            <h2>Recommended grants with no matched payment</h2>
-            <p className="note">Grants another funder recommended to {p.node.name} in years when the usual payer&apos;s tax filings show no payment that adds up to them. They are listed for the record and left out of totals, so no money is counted twice.</p>
-            <ul className="record">{p.recommended.filter((r: any) => r.dir === "in").map((r: any) => (
-              <li key={r.id}><div className="when">{fmtDate(r.date_start) || "Undated"}</div>
-                <div><p>{dollars(r.amount)} recommended by <Link href={`/node/${r.recommender_id}`}>{r.recommender_name}</Link>.<Src url={r.source_url} /></p></div></li>
             ))}</ul>
           </section>}
         </>;

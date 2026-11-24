@@ -44,3 +44,9 @@ export function statusText(r: RaceResult): string {
   if (r.status === "uncalled") return "Too close to call";
   return r.official ? "Certified results" : r.as_of ? `Unofficial results as of ${fmtDate(r.as_of)}` : "Unofficial results";
 }
+
+// A short status for a called race whose winner is already listed: "Certified" or "Unofficial, as of Nov 9".
+export function shortStatusText(r: RaceResult): string {
+  if (r.official) return "Certified";
+  return r.as_of ? `Unofficial, as of ${fmtDate(r.as_of).replace(/, \d{4}$/, "")}` : "Unofficial";
+}
