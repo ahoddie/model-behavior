@@ -176,6 +176,17 @@ table.data-table td.num { text-align: right; font-family: var(--f-body); }
 .mo .pbal-bar, .mo .pmeter i, .mo .race-track { transition: transform var(--dur-4) var(--ease-out); transform-origin: left center; }
 .mo .race-side.against .race-track { transform-origin: right center; }
 .mo .pbal-bar[data-pre], .mo .pmeter[data-pre] i, .mo .race-track[data-pre] { transform: scaleX(0); }
+/* Page changes: the old content steps back quickly, the new one settles in a beat later. The masthead stays put. */
+::view-transition { pointer-events: none; }
+::view-transition-group(.page) { animation: none; }
+::view-transition-old(.page) { animation: mo-vt-out var(--dur-1) ease-in both; }
+::view-transition-new(.page) { animation: mo-rise var(--dur-3) var(--ease-out) 60ms both; }
+@keyframes mo-vt-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+/* A profile tab's panel eases in each time it is shown. */
+.tab-panel:not([hidden]) { animation: mo-fade var(--dur-3) var(--ease-out) both; }
 
 /* Influence map */
 .home-head { padding: var(--s5) var(--s5) 0; display: flex; justify-content: space-between; align-items: end; gap: var(--s5); flex-wrap: wrap; }

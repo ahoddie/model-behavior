@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo, Literata, JetBrains_Mono } from "next/font/google";
 import Link from "@/components/Link";
-import { Suspense } from "react";
+import { Suspense, ViewTransition } from "react";
 import LastUpdated from "@/components/LastUpdated";
 import MainNav, { NavLinks } from "@/components/MainNav";
 import HeaderSearch from "@/components/HeaderSearch";
@@ -39,7 +39,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <HeaderSearch />
           </div>
         </header>
-        <main id="main">{children}</main>
+        {/* Navigations, tab links and filter changes are transitions, so the page content crossfades between them (the
+            "page" view transition in globals.css). Plain state changes, like the map's, never start one. */}
+        <main id="main"><ViewTransition default="page">{children}</ViewTransition></main>
         <Motion />
         <footer className="sitefoot mono">
           <Suspense fallback={null}><LastUpdated /></Suspense>

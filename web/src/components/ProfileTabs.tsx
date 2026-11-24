@@ -36,7 +36,7 @@ export default function ProfileTabs({ base, search, tabs, panels }: { base: stri
       <nav className="tabs" aria-label="Profile sections">
         {tabs.map(([t, label]) => <TabLink key={t} href={`${base}?tab=${t}`} current={shown === t}>{label}</TabLink>)}
       </nav>
-      {tabs.map(([t]) => <div key={t} hidden={shown !== t}>{panels[t]}</div>)}
+      {tabs.map(([t]) => <div key={t} className="tab-panel" hidden={shown !== t}>{panels[t]}</div>)}
     </>
   );
 }
