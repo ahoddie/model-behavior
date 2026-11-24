@@ -255,3 +255,12 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - race-2026-tx-33: Colin Allred tagged "open seat" while Marc Veasey is tagged incumbent.
 - Duplicate nodes for Chris Gober: chris-gober (person) and lawmaker-chris-gober.
 - race-2026-sc-sen: Russell Fry (lawmaker-russell-fry) is in the race's FEC facts but not linked to the race via external_ids.
+
+## Profile text audit (2026-11-24)
+
+135 full entries (about 1 in 5, more for big names) were checked against their cited sources. 30 had at least one substantive error (38 in all), a 22% entry error rate; each was fixed in its profile text. Three causes recurred: annual lobbying totals cited to a single quarterly report, Survival and Flourishing Fund totals larger than the cited round pages, and claims with no cited source. The data problems behind them:
+
+- Survival and Flourishing Fund grants loaded twice, once from each round page and once from the combined recommendations page. **Fixed:** 24 duplicate rows ($8.1M, mostly Jaan Tallinn's) moved to links_removed with kept_id; the round-page row is kept and takes the year from its copy.
+- metr: SFF 2026 shows $2,201,000 credited to Jaan Tallinn on the round page and $775,000 on the combined page, and the 2026 round names "Jaan Tallinn & Dustin Moskovitz" as funders. **Unverifiable:** they may overlap or split one grant between two funders; both rows stay.
+- apple: 20 LDA filings from the US Apple Association (apple growers) were matched to Apple Inc. by the name match, adding 89 lobbying links to agencies (USDA, Labor, USTR, White House Office, and others). **Fixed:** filings deleted, links moved to links_removed, external_ids.lda_not added and honored by the LDA importer; four agency texts recounted.
+- Lobbying totals for 2025 (google, meta, openai) rest on outside tallies or the four quarterly reports; each text now cites only what its source shows.

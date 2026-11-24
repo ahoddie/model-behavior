@@ -33,6 +33,8 @@ export async function run() {
       const names: string[] = [a.external_ids?.lda_client ?? []].flat().map(String);
       if (!names.length) names.push(a.name);
       const want = tokens(names[0]);
+      // lda_not: client names that contain the actor's name but are someone else ("US Apple Association" for apple).
+      const not = new Set([a.external_ids?.lda_not ?? []].flat().map((n: string) => tokens(n).join(" ")));
       for (const name of names) for (const year of years) {
         let url: string | null = `${BASE}/filings/?client_name=${encodeURIComponent(name)}&filing_year=${year}`;
         while (url) {
@@ -42,6 +44,7 @@ export async function run() {
           for (const f of page.results ?? []) {
             const client = tokens(f.client?.name ?? "");
             if (!want.every((t) => client.includes(t))) continue; // skip namesakes
+            if (not.has(client.join(" "))) continue;
             const owner = exact.get(client.join(" "));
             if (owner && owner !== a.id) continue; // filed by another tracked actor with a longer name
             const amount = f.income != null ? Number(f.income) : f.expenses != null ? Number(f.expenses) : null;
