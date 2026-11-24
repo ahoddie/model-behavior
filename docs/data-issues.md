@@ -199,8 +199,13 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - Money rows don't carry support/oppose for super PAC spending in the dossier; it's only in links.stance.
 
 ## lawmakers-01
-- lawmaker-darline-graham: facts give "Role: U.S. Senator, SC" and website dgraham.senate.gov, apparently copied from Lindsey Graham; FEC S6SC04437 is a challenger. Building the Future and American Mission report ~$4.6M of general-election spending supporting her, and the FEC API records the candidate as "GRAHAM, DARLINE" (S6SC04437). That's unusual against the incumbent nominee; worth checking whether the filers meant Lindsey Graham (S0SC00149).
+- lawmaker-darline-graham: facts give "Role: U.S. Senator, SC" and website dgraham.senate.gov, apparently copied from Lindsey Graham; FEC S6SC04437 is a challenger. Building the Future and American Mission report ~$4.6M of general-election spending supporting her, and the FEC API records the candidate as "GRAHAM, DARLINE" (S6SC04437). A fact on lindsey-graham (Ballotpedia, 2026-07-13) says he died in office on July 11, 2026, so she is likely the replacement candidate; her node's "Role: U.S. Senator" and Senate website facts still look copied and should be checked.
 - lawmaker-celeste-maloy: House Clerk lists UT-2; FEC lists her 2026 race in UT-3.
 - lawmaker-roger-marshall: node source_url uses old House ID H6KS01179; facts use S0KS00315.
 - lawmaker-colin-allred: node source_url H6TX33082 differs from facts' H8TX32098.
 - lawmaker-thomas-feely: campaigns as "Jay Feely".
+
+## lawmakers-03
+- lawmaker-lindsey-graham: descriptor calls him an "incumbent" 2026 candidate; a fact (Ballotpedia, 2026-07-13) says he died in office on July 11, 2026.
+- lawmaker-jared-moskowitz: House Clerk lists FL-23 (https://clerk.house.gov/members/M001217); FEC and descriptor list FL-25 for 2026.
+- lawmaker-nikki-budzinski: stance blank for Public First Action's ~$105,000 independent expenditure (https://docquery.fec.gov/cgi-bin/forms/C30003586/1952561/).
