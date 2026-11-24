@@ -794,6 +794,25 @@ export async function billCounts() {
   return [...out.values()].sort((a, b) => a.jurisdiction_sort - b.jurisdiction_sort || BILL_STAGES.indexOf(a.stage as BillStage) - BILL_STAGES.indexOf(b.stage as BillStage));
 }
 
+/**
+ * One row per jurisdiction that has bills, federal first, then states by name: its total and a count for every stage
+ * (zero where none), plus bills on the map. For the Policy list's per-state headings and stage filters.
+ */
+export async function billJurisdictionCounts() {
+  const out = new Map<string, { jurisdiction: string; jurisdiction_name: string; level: string; jurisdiction_sort: number; total: number; on_map: number;
+    stages: Record<BillStage, number> }>();
+  for (const b of await allBills()) {
+    let r = out.get(b.jurisdiction);
+    if (!r) {
+      r = { jurisdiction: b.jurisdiction, jurisdiction_name: b.jurisdiction_name, level: b.level, jurisdiction_sort: b.jurisdiction_sort, total: 0, on_map: 0,
+        stages: Object.fromEntries(BILL_STAGES.map((s) => [s, 0])) as Record<BillStage, number> };
+      out.set(b.jurisdiction, r);
+    }
+    r.total++; r.stages[b.stage]++; if (b.node_id) r.on_map++;
+  }
+  return [...out.values()].sort((a, b) => a.jurisdiction_sort - b.jurisdiction_sort);
+}
+
 /** The public record for one bill, by its bills.id or by the id of the map node it belongs to. */
 export async function getBillRecord(id: string): Promise<BillRecord | null> {
   return (await allBills()).find((b) => b.id === id || b.node_id === id) ?? null;
