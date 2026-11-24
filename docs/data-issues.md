@@ -103,3 +103,9 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - marc-andreessen: money rows show $11.9M to Fairshake; FEC Schedule A (C00835959) lists five personal gifts totaling $45.4M (2023–2025).
 - joe-lonsdale: Leading the Future row has no amount, and the cited article gives none for him; the $250K it reports was from Lonsdale Enterprises to American Mission.
 - daniel-ziegler: node name reversed ("Ziegler Daniel").
+
+## people-04
+- ned-finkle: NVIDIA's blog says vice president of government affairs; CNAS (https://www.cnas.org/people/ned-finkle) says vice president of external affairs.
+- alex-karp: descriptor's "~$1.9M to Trump's super PAC (per Forbes)" has no source or money row.
+- anna-brockman / greg-brockman: FEC row gives $12.5M under her name; The Next Web says the couple jointly gave $25M (likely half of a joint gift, recorded per spouse).
+- richard-fontaine: a relation typed "revolving door" is an Anthropic advisory council seat, not a government post.
