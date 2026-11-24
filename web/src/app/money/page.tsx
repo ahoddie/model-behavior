@@ -38,7 +38,7 @@ export default async function Money(props: PageProps<"/money">) {
   if (first) await Promise.all([flowsFrom(first), isUndisclosed(first) ? null : getNodeSummary(first)]);
   return (
     <div className="page wide">
-      <h1>Follow the money</h1>
+      <h1>Follow the node</h1>
       <Suspense fallback={<p className="mono muted" role="status">Loading the record…</p>}>
         <Trace sp={props.searchParams} />
       </Suspense>

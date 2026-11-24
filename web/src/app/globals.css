@@ -212,7 +212,7 @@ button.linkish:hover { text-decoration-color: var(--ink); }
 .review-item label { display: flex; flex-direction: column; gap: 4px; font-family: var(--f-body); font-size: 11px; }
 .review-item .filters label { flex-direction: row; align-items: center; }
 .flowwrap { position: relative; margin: var(--s4) 0; background: var(--panel); border: 1px solid var(--ink); padding: var(--s3); }
-/* On Funding the chart can be short, so the panel may run past its bottom edge over the notes below. */
+/* On Nodes the chart can be short, so the panel may run past its bottom edge over the notes below. */
 .flowwrap .nodepanel { right: 12px; background: var(--paper); border: 1px solid var(--ink); }
 .filters a[aria-current="page"] { color: var(--ink); font-weight: 700; text-decoration: underline; }
 
@@ -317,7 +317,7 @@ blockquote .src-wrap, .lede .src-wrap { font-size: 1rem; }
 .masthead nav a { position: relative; }
 .masthead nav a[aria-current="page"]::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--carbon); }
 .beta { font-size: 13px; padding: 0 6px; }
-/* Every page shares Funding's width, so titles and subtitles start at the same place. Running text keeps a readable line. */
+/* Every page shares the Nodes page's width, so titles and subtitles start at the same place. Running text keeps a readable line. */
 .page { max-width: 1240px; }
 .page > p:not(.lede) { max-width: 72ch; }
 .lede { font-size: 20px; line-height: 1.5; max-width: 40ch; margin: 12px 0 0; }

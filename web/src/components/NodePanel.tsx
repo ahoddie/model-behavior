@@ -31,7 +31,7 @@ export default function NodePanel({ id, links, byId, onSelect, onClose }: { id: 
     fetch(`/api/node/${encodeURIComponent(id)}`).then((r) => r.json()).then((d) => live && setS(d));
     return () => { live = false; };
   }, [id]);
-  // The fetched record wins; byId is the caller's copy and may hold only a name (the Funding page has no network to draw on).
+  // The fetched record wins; byId is the caller's copy and may hold only a name (the Nodes page has no network to draw on).
   const n = s?.node ?? byId.get(id)!;
   const mine = links.filter((l) => l.from === id || l.to === id).sort((a, b) => (b.amount ?? 0) - (a.amount ?? 0)).slice(0, 14);
   return (
