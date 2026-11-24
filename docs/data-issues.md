@@ -215,3 +215,8 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - commerce-department: descriptor says it runs CAISI; its source (ifp.org/author/saif-khan) doesn't say so.
 - nscai: descriptor gives 2018–2021; Wikidata Q66087960 says founded 2019.
 - white-house (David Sacks stepped down March 2026) and ostp (Sriram Krishnan left June 2026): the sources cited for these relations predate the events.
+
+## agencies-01
+- public-first: the LDA filing naming Energy and the Air Force (lda.gov …/303b23e4…) is for First Public Hydrogen Authority, not the super PAC (wrong client match).
+- alliance-for-a-better-future: the LDA filing naming OMB and Interior (lda.gov …/5d998492…) is for Fund for a Better Future / Alliance for Wildfire Resilience (wrong client match).
+- Agency lobbying counts in profile text for the House, Senate, White House Office, and Commerce are minimums: the money list behind them was capped at 15 counterparties.
