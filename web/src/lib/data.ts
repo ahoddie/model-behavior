@@ -602,7 +602,7 @@ export async function getStanceQueue(): Promise<StanceQueueItem[]> {
 export async function getTopics(): Promise<TopicRow[]> {
   "use cache";
   cached();
-  const topics = await q<any>(`SELECT id, label, description, positive, issue_id FROM topics ORDER BY sort`);
+  const topics = await q<any>(`SELECT id, label, description, positive, issue_id FROM topics WHERE shown ORDER BY sort`);
   const rows = await q<any>(`
     SELECT c.topic_id AS topic, fi.node_id, c.answer::int AS v, 'quote' AS kind, fi.excerpt AS text, fi.url, fi.archive_url, pdate(fi.date, fi.date_prec)::text AS date, NULL AS doc,
            NULL AS speaker_name, NULL AS role, false AS mixed, false AS machine, NULL::boolean AS implied, NULL::real AS confidence, NULL AS source_kind

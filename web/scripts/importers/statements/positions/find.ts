@@ -38,11 +38,13 @@ ${siteNames}`;
 export const OUTPUT_FORMAT = `Output: JSON lines, one candidate per line, with these fields:
 {"topic_id": "<statement id>", "speaker_name": "...", "speaker_role": "short descriptor, e.g. US senator (R-TX)", "quote": "exact words", "url": "https://...", "date": "YYYY-MM-DD or null", "source_kind": "interview|post|op-ed|testimony|podcast|speech|press release|comment letter|report|other", "lean": "agree|disagree|mixed"}`;
 
+// Research gathered under an earlier id for the same statement.
+const EARLIER: Record<string, string[]> = { chips_china: ["export_controls"] };
 export function loadCandidates(topicId?: string): Candidate[] {
   if (!existsSync(RESEARCH_DIR)) return [];
-  const files = (topicId ? [`${topicId}.jsonl`] : []).concat(topicId ? [] : readdirSync(RESEARCH_DIR).filter((f: string) => f.endsWith(".jsonl")));
+  const files = topicId ? [topicId, ...(EARLIER[topicId] ?? [])].map((id) => `${id}.jsonl`) : readdirSync(RESEARCH_DIR).filter((f: string) => f.endsWith(".jsonl"));
   return files.filter((f) => existsSync(join(RESEARCH_DIR, f))).flatMap((f) => readFileSync(join(RESEARCH_DIR, f), "utf8").split("\n").filter(Boolean)
-    .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean));
+    .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean).map((c: Candidate) => (topicId ? { ...c, topic_id: topicId } : c)));
 }
 
 // API path: one search session per statement.

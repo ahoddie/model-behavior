@@ -24,11 +24,14 @@ const ONLY = arg("--topic");
 if (process.argv.includes("--load-statements")) {
   for (const s of STATEMENTS) await pool.query(`INSERT INTO topics (id, label, description, positive, keywords, issue_id, sort) VALUES ($1,$2,$3,$4,$5,NULL,$6)
     ON CONFLICT (id) DO UPDATE SET label=$2, description=$3, positive=$4, keywords=$5, sort=$6`, [s.id, s.label, s.description, s.positive, s.keywords, s.sort]);
-  for (const [id, kw] of Object.entries(KEPT)) await pool.query(`UPDATE topics SET keywords=coalesce(keywords, $2) WHERE id=$1`, [id, kw]);
-  console.log(`loaded ${STATEMENTS.length} statements`);
+  for (const [id, k] of Object.entries(KEPT)) await pool.query(`UPDATE topics SET keywords=coalesce(keywords, $2), sort=$3 WHERE id=$1`, [id, k.keywords, k.sort]);
+  // Only the listed statements show; the rest stay in the table, with their letters and readings, but leave the page.
+  const ids = [...STATEMENTS.map((s) => s.id), ...Object.keys(KEPT)];
+  await pool.query(`UPDATE topics SET shown = (id = ANY($1))`, [ids]);
+  console.log(`loaded ${STATEMENTS.length} statements; showing ${ids.length}`);
 }
 
-const topics = await q<{ id: string; positive: string; keywords: string | null }>(`SELECT id, positive, keywords FROM topics ${ONLY ? "WHERE id=$1" : ""} ORDER BY sort`, ONLY ? [ONLY] : []);
+const topics = await q<{ id: string; positive: string; keywords: string | null }>(`SELECT id, positive, keywords FROM topics WHERE shown ${ONLY ? "AND id=$1" : ""} ORDER BY sort`, ONLY ? [ONLY] : []);
 const nodes = await q<{ id: string; name: string }>(`SELECT id, name FROM nodes WHERE type NOT IN ('bill','rule','race')`);
 const norm = (s: string) => s.toLowerCase().replace(/\(.*?\)/g, "").replace(/\b(sen|rep|senator|representative|gov|governor|dr|the)\b\.?/g, "").replace(/[^a-z0-9]/g, "");
 const byName = new Map<string, string>();
