@@ -109,3 +109,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - alex-karp: descriptor's "~$1.9M to Trump's super PAC (per Forbes)" has no source or money row.
 - anna-brockman / greg-brockman: FEC row gives $12.5M under her name; The Next Web says the couple jointly gave $25M (likely half of a joint gift, recorded per spouse).
 - richard-fontaine: a relation typed "revolving door" is an Anthropic advisory council seat, not a government post.
+
+## people-03
+- yann-lecun: the AMI Labs co-founder relation appears three times; one is dated 2026-03-10 (funding date per tech.eu), not the founding (Dec 2025 per Wikipedia).
+- elizabeth-wirsching: descriptor "Retired, Not Employed"; the Transformer tracker says only "not employed".
