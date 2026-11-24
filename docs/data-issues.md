@@ -197,3 +197,10 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - lawmaker-cindy-hyde-smith: node name "Hyde Smith" lacks the hyphen.
 - lawmaker-mike-rounds, -jerry-moran, -patty-murray, -ritchie-torres (ids approximate): no Party fact; party only in the descriptor.
 - Money rows don't carry support/oppose for super PAC spending in the dossier; it's only in links.stance.
+
+## lawmakers-01
+- lawmaker-darline-graham: facts give "Role: U.S. Senator, SC" and website dgraham.senate.gov, apparently copied from Lindsey Graham; FEC S6SC04437 is a challenger. Building the Future and American Mission report ~$4.6M of general-election spending supporting her, and the FEC API records the candidate as "GRAHAM, DARLINE" (S6SC04437). That's unusual against the incumbent nominee; worth checking whether the filers meant Lindsey Graham (S0SC00149).
+- lawmaker-celeste-maloy: House Clerk lists UT-2; FEC lists her 2026 race in UT-3.
+- lawmaker-roger-marshall: node source_url uses old House ID H6KS01179; facts use S0KS00315.
+- lawmaker-colin-allred: node source_url H6TX33082 differs from facts' H8TX32098.
+- lawmaker-thomas-feely: campaigns as "Jay Feely".
