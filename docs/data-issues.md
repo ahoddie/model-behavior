@@ -86,3 +86,9 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - rutan-tucker-llp, singleton-schreiber-llp: typed nonprofit; both are law-firm LLPs.
 - stronger-together-pa: typed nonprofit; FEC lists it as a super PAC (https://www.fec.gov/data/committee/C00936153/).
 - openai-foundation: descriptor's "$25B long-term pledge", "$1B planned for 2026", and "controlling OpenAI Group" have no supporting fact.
+
+## orgs-12
+- social-media-victims-law-center: typed lab. Descriptor says it represents families suing Character.AI and Google and that five cases settled in Jan 2026; the bgov source doesn't name the firm or give a count, and the firm's page doesn't name Character.AI.
+- Duplicate nodes: ent_pac_smart-justice-california-action-fund_8cfde2 / smart-justice-california-action-fund.
+- workers-vote, working-families-party-pac, wfw-action-fund: typed nonprofit; FEC lists them as a super PAC or hybrid PACs.
+- shaunna-thomas: descriptor reads "Principle, SLT Strategies" (Principal). UltraViolet's text links her as its co-founder on name match only; confirm it's the same person as the Guardrails Alliance co-founder.
