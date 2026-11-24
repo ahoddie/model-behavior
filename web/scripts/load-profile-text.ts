@@ -14,7 +14,7 @@ const files = readdirSync(dir).filter((f) => f.endsWith(".json")).sort();
 const nodes = await q<{ id: string; name: string; type: string }>(`SELECT id, name, type FROM nodes`);
 const byId = new Map(nodes.map((n) => [n.id, n]));
 const link = buildLinker(nodes);
-const TEXT_TYPES = new Set(["person", "lawmaker", "lab", "investor", "think_tank", "pac", "nonprofit", "funder", "agency"]);
+const TEXT_TYPES = new Set(["person", "lawmaker", "lab", "investor", "think_tank", "pac", "nonprofit", "funder", "agency", "bill"]);
 
 const errors: string[] = [], warnings: string[] = [];
 const seen = new Map<string, string>();
