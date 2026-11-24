@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // or more on every visit. So the query is moved into the path of an internal route (the v/ folder beside each page), where
 // each combination is a prebuilt page kept on disk and refreshed from the record like every other page (lib/data, cached()).
 // The address in the browser does not change. "_" stands for a parameter that is not set.
-const KEYS: Record<string, string[]> = { money: ["from"], targets: ["kind", "cycle"], data: ["view"], node: ["tab", "kind", "issue"] };
+const KEYS: Record<string, string[]> = { money: ["from"], targets: ["kind", "cycle", "stage", "show", "state", "office", "money"], data: ["view"], node: ["tab", "kind", "issue"] };
 const seg = (v: string | null) => (v ? encodeURIComponent(v) : "_");
 
 export function proxy(req: NextRequest) {
