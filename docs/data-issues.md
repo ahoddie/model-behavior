@@ -113,3 +113,8 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 ## people-03
 - yann-lecun: the AMI Labs co-founder relation appears three times; one is dated 2026-03-10 (funding date per tech.eu), not the founding (Dec 2025 per Wikipedia).
 - elizabeth-wirsching: descriptor "Retired, Not Employed"; the Transformer tracker says only "not employed".
+
+## people-05
+- donovan-liam: node name "Liam Donavan"; the Transformer tracker (https://elections.transformernews.ai/pacs/C00928390) lists "Donovan Liam". Spelling and order unconfirmed.
+- brian-rice: a Wired statement says he "opposes federal binding rules on AI, favoring state regulation"; looks doubtful, not backed by the Verge statement.
+- duncan-crabtree-ireland: SAG-AFTRA's NO FAKES Act support is only in the descriptor.
