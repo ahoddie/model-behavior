@@ -80,6 +80,19 @@ const reject = (table: string, reason: string, row: unknown) => { rejections.pus
 
 export async function setActor(actor: string) { await pool.query(`SELECT set_config('mb.actor', $1, false)`, [actor]); }
 
+// Ids merged away by entity resolution (merge_log, applied). Research files and importers that still name an old id write to
+// the kept node instead, so a reload can't bring a merged duplicate back (ftc, white-house and others came back on 2026-11-17).
+let mergedMap: Map<string, string> | null = null;
+export async function canonicalId(id: string): Promise<string> {
+  if (!mergedMap) {
+    const r = await pool.query(`SELECT merged_id, kept_id FROM merge_log WHERE action='merge' AND status='applied' AND reverted_at IS NULL ORDER BY applied_at`);
+    mergedMap = new Map(r.rows.map((x) => [x.merged_id, x.kept_id]));
+  }
+  let cur = id;
+  for (let i = 0; i < 5 && mergedMap.has(cur); i++) cur = mergedMap.get(cur)!;
+  return cur;
+}
+
 export async function nodeExists(id: string): Promise<boolean> {
   const r = await pool.query("SELECT 1 FROM nodes WHERE id=$1", [id]);
   return r.rowCount! > 0;
@@ -92,6 +105,7 @@ export async function upsertNode(n: any): Promise<boolean> {
   if (!isUrl(n.source_url)) return reject("nodes", "no source_url", n);
   if (isTradeGroup(n.name, n.id)) return reject("nodes", "trade group (out of scope)", n);
   if (OUT_OF_SCOPE.has(n.id)) return reject("nodes", "removed from scope", n);
+  if ((await canonicalId(n.id)) !== n.id) return false;   // merged into another node; its rows are redirected below
   await pool.query(
     `INSERT INTO nodes (id,type,name,descriptor,cluster,external_ids,source_url)
      VALUES ($1,$2,$3,$4,$5,$6,$7)
@@ -113,6 +127,7 @@ export async function insertLink(l: any, origin = "research"): Promise<boolean> 
   const type = (l.type || "").toLowerCase();
   if (!LINK_TYPES.has(type)) return reject("links", `bad type ${l.type}`, l);
   if (!isUrl(l.source_url)) return reject("links", "no source_url", l);
+  l = { ...l, from: await canonicalId(l.from), to: await canonicalId(l.to) };
   for (const k of ["from", "to"]) if (!(await nodeExists(l[k]))) return reject("links", `unknown node ${l[k]}`, l);
   if (l.from === l.to) return reject("links", "self link", l);
   const r = await pool.query(
@@ -130,7 +145,7 @@ export async function insertLink(l: any, origin = "research"): Promise<boolean> 
 const UNDATED_PAGE = /^https?:\/\/[^/]+\/(?:[a-z-]+\/)?(about(-us)?|mission|team|our-team|who-we-are|funding|supporters|donors|issues\/[^?#]*)\/?(?:[?#].*)?$/i;
 
 export async function insertFeed(f: any, origin = "research", status: "pending" | "approved" = "approved"): Promise<boolean> {
-  const node = f.node ?? f.node_id;
+  const node = await canonicalId(f.node ?? f.node_id);
   if (!isUrl(f.url)) return reject("feed_items", "no url", f);
   if (!(await nodeExists(node))) return reject("feed_items", `unknown node ${node}`, f);
   const date = isoDate(f.date);
@@ -142,7 +157,8 @@ export async function insertFeed(f: any, origin = "research", status: "pending" 
   const excerpt: string | null = f.excerpt ? String(f.excerpt).trim().replace(/^["“]|["”]$/g, "") : null;
   if (excerpt && wordCount(excerpt) > 25) return reject("feed_items", "excerpt over 25 words", f);
   if (!excerpt && !f.summary) return reject("feed_items", "no excerpt or summary", f);
-  const target = f.target && (await nodeExists(f.target)) ? f.target : null;
+  const tgt = f.target ? await canonicalId(f.target) : null;
+  const target = tgt && (await nodeExists(tgt)) ? tgt : null;
   const r = await pool.query(
     `INSERT INTO feed_items (node_id,date,kind,excerpt,summary,url,platform,issues,stance,target_id,status,origin,date_prec)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT ON CONSTRAINT feed_uniq DO UPDATE SET date_prec=EXCLUDED.date_prec
@@ -154,7 +170,7 @@ export async function insertFeed(f: any, origin = "research", status: "pending" 
 }
 
 export async function insertFiling(f: any, origin = "research"): Promise<boolean> {
-  const node = f.node ?? f.node_id;
+  const node = await canonicalId(f.node ?? f.node_id);
   const ft = normFilingType(f.filing_type);
   if (!ft) return reject("filings", `bad filing_type ${f.filing_type}`, f);
   if (!isUrl(f.url)) return reject("filings", "no url", f);
@@ -173,7 +189,7 @@ export const FACT_ORDER = ["Type", "Legal form", "Founded", "Founders", "Leader"
   "Parent", "Previously", "Education", "Funding", "Valuation", "Revenue", "Employees", "Website", "FEC ID", "EIN", "Social"];
 
 export async function insertFact(f: any): Promise<boolean> {
-  const node = f.node ?? f.node_id;
+  const node = await canonicalId(f.node ?? f.node_id);
   if (!isUrl(f.url)) return reject("facts", "no url", f);
   if (!f.text) return reject("facts", "no text", f);
   if (!(await nodeExists(node))) return reject("facts", `unknown node ${node}`, f);

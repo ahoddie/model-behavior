@@ -1,6 +1,6 @@
 # Data issues found while writing profile text
 
-Problems in the shared data (nodes, facts, links) found while writing profile text (`data/profiles/`). Not fixed here; for a cleanup session. Each line: entity id, what looks wrong, evidence.
+Problems in the shared data (nodes, facts, links) found while writing profile text (`data/profiles/`). Each line: entity id, what looks wrong, evidence. The cleanup session (2026-11-24) marked each line with its outcome: **Fixed** (with what changed), **Unverifiable** (left as it was; the sources don't settle it), or **Needs Allegra** (a judgment call). Merges are in merge_log (method 'human'); `pnpm er:revert --ids N` undoes one.
 
 - abundance-institute: descriptor says Salt Lake City; ProPublica lists North Logan, UT.
 - jack-clark: descriptor says Head of Policy; Anthropic now lists him as Head of Public Benefit.
@@ -12,7 +12,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - foundation-for-american-innovation: Coefficient Giving total $1.952M vs two grants on file summing $976K (likely double count).
 - rand: Good Ventures ($42M) and Coefficient Giving ($45.4M) gifts may overlap.
 - public-first: shows lobbying contacts (House, Energy Dept.), unlikely for a super PAC; likely misattributed.
-- Duplicate nodes: fli / future-of-life-institute; ostp / agency-office-of-science-and-technology-policy-ostp.
+- Duplicate nodes: fli / future-of-life-institute; ostp / agency-office-of-science-and-technology-policy-ostp. **Fixed:** merged into fli (merge_log 38) and agency-office-of-science-and-technology-policy-ostp (35).
 - humanity-ai: descriptor names MacArthur and Omidyar as co-chairs; the cited article doesn't.
 - mozilla: typed lab.
 
@@ -32,8 +32,8 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 ## orgs-04
 - smp: lobbying row (SMP to the House) is for SMP Automotive Systems Alabama, a Vogel Group client, not the super PAC (https://lda.gov/filings/public/filing/4e4a55d6-06fc-4f87-8291-7e7ec42b1c8c).
 - ifp: founding year 2022 (Wikipedia) vs 2021 (descriptor, Caleb Watney's IFP bio).
-- sarah-stern / sarah-may-stern: likely the same person.
-- us-ndaa-ai-preemption-2025 / us-ndaa-fy2026-ai-preemption: likely duplicate bill nodes.
+- sarah-stern / sarah-may-stern: likely the same person. **Fixed:** merged into sarah-may-stern (42); her text now cites both the 990 and hudson.org.
+- us-ndaa-ai-preemption-2025 / us-ndaa-fy2026-ai-preemption: likely duplicate bill nodes. **Fixed:** merged into us-ndaa-fy2026-ai-preemption (41); the old curated stage entry is gone.
 - cindy-cohn: descriptor says Executive Director; Data & Society's Form 990 lists her as a director.
 - Descriptor claims with no source: IFS "polling 3 to 1", Chamber of Progress member list, AI Futures Project "AI 2040: Plan A".
 
@@ -53,7 +53,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - dccc: name stored as "Dccc".
 
 ## orgs-07
-- machine-intelligence-research-institute / miri: duplicate nodes.
+- machine-intelligence-research-institute / miri: duplicate nodes. **Fixed:** merged into miri (39).
 - ai-safety-fund: website on file (aisafetyfund.org) is a small donor-funded "AI Safety Research Fund"; the Frontier Model Forum's AI Safety Fund is aisfund.org. CDT's donor list doesn't say which gave.
 - CDT donor tiers: cdt.org/financials shows only 2025; money rows and the CZI descriptor also claim 2024.
 - perplexity: money row shows $200,000 in 2 gifts to Leading the Future; the fact and FEC PDF say $100,000 (likely double count).
@@ -89,14 +89,14 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 
 ## orgs-12
 - social-media-victims-law-center: typed lab. Descriptor says it represents families suing Character.AI and Google and that five cases settled in Jan 2026; the bgov source doesn't name the firm or give a count, and the firm's page doesn't name Character.AI.
-- Duplicate nodes: ent_pac_smart-justice-california-action-fund_8cfde2 / smart-justice-california-action-fund.
+- Duplicate nodes: ent_pac_smart-justice-california-action-fund_8cfde2 / smart-justice-california-action-fund. **Fixed:** merged into smart-justice-california-action-fund (40), now typed pac (a California state committee, FPPC 1423131).
 - workers-vote, working-families-party-pac, wfw-action-fund: typed nonprofit; FEC lists them as a super PAC or hybrid PACs.
 - shaunna-thomas: descriptor reads "Principle, SLT Strategies" (Principal). UltraViolet's text links her as its co-founder on name match only; confirm it's the same person as the Guardrails Alliance co-founder.
 
 ## people-02
 - eliezer-yudkowsky: a statement credited to him (supports an IPCC-like body for AI) is ITIF's Hodan Omaar's, crediting the idea to Eric Schmidt and Mustafa Suleyman (https://itif.org/publications/2023/12/06/statement-to-the-us-senate-ai-insight-forum-on-risk-alignment-and-doomsday-scenarios/).
 - jensen-huang: descriptor "Nvidia founder and CEO" is stale (8-K: resigned Nov 12, 2026).
-- Duplicate agency nodes: ftc / agency-federal-trade-commission-ftc; national-security-council / agency-natl-security-council-nsc; commerce-department / agency-commerce-dept-of-doc.
+- Duplicate agency nodes: ftc / agency-federal-trade-commission-ftc; national-security-council / agency-natl-security-council-nsc; commerce-department / agency-commerce-dept-of-doc. **Fixed:** merged (33, 34, 32). These were first merged on 2026-11-15; the research loader re-created the old ids on 2026-11-17. Ingest now follows applied merges (`canonicalId` in scripts/lib/ingest.ts), so a reload can't bring them back.
 - ron-conway: a Verge statement summary says he "regrets funding pro-AI efforts and now opposes federal AI regulation"; looks unreliable, check against the article.
 
 ## people-01
@@ -148,10 +148,10 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - nicholas-joseph: descriptor "Member Of Technical Staff" (FEC occupation); TechCrunch and 80,000 Hours say he's an Anthropic co-founder and head of pretraining.
 - jeremy-liew: descriptor "Venture Capital Consultant, Self Employed"; Wikipedia says he's still a Lightspeed partner, though his Lightspeed fact is labeled "Previously".
 - joel-kaplan: Meta's page says Chief Global Affairs Officer; Fortune says president of global affairs.
-- More duplicate agency nodes: white-house / agency-executive-office-of-the-president-eop.
+- More duplicate agency nodes: white-house / agency-executive-office-of-the-president-eop. **Fixed:** merged (36).
 
 ## Bills (public bill records)
-- us-ndaa-ai-preemption-2025 / us-ndaa-fy2026-ai-preemption: two nodes for the same FY2026 NDAA preemption push; both carry stage failed from data/bills/curated-stages.json.
+- us-ndaa-ai-preemption-2025 / us-ndaa-fy2026-ai-preemption: two nodes for the same FY2026 NDAA preemption push; both carry stage failed from data/bills/curated-stages.json. **Fixed:** merged (41).
 - AI relevance for federal and California bills is matched on the title (and, for California, NCSL's AI list), so bills with generic titles, such as omnibus or appropriations bills carrying AI provisions, are only included when they're on the map. CRS legislative subjects in GovInfo matched no bills.
 - State bills other than California's come from NCSL's AI database, which starts in 2025. State bills from 2023–24 are only present when they're on the map (for example, the Colorado AI Act, SB24-205, has a research stage).
 - NCSL counts some loosely related bills as AI legislation (budget bills with an AI line, STEM councils); they're kept, with ai_match 'ncsl'.
@@ -181,7 +181,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - m-liss-hadley: node source is an FEC API URL with api_key=DEMO_KEY; the committee page is https://www.fec.gov/data/committee/C00930503/?cycle=2026&tab=about-committee.
 
 ## thin-people-05
-- sarah-may-stern / sarah-stern: likely the same Hudson Institute board chair (990 "Chair" vs hudson.org "President of the Board of Trustees").
+- sarah-may-stern / sarah-stern: likely the same Hudson Institute board chair (990 "Chair" vs hudson.org "President of the Board of Trustees"). **Fixed:** merged (42).
 - nathan-click ("longtime adviser to Gov. Gavin Newsom"), rob-flaherty ("Democratic campaign veteran"): descriptor claims with no supporting fact.
 - phil-cox: only source is InfluenceWatch citing the New York Times.
 
@@ -211,7 +211,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - lawmaker-nikki-budzinski: stance blank for Public First Action's ~$105,000 independent expenditure (https://docquery.fec.gov/cgi-bin/forms/C30003586/1952561/).
 
 ## agencies-02
-- Duplicate agency pairs (lobbying rows sit on the second id): ftc / agency-federal-trade-commission-ftc; ostp / agency-office-of-science-and-technology-policy-ostp; national-security-council / agency-natl-security-council-nsc; white-house / agency-executive-office-of-the-president-eop; commerce-department / agency-commerce-dept-of-doc; osd / agency-office-of-the-secretary-of-defense.
+- Duplicate agency pairs (lobbying rows sit on the second id): ftc / agency-federal-trade-commission-ftc; ostp / agency-office-of-science-and-technology-policy-ostp; national-security-council / agency-natl-security-council-nsc; white-house / agency-executive-office-of-the-president-eop; commerce-department / agency-commerce-dept-of-doc; osd / agency-office-of-the-secretary-of-defense. **Fixed:** all six merged into the agency-* ids (32-37); the agencies-02 texts for the old ids were dropped, keeping agencies-01's.
 - commerce-department: descriptor says it runs CAISI; its source (ifp.org/author/saif-khan) doesn't say so.
 - nscai: descriptor gives 2018–2021; Wikidata Q66087960 says founded 2019.
 - white-house (David Sacks stepped down March 2026) and ostp (Sriram Krishnan left June 2026): the sources cited for these relations predate the events.
