@@ -175,3 +175,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 ## thin-people-03
 - Descriptor claims with no supporting fact: des-browne ("former UK Defence Secretary"), deven-parekh ("Managing Director, Insight Partners"), eric-horvitz ("Microsoft Chief Scientific Officer"; his one source is Rebecca Finlay's PAI page), gabriel-alfour ("co-founded Conjecture"; the fact says he helped found ControlAI), jill-barclay ("former Targeted Victory managing director").
 - jina-john: date_start 2026-01-01, but the source is a June 2026 release (placeholder date).
+
+## thin-people-04
+- karthik-ganapathy ("former Sanders aide"; elsewhere a Semafor source calls him a former Bernie Sanders spokesman, so check), kemba-walden ("President, Paladin Global Institute"): descriptor claims with no supporting fact on their own nodes.
+- m-liss-hadley: node source is an FEC API URL with api_key=DEMO_KEY; the committee page is https://www.fec.gov/data/committee/C00930503/?cycle=2026&tab=about-committee.
