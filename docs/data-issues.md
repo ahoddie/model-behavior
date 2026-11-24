@@ -43,3 +43,11 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - sag-aftra: "2026 studio contract with AI protections" in the descriptor has no supporting fact.
 - consumer-reports: "active on AI and privacy policy" in the descriptor has no supporting fact.
 - craft-ventures: descriptor says founded by David Sacks; Wikipedia says Sacks and Bill Lee.
+
+## orgs-05
+- daniel-castro: descriptor says Vice President; ITIF's about page lists him as president. robert-atkinson's "President" (2024 Form 990) looks stale.
+- build-american-ai: money row shows $500,000 from Leading the Future (FEC); a Bisnow fact says $5M. Its Leading the Future relation is typed "person".
+- gates-foundation: LawZero money row cites Wikipedia, which gives no amount; the Gates grant page (INV-091193) shows $4,995,896, July 2025 (descriptor says Aug 2025).
+- hoover: "oppose SB 1047" is set on the institution but is fellow Lee Ohanian's podcast view.
+- maga-inc: Taylor Budowich named director in 2022, before this committee's 2024 registration (C00892471).
+- dccc: name stored as "Dccc".
