@@ -342,16 +342,15 @@ export async function raceSpending() {
     WHERE l.type='money' GROUP BY 1, 2, 3, 4, 5`);
 }
 
-// Each bill node's lifecycle stage and place, from the public bill records (table bills, linked by node_id).
-// Read apart from listTargets so the page still loads on a database that has not had the bills migration.
+// Each map bill's lifecycle stage and place, read from the public bill records (listBills), keyed by node id.
 export async function billStages(): Promise<Record<string, { stage: string; jurisdiction: string }>> {
-  "use cache";
-  cached();
-  try {
-    const rows = await q<{ id: string; stage: string; jurisdiction: string }>(
-      `SELECT DISTINCT ON (node_id) node_id AS id, stage, jurisdiction FROM bills WHERE node_id IS NOT NULL ORDER BY node_id, coalesce(stage_date, status_date) DESC NULLS LAST`);
-    return Object.fromEntries(rows.map((r) => [r.id, { stage: r.stage, jurisdiction: r.jurisdiction }]));
-  } catch { return {}; }
+  const out: Record<string, { stage: string; jurisdiction: string; d: string }> = {};
+  for (const b of await listBills()) {
+    if (!b.node_id) continue;
+    const d = b.stage_date ?? b.status_date ?? "";
+    if (!out[b.node_id] || d > out[b.node_id].d) out[b.node_id] = { stage: b.stage, jurisdiction: b.jurisdiction, d };
+  }
+  return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, { stage: v.stage, jurisdiction: v.jurisdiction }]));
 }
 
 export async function targetSides() {
