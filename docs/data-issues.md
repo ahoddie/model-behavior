@@ -188,3 +188,12 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 ## thin-people-06
 - tyler-winklevoss: America PAC gift dated 2024-01-01 (placeholder); InfluenceWatch is the only source.
 - taylor-barkley: relation typed "executive"; the 2024 Form 990 lists him as "Director".
+
+## lawmakers-02
+- lawmaker-rich-mccormick: American Mission's two Oct 15 filings (2028668, 2039451) may double-count ($402,780 total vs at least $195,000).
+- lawmaker-susan-collins: two Form 9 filings on the same date (2013889, 2015422) may overlap ($810,294 vs at least $686,000).
+- lawmaker-blake-moore: descriptor "Recipient of Anthropic PAC contribution" is a placeholder; Clerk lists UT-1, FEC lists UT-2 for 2026.
+- lawmaker-amerish-bera: Clerk lists CA-6, FEC lists CA-3 for 2026.
+- lawmaker-cindy-hyde-smith: node name "Hyde Smith" lacks the hyphen.
+- lawmaker-mike-rounds, -jerry-moran, -patty-murray, -ritchie-torres (ids approximate): no Party fact; party only in the descriptor.
+- Money rows don't carry support/oppose for super PAC spending in the dossier; it's only in links.stance.
