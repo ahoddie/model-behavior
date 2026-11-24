@@ -12,6 +12,7 @@ import RankChart from "@/components/RankChart";
 import TrendChart from "@/components/TrendChart";
 import TalkChart, { type TalkIssue, type ActorTopic } from "@/components/TalkChart";
 import { sourceName } from "@/lib/format";
+import HomeNav from "@/components/HomeNav";
 
 const SECTIONS: { id: string; label: string; title: string }[] = [
   { id: "money", label: "Where money goes", title: "Where is the money going?" },
@@ -75,6 +76,7 @@ export default async function Home() {
 
       <header className="home-intro">
         <h1 className="home-title">How Silicon Valley shapes AI <span className="title-last">policy<Skyline className="skyline" /></span><TitleCode /></h1>
+        <HomeNav />
       </header>
 
       <section id="money" className="home-sec">

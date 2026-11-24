@@ -1013,3 +1013,62 @@ img.mark { background: var(--logo-bg); }
 .mapit:hover .mm .e.m, .mapit:hover .mm .e.h { animation: mapit-draw .7s ease; }
 @keyframes mapit-draw { from { stroke-dashoffset: 60; } }
 @media (prefers-reduced-motion: reduce) { .mapit:hover .mm .n { transform: none; } .mapit:hover .mm .e { animation: none; } }
+
+/* Homepage: one box per main page, with a small drawing of each. Network, the centerpiece, is half again as wide. */
+.hn { margin-top: var(--s6); }
+.hn-head { margin: 0 0 var(--s3); font-size: 15px; font-weight: 400; color: var(--muted); }
+.hn-row { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: var(--s3); }
+.hn-card a { display: flex; flex-direction: column; height: 100%; padding: var(--s2) var(--s2) var(--s3); color: var(--ink); text-decoration: none;
+  background: var(--panel); border: 1px solid var(--rule); border-radius: var(--radius);
+  transition: border-color .18s ease, transform .22s cubic-bezier(.2, .7, .3, 1), box-shadow .22s ease; }
+.hn-card a:hover { border-color: var(--ink); transform: translateY(-2px); box-shadow: 0 3px 0 var(--ink); }
+.hn-card a:focus-visible { outline: none; box-shadow: var(--focus); }
+.hn-art { display: block; height: 108px; border-bottom: 1px solid var(--rule); margin: 0 0 var(--s2); overflow: hidden; }
+.hn-svg { display: block; width: 100%; height: 100%; }
+.hn-name { display: flex; align-items: baseline; gap: 6px; padding: 0 var(--s1); font-weight: 700; font-size: 17px; line-height: 1.25; }
+.hn-arrow { color: var(--carbon); transition: transform .22s cubic-bezier(.2, .7, .3, 1); }
+.hn-card a:hover .hn-arrow { transform: translateX(3px); }
+.hn-note { padding: 2px var(--s1) 0; font-size: 13.5px; line-height: 1.35; color: var(--muted); }
+
+.hn-node { fill: var(--ink); }
+.hn-target { fill: var(--carbon); }
+.hn-box { fill: var(--paper); stroke: var(--ink); stroke-width: 1; }
+.hn-box-strong { fill: var(--ink); }
+.hn-text { fill: var(--rule); }
+.hn-title { fill: var(--ink); }
+.hn-support { fill: var(--carbon); }
+.hn-oppose { fill: var(--money); }
+.hn-line { stroke-dasharray: 160; stroke-dashoffset: 0; opacity: .75; }
+.hn-m { stroke: var(--money); }
+.hn-p { stroke: var(--carbon); stroke-dasharray: 3 2; }
+.hn-ribbon { fill: var(--money); opacity: .28; transition: opacity .25s ease; }
+.hn-ribbon-far { opacity: .18; }
+.hn-avatar { fill: var(--mixed); }
+.hn-bubble { fill: var(--paper); stroke: var(--rule); }
+.hn-tile, .hn-post { transition: transform .3s cubic-bezier(.2, .7, .3, 1); transition-delay: calc(var(--i) * 30ms); }
+.hn-post { transform-box: fill-box; }
+
+/* On hover each drawing does one small thing: the network's money lines draw in, the ribbons deepen, the tiles and posts lift. */
+@media (prefers-reduced-motion: no-preference) {
+  .hn-card a:hover .hn-m { animation: hn-draw .7s cubic-bezier(.3, .6, .3, 1) both; animation-delay: calc(var(--i) * 35ms); }
+  .hn-card a:hover .hn-ribbon { opacity: .45; }
+  .hn-card a:hover .hn-ribbon-far { opacity: .3; }
+  .hn-card a:hover .hn-tile, .hn-card a:hover .hn-post { transform: translateY(-1.5px); }
+}
+@keyframes hn-draw { from { stroke-dashoffset: 160; } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .hn-card a, .hn-arrow { transition: none; } .hn-card a:hover { transform: none; } }
+
+@media (max-width: 860px) {
+  .hn-row { grid-template-columns: 1fr 1fr 1fr; }
+  .hn-wide { grid-column: 1 / -1; }
+  .hn-wide .hn-art { height: 140px; }
+}
+/* Phones: Network keeps its full-width drawing; the other three become rows with the drawing at the side. */
+@media (max-width: 560px) {
+  .hn-row { grid-template-columns: 1fr; gap: var(--s2); }
+  .hn-wide .hn-art { height: 120px; }
+  .hn-card:not(.hn-wide) a { display: grid; grid-template-columns: 104px minmax(0, 1fr); grid-template-rows: auto 1fr; column-gap: var(--s3); align-content: center; padding: var(--s2); }
+  .hn-card:not(.hn-wide) .hn-art { grid-row: 1 / 3; height: 70px; margin: 0; border: 0; }
+  .hn-card:not(.hn-wide) .hn-name { align-self: end; padding: 0; }
+  .hn-card:not(.hn-wide) .hn-note { padding: 0; font-size: 13px; }
+}
