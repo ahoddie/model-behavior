@@ -171,3 +171,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - cody-venzke: date_start 2025-01-01, but the source is a December 2025 release (placeholder date).
 - california-leads: a relation note says "Meta-funded"; its profile record shows Google and Meta.
 - connor-leahy: descriptor says he founded EleutherAI and Conjecture; no supporting fact.
+
+## thin-people-03
+- Descriptor claims with no supporting fact: des-browne ("former UK Defence Secretary"), deven-parekh ("Managing Director, Insight Partners"), eric-horvitz ("Microsoft Chief Scientific Officer"; his one source is Rebecca Finlay's PAI page), gabriel-alfour ("co-founded Conjecture"; the fact says he helped found ControlAI), jill-barclay ("former Targeted Victory managing director").
+- jina-john: date_start 2026-01-01, but the source is a June 2026 release (placeholder date).
