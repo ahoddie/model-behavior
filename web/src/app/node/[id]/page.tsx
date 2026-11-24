@@ -9,7 +9,6 @@ import ConflictFlags from "@/components/ConflictFlags";
 import StanceBar from "@/components/StanceBar";
 import CoverageLine from "@/components/CoverageLine";
 import { fmtMoney, fmtDate, TYPE_LABEL, clusterName } from "@/lib/format";
-import FollowForm from "@/components/FollowForm";
 import TargetView from "@/components/TargetView";
 import ProfileHead from "@/components/ProfileHead";
 import Src from "@/components/Src";
@@ -61,9 +60,8 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
     <div className="page">
       <ProfileHead node={p.node} keyFacts={p.keyFacts} logoSource={p.node.logo_source_url} citePath={`/node/${id}`}
         kicker={<>{TYPE_LABEL[p.node.type]} · <Link href={`/map?focus=${id}`}>{clusterName(p.node.cluster)}</Link></>} />
-      <p className="mono"><Link href={`/map?focus=${id}`}>Trace on the map</Link> · <a href={`/api/rss/${id}`}>RSS</a></p>
+      <p className="mono"><Link href={`/map?focus=${id}`}>Trace on the map</Link></p>
       {p.facts.length > 0 && <ul className="facts">{p.facts.map((f, i) => <li key={i}><Linked parts={(f as any).parts} text={f.text} /> <Src url={f.url} /></li>)}</ul>}
-      <FollowForm nodeId={id} />
       {noRecords && <KnownRecord node={p.node} />}
       <Suspense fallback={<p className="mono muted" role="status">Loading the record…</p>}>
         <Tabs sp={props.searchParams} id={id} />

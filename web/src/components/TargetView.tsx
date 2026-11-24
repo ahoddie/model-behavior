@@ -1,6 +1,5 @@
 import Link from "@/components/Link";
 import { fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
-import FollowForm from "./FollowForm";
 import ProfileHead from "./ProfileHead";
 import Src from "./Src";
 import CoverageLine from "./CoverageLine";
@@ -19,8 +18,7 @@ export default function TargetView({ t, coverage }: { t: any; coverage: Coverage
         kicker={<>{TYPE_LABEL[n.type]}{n.external_ids?.status ? <> · {n.external_ids.status} {n.external_ids.status_date && `(${fmtDate(n.external_ids.status_date)})`}</> : null}</>} />
       {isRace && <RaceView t={t} />}
       {!isRace && t.facts.length > 0 && <ul className="facts">{t.facts.map((f: any, i: number) => <li key={i}>{f.text} <Src url={f.url} /></li>)}</ul>}
-      <p className="mono"><Link href={`/map?focus=${n.id}`}>Trace on the map</Link> · <a href={`/api/rss/${n.id}`}>RSS</a></p>
-      <FollowForm nodeId={n.id} />
+      <p className="mono"><Link href={`/map?focus=${n.id}`}>Trace on the map</Link></p>
 
       {(!isRace || t.pushes.length > 0) && <h2>Who pushed</h2>}
       <div className="grid2">

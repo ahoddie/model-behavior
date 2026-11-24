@@ -206,7 +206,6 @@ button.linkish:hover { text-decoration-color: var(--ink); }
 .review-item { padding: var(--s4); margin-bottom: var(--s4); }
 .review-item label { display: flex; flex-direction: column; gap: 4px; font-family: var(--f-body); font-size: 11px; }
 .review-item .filters label { flex-direction: row; align-items: center; }
-.follow { margin: var(--s3) 0; }
 .flowwrap { position: relative; margin: var(--s4) 0; background: var(--panel); border: 1px solid var(--ink); padding: var(--s3); }
 /* On Funding the chart can be short, so the panel may run past its bottom edge over the table below. */
 .flowwrap .nodepanel { right: 12px; max-height: calc(100dvh - 140px); background: var(--paper); border: 1px solid var(--ink); }
