@@ -778,6 +778,11 @@ img.mark { background: var(--logo-bg); }
 /* /money: random starting point, and a step table that keeps names, amounts, and dates on one line */
 .rand-btn { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 14px; color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: var(--radius); padding: 5px 12px; cursor: pointer; }
 .rand-btn:hover { border-color: var(--ink); }
+.rand-btn .die { flex: none; transition: transform 0.25s ease; }
+.rand-btn:hover .die { transform: rotate(-12deg); }
+.rand-btn .die.rolled { animation: die-roll 0.45s cubic-bezier(0.3, 0.7, 0.4, 1); }
+@keyframes die-roll { from { transform: rotate(-200deg) scale(0.85); } }
+@media (prefers-reduced-motion: reduce) { .rand-btn .die { transition: none; } .rand-btn .die.rolled { animation: none; } }
 
 /* Home, "What they care about": who agrees and who disagrees under each statement */
 /* Who agrees and who disagrees: two columns side by side, names in an aligned grid under a colored rule. */
