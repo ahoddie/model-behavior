@@ -27,6 +27,9 @@ export async function run() {
     for (const a of actors) for (const n of [a.name, ...[a.external_ids?.lda_client ?? []].flat().map(String)]) exact.set(tokens(n).join(" "), a.id);
 
     for (const a of actors) {
+      // lda_skip: the actor files no LDA reports and its name is a token subset of unrelated clients (smp ⊂ "SMP Automotive
+      // Systems Alabama", public-first ⊂ "First Public Hydrogen Authority"); set by hand, see docs/data-issues.md.
+      if (a.external_ids?.lda_skip) continue;
       const names: string[] = [a.external_ids?.lda_client ?? []].flat().map(String);
       if (!names.length) names.push(a.name);
       const want = tokens(names[0]);

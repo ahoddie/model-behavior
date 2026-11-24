@@ -8,16 +8,16 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 
 ## orgs-02
 - america-pac: treasurer is Chris Young on FEC but chris-gober per InfluenceWatch.
-- a16z: $50M to Leading the Future booked as a16z's, while notes credit half to each co-founder (money-credit rule).
-- foundation-for-american-innovation: Coefficient Giving total $1.952M vs two grants on file summing $976K (likely double count).
-- rand: Good Ventures ($42M) and Coefficient Giving ($45.4M) gifts may overlap.
-- public-first: shows lobbying contacts (House, Energy Dept.), unlikely for a super PAC; likely misattributed.
+- a16z: $50M to Leading the Future booked as a16z's, while notes credit half to each co-founder (money-credit rule). **Needs Allegra:** FEC lists AH Capital Management (a16z) as the contributor, with memo entries attributing half to each founder; the same structure underlies the founders' Fairshake rows. Whether to credit the firm or the founders is her call (asked 2026-11-24). Two undated Washington Sun rows ($12.5M each) that double-counted this money were removed.
+- foundation-for-american-innovation: Coefficient Giving total $1.952M vs two grants on file summing $976K (likely double count). **Fixed:** the two grants were each recorded twice; duplicates removed (links_removed 27802, 27803).
+- rand: Good Ventures ($42M) and Coefficient Giving ($45.4M) gifts may overlap. **Needs Allegra:** the Good Ventures 990-PF rows are payments of grants Coefficient Giving recommended (several amounts match exactly: $10.5M, $5.5M, $2.5M), so the two sets overlap. Whether to show the recommender, the payer, or both needs a rule; the same applies to CSET.
+- public-first: shows lobbying contacts (House, Energy Dept.), unlikely for a super PAC; likely misattributed. **Fixed:** see agencies-01; the LDA rows were for First Public Hydrogen Authority.
 - Duplicate nodes: fli / future-of-life-institute; ostp / agency-office-of-science-and-technology-policy-ostp. **Fixed:** merged into fli (merge_log 38) and agency-office-of-science-and-technology-policy-ostp (35).
 - humanity-ai: descriptor names MacArthur and Omidyar as co-chairs; the cited article doesn't.
 - mozilla: typed lab.
 
 ## orgs-01
-- abundant-future: FEC money row shows $3.5M from Public First Action; a Transformer fact says $500,000.
+- abundant-future: FEC money row shows $3.5M from Public First Action; a Transformer fact says $500,000. **Fixed (no change):** FEC shows three Public First Action gifts ($500K Apr 13, $1M Aug 10, $2M Sept 16, 2026). Transformer's $500K is the first one only, so $3.5M stands.
 - nvidia / jensen-huang: "Leader: Jensen Huang (CEO)" fact and jensen-huang descriptor are stale; a Nov 12, 2026 8-K on file says he resigned as CEO (https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000082/nvidiaannouncesceotransiti.htm). **Fixed, and the premise is out of date:** the 8-K is genuine (EDGAR accession 0001045810-26-000082, Item 5.02), but a second 8-K filed Nov 23, 2026 (0001045810-26-000090) says the board reinstated Huang as President and CEO on Nov 22. The Leader fact and descriptor are correct again; reinstatement facts were added to both nodes, and the nvidia and jensen-huang texts now say he resigned and was reinstated ten days later.
 - open-philanthropy: founded 2011 per one fact; the Karnofsky relation says co-founded 2014. Facts' founders differ from the descriptor ("Good Ventures and GiveWell").
 - scale-ai: "Meta took 49%" appears only in the descriptor, with no supporting fact.
@@ -25,12 +25,12 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 ## orgs-03
 - lawmaker-mike-rogers: node says AL-3 House, but American Mission/ABF spending in Sept 2026 went to Senate races; likely the Michigan Senate candidate (unconfirmed).
 - macarthur-foundation: a GrantedAI fact dates Humanity AI's announcement to Feb 25, 2026; MacArthur's press release says Oct 14, 2025.
-- macarthur-foundation money: $9.8M to ai-now and $4M to brookings cite GrantedAI, which says $2M each.
-- cset: Open Philanthropy money totals $160.25M; CSET's own page says total funding was just over $100M by 2021; may overlap Good Ventures' $52.9M.
+- macarthur-foundation money: $9.8M to ai-now and $4M to brookings cite GrantedAI, which says $2M each. **Fixed:** the press-release grants were each recorded two or three times; duplicates removed (29554, 32831, 29555). AI Now now shows $5.8M (two $2M grants, $1.5M in 2017, $300K in 2025) and Brookings $2M. **Unverifiable:** whether the 2025 "general operations" $2M grant from MacArthur's grant search is the same as the Feb 2026 press-release grant.
+- cset: Open Philanthropy money totals $160.25M; CSET's own page says total funding was just over $100M by 2021; may overlap Good Ventures' $52.9M. **Fixed in part:** the $55M launch grant was recorded twice; one copy removed (27804), so Coefficient Giving's total is $105.25M and its text now says $105 million. The Good Ventures overlap needs Allegra (see rand).
 - humanity-ai: "co-chaired by MacArthur and Omidyar" has no supporting fact. dream-nyc: "donors include Anthropic and OpenAI staff" has no supporting fact.
 
 ## orgs-04
-- smp: lobbying row (SMP to the House) is for SMP Automotive Systems Alabama, a Vogel Group client, not the super PAC (https://lda.gov/filings/public/filing/4e4a55d6-06fc-4f87-8291-7e7ec42b1c8c).
+- smp: lobbying row (SMP to the House) is for SMP Automotive Systems Alabama, a Vogel Group client, not the super PAC (https://lda.gov/filings/public/filing/4e4a55d6-06fc-4f87-8291-7e7ec42b1c8c). **Fixed:** both LDA filings and their House links removed; smp, public-first, and alliance-for-a-better-future carry external_ids.lda_skip, which the LDA importer now honors.
 - ifp: founding year 2022 (Wikipedia) vs 2021 (descriptor, Caleb Watney's IFP bio).
 - sarah-stern / sarah-may-stern: likely the same person. **Fixed:** merged into sarah-may-stern (42); her text now cites both the 990 and hudson.org.
 - us-ndaa-ai-preemption-2025 / us-ndaa-fy2026-ai-preemption: likely duplicate bill nodes. **Fixed:** merged into us-ndaa-fy2026-ai-preemption (41); the old curated stage entry is gone.
@@ -46,8 +46,8 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 
 ## orgs-05
 - daniel-castro: descriptor says Vice President; ITIF's about page lists him as president. robert-atkinson's "President" (2024 Form 990) looks stale.
-- build-american-ai: money row shows $500,000 from Leading the Future (FEC); a Bisnow fact says $5M. Its Leading the Future relation is typed "person".
-- gates-foundation: LawZero money row cites Wikipedia, which gives no amount; the Gates grant page (INV-091193) shows $4,995,896, July 2025 (descriptor says Aug 2025).
+- build-american-ai: money row shows $500,000 from Leading the Future (FEC); a Bisnow fact says $5M. Its Leading the Future relation is typed "person". **Unverifiable:** FEC Schedule B for Leading the Future lists only the $500K transfer (Oct 9, 2025); Bisnow's $5M may come from later or unreported transfers. Left as is. The relation typed "person" is the schema's only relation type for organizational ties, so it stays.
+- gates-foundation: LawZero money row cites Wikipedia, which gives no amount; the Gates grant page (INV-091193) shows $4,995,896, July 2025 (descriptor says Aug 2025). **Fixed:** the Wikipedia row (no amount) was a duplicate of the grant-page row ($4,995,896) and is removed (29568). The grant page's URL path is 2025/08 but the row and text say July 2025, the commit date; left as is.
 - hoover: "oppose SB 1047" is set on the institution but is fellow Lee Ohanian's podcast view.
 - maga-inc: Taylor Budowich named director in 2022, before this committee's 2024 registration (C00892471).
 - dccc: name stored as "Dccc".
@@ -56,7 +56,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - machine-intelligence-research-institute / miri: duplicate nodes. **Fixed:** merged into miri (39).
 - ai-safety-fund: website on file (aisafetyfund.org) is a small donor-funded "AI Safety Research Fund"; the Frontier Model Forum's AI Safety Fund is aisfund.org. CDT's donor list doesn't say which gave.
 - CDT donor tiers: cdt.org/financials shows only 2025; money rows and the CZI descriptor also claim 2024.
-- perplexity: money row shows $200,000 in 2 gifts to Leading the Future; the fact and FEC PDF say $100,000 (likely double count).
+- perplexity: money row shows $200,000 in 2 gifts to Leading the Future; the fact and FEC PDF say $100,000 (likely double count). **Fixed:** duplicate removed (26411); $100,000.
 - new-york-times-company: $1.225M Ford Foundation grant is from Ford's Form 990, unverified.
 - haun-ventures: a16z investment row is doubtful; the cited TechCrunch story is about Haun leaving a16z.
 - Wrong types: new-york-times-company, oracle, amd typed lab; movement-voter-pac typed nonprofit (it's a hybrid PAC).
@@ -65,21 +65,21 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 ## orgs-08
 - anthony-aguirre / future-of-life-institute: node says Aguirre is FLI President and CEO; Wikipedia's infobox names Max Tegmark as president while its 2025 section calls Aguirre president.
 - forge-the-future-project: descriptor says super PAC; its type fact (Tech Oversight Project) says state-level PAC (527).
-- lonsdale-enterprises: typed nonprofit; the record describes an investment entity.
+- lonsdale-enterprises: typed nonprofit; the record describes an investment entity. **Fixed:** typed investor.
 - defend-american-jobs, protect-progress: descriptors are bare FEC IDs; Wikipedia's Fairshake page says they're Fairshake affiliates (Republican and Democratic, respectively).
 - smart-justice-california-action-fund: descriptor is just "Organization".
 - law-ai: couldn't confirm what it does (site blocks fetching; 990 page didn't load).
 
 ## orgs-10
 - isomorphic-labs / demis-hassabis: a Fortune fact (2026-08-05) says Hassabis became chairman of Isomorphic Labs; the article says chairman of Google DeepMind and Alphabet chief scientist.
-- jane-street: money row credits the firm as a METR funder; metr.org/about names "individuals from Jane Street", not the firm (money-credit rule).
-- founders-pledge: lawzero.org credits Jaan Tallinn "with Founders Pledge Inc."; the LawZero gift may be Tallinn's, given through Founders Pledge.
+- jane-street: money row credits the firm as a METR funder; metr.org/about names "individuals from Jane Street", not the firm (money-credit rule). **Fixed:** link removed (44834); the text already says the donors were individuals from Jane Street.
+- founders-pledge: lawzero.org credits Jaan Tallinn "with Founders Pledge Inc."; the LawZero gift may be Tallinn's, given through Founders Pledge. **Unverifiable:** LawZero's homepage says "made possible by the generosity of Jaan Tallinn and Founders Pledge Inc. (US)", which doesn't say whose money it was. Left as is.
 
 ## orgs-09
 - humanity-ai: descriptor says formed "to counter AI-industry influence" and co-chaired by MacArthur and Omidyar; the Broadband Breakfast source names no co-chairs and describes the aim as AI that advances "public benefit over private gain."
 - aft-solidarity: FEC fact calls it an independent-expenditure filer, "not a committee"; City & State calls it a super PAC.
 - beri: SFF lists four 2021 grants from Jed McCaleb ($250k, $17k, $17k, $14k); the record has only the $250k one, with no date.
-- wadhwani-foundation: the $5M CSIS commitment was Romesh Wadhwani's own, not the foundation's (money-credit rule).
+- wadhwani-foundation: the $5M CSIS commitment was Romesh Wadhwani's own, not the foundation's (money-credit rule). **Fixed (no change):** the money row and both texts already credit the $5M to Romesh Wadhwani; the foundation's only row is its CSIS donor-tier listing.
 - Generic descriptors ("Organization"): way-to-win-action-fund, elevate-america, aaup, and others.
 
 ## orgs-11
@@ -100,14 +100,14 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - ron-conway: a Verge statement summary says he "regrets funding pro-AI efforts and now opposes federal AI regulation"; looks unreliable, check against the article.
 
 ## people-01
-- marc-andreessen: money rows show $11.9M to Fairshake; FEC Schedule A (C00835959) lists five personal gifts totaling $45.4M (2023–2025).
-- joe-lonsdale: Leading the Future row has no amount, and the cited article gives none for him; the $250K it reports was from Lonsdale Enterprises to American Mission.
+- marc-andreessen: money rows show $11.9M to Fairshake; FEC Schedule A (C00835959) lists five personal gifts totaling $45.4M (2023–2025). **Fixed:** FEC Schedule A (memo attributions of AH Capital Management gifts) shows five for him, matching Horowitz's; the four missing rows were added ($45.4M). The Fairshake, Andreessen, and Horowitz texts now say "FEC filings attribute" these sums, which holds whichever way the a16z question goes.
+- joe-lonsdale: Leading the Future row has no amount, and the cited article gives none for him; the $250K it reports was from Lonsdale Enterprises to American Mission. **Fixed:** FEC Schedule A for Leading the Future has no Lonsdale gift. The row was removed (44972), and his text now names the $250K from Lonsdale Enterprises to American Mission (FEC-1939888).
 - daniel-ziegler: node name reversed ("Ziegler Daniel").
 
 ## people-04
 - ned-finkle: NVIDIA's blog says vice president of government affairs; CNAS (https://www.cnas.org/people/ned-finkle) says vice president of external affairs.
 - alex-karp: descriptor's "~$1.9M to Trump's super PAC (per Forbes)" has no source or money row.
-- anna-brockman / greg-brockman: FEC row gives $12.5M under her name; The Next Web says the couple jointly gave $25M (likely half of a joint gift, recorded per spouse).
+- anna-brockman / greg-brockman: FEC row gives $12.5M under her name; The Next Web says the couple jointly gave $25M (likely half of a joint gift, recorded per spouse). **Fixed (no change):** FEC itemizes $12.5M under each spouse's name, so each row follows the filing.
 - richard-fontaine: a relation typed "revolving door" is an Anthropic advisory council seat, not a government post.
 
 ## people-03
@@ -162,7 +162,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 ## thin-people-01
 - anne-marie-slaughter: descriptor "CEO" looks stale; New America's staff page lists her as Senior Advisor.
 - anil-dash ("CEO of Glitch"), jane-hartley ("former ambassador to the UK"), adam-green ("PCCC cofounder"): descriptor claims with no supporting relation or source.
-- romesh-wadhwani / wadhwani-foundation: the writers disagree on whether the $5M CSIS gift was his own or the foundation's; check the CSIS release.
+- romesh-wadhwani / wadhwani-foundation: the writers disagree on whether the $5M CSIS gift was his own or the foundation's; check the CSIS release. **Fixed (no change):** CSIS's release credits him; see orgs-09.
 - Descriptor typos: "Principle" (shaunna-thomas), "Quantitive" (dylan-mavrides).
 
 ## thin-people-02
@@ -217,6 +217,6 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - white-house (David Sacks stepped down March 2026) and ostp (Sriram Krishnan left June 2026): the sources cited for these relations predate the events.
 
 ## agencies-01
-- public-first: the LDA filing naming Energy and the Air Force (lda.gov …/303b23e4…) is for First Public Hydrogen Authority, not the super PAC (wrong client match).
-- alliance-for-a-better-future: the LDA filing naming OMB and Interior (lda.gov …/5d998492…) is for Fund for a Better Future / Alliance for Wildfire Resilience (wrong client match).
+- public-first: the LDA filing naming Energy and the Air Force (lda.gov …/303b23e4…) is for First Public Hydrogen Authority, not the super PAC (wrong client match). **Fixed:** 3 links and 3 filings removed; lda_skip set.
+- alliance-for-a-better-future: the LDA filing naming OMB and Interior (lda.gov …/5d998492…) is for Fund for a Better Future / Alliance for Wildfire Resilience (wrong client match). **Fixed:** 13 links and 5 filings removed; lda_skip set. Its text no longer says it lobbied Congress and OMB.
 - Agency lobbying counts in profile text for the House, Senate, White House Office, and Commerce are minimums: the money list behind them was capped at 15 counterparties.
