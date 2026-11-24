@@ -81,3 +81,8 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - beri: SFF lists four 2021 grants from Jed McCaleb ($250k, $17k, $17k, $14k); the record has only the $250k one, with no date.
 - wadhwani-foundation: the $5M CSIS commitment was Romesh Wadhwani's own, not the foundation's (money-credit rule).
 - Generic descriptors ("Organization"): way-to-win-action-fund, elevate-america, aaup, and others.
+
+## orgs-11
+- rutan-tucker-llp, singleton-schreiber-llp: typed nonprofit; both are law-firm LLPs.
+- stronger-together-pa: typed nonprofit; FEC lists it as a super PAC (https://www.fec.gov/data/committee/C00936153/).
+- openai-foundation: descriptor's "$25B long-term pledge", "$1B planned for 2026", and "controlling OpenAI Group" have no supporting fact.
