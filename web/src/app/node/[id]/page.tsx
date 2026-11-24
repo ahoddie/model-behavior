@@ -46,11 +46,11 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
   const summary = await getNodeSummary(id);
   if (!summary) { const to = await getMergedInto(id); if (to) permanentRedirect(`/node/${encodeURIComponent(to)}`); notFound(); }
   if (TARGET_TYPES.includes(summary.node.type)) {
-    const [t, coverage] = await Promise.all([getTarget(id), getCoverage(id)]);
+    const [t, coverage, text] = await Promise.all([getTarget(id), getCoverage(id), getProfileText(id)]);
     const head = t!;
     const empty = !head.keyFacts.length && !head.facts.length && !head.pushes.length && !head.statements.length && !head.candidates.length;
     return <>
-      <TargetView t={head} coverage={coverage} />
+      <TargetView t={head} coverage={coverage} text={text} />
       {empty && <div className="page"><KnownRecord node={head.node} /></div>}
     </>;
   }
