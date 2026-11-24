@@ -13,6 +13,14 @@ export function proxy(req: NextRequest) {
   const [, section, id] = pathname.split("/");
   const keys = KEYS[section];
   if (!keys) return NextResponse.next();
+  // A query key not listed above (a filter added to a page after this list was written) goes to the live page, which reads
+  // the whole query string: slower, but nothing is dropped. Add the key to KEYS (and to the v/ route) to prebuild it.
+  // _rsc is the router's own cache-busting key.
+  const unknown = [...searchParams.keys()].filter((k) => k !== "_rsc" && !keys.includes(k));
+  if (unknown.length) {
+    if (process.env.NODE_ENV !== "production") console.warn(`[proxy] ${pathname}: ?${unknown.join(", ?")} not in KEYS; serving the live page`);
+    return NextResponse.next();
+  }
   const vals = keys.map((k) => searchParams.get(k));
   const base = section === "node" ? `/node/${id}/v` : `/${section}/v`;
   // With nothing set, a section page has its own prebuilt copy with no parameters, so a link to it can be prefetched whole.
