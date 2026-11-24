@@ -61,3 +61,11 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - haun-ventures: a16z investment row is doubtful; the cited TechCrunch story is about Haun leaving a16z.
 - Wrong types: new-york-times-company, oracle, amd typed lab; movement-voter-pac typed nonprofit (it's a hybrid PAC).
 - amd: export-control lobbying in the descriptor has no supporting fact.
+
+## orgs-08
+- anthony-aguirre / future-of-life-institute: node says Aguirre is FLI President and CEO; Wikipedia's infobox names Max Tegmark as president while its 2025 section calls Aguirre president.
+- forge-the-future-project: descriptor says super PAC; its type fact (Tech Oversight Project) says state-level PAC (527).
+- lonsdale-enterprises: typed nonprofit; the record describes an investment entity.
+- defend-american-jobs, protect-progress: descriptors are bare FEC IDs; Wikipedia's Fairshake page says they're Fairshake affiliates (Republican and Democratic, respectively).
+- smart-justice-california-action-fund: descriptor is just "Organization".
+- law-ai: couldn't confirm what it does (site blocks fetching; 990 page didn't load).
