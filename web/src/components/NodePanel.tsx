@@ -12,15 +12,18 @@ type Summary = { node: GNode & { logo_url?: string | null }; facts: { text: stri
 export default function NodePanel({ id, links, byId, onSelect, onClose }: { id: string; links: GLink[]; byId: Map<string, GNode>; onSelect: (id: string) => void; onClose: () => void }) {
   const [loaded, setS] = useState<Summary | null>(null);
   const ref = useRef<HTMLElement>(null);
-  // A new item starts at the top of its own panel, and the panel's top is brought into view if it sits above the screen.
+  // A new item starts at the top of its own panel. The panel is sized to the screen below any sticky bar, so when it
+  // opens partly off screen the page scrolls until all of it shows, top first.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     el.scrollTop = 0;
-    const top = el.getBoundingClientRect().top;
-    const header = document.querySelector(".masthead")?.getBoundingClientRect();
-    const offset = header && getComputedStyle(document.querySelector(".masthead")!).position === "sticky" ? header.height : 0;
-    if (top < offset) window.scrollBy({ top: top - offset - 12, behavior: "smooth" });
+    const r = el.getBoundingClientRect();
+    const bar = [document.querySelector<HTMLElement>(".masthead"), el.closest(".mapwrap")?.querySelector<HTMLElement>(".maptools")]
+      .filter((b): b is HTMLElement => !!b && getComputedStyle(b).position === "sticky");
+    const offset = bar.reduce((h, b) => h + b.offsetHeight, 0) + 12;
+    if (r.top < offset) window.scrollBy({ top: r.top - offset, behavior: "smooth" });
+    else if (r.bottom > window.innerHeight - 12) window.scrollBy({ top: Math.min(r.top - offset, r.bottom - window.innerHeight + 12), behavior: "smooth" });
   }, [id]);
   const s = loaded?.node.id === id ? loaded : null;
   useEffect(() => {

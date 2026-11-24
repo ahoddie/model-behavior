@@ -123,6 +123,14 @@ export default function InfluenceMap({ nodes, links }: { nodes: GNode[]; links: 
     ro.observe(el);
     return () => ro.disconnect();
   }, [mobile]);
+  // The sticky toolbar's height, as --tools-h on the wrapper: the summary panel fills the screen below it.
+  useLayoutEffect(() => {
+    const el = wrap.current, tools = el?.querySelector<HTMLElement>(".maptools");
+    if (!el || !tools) return;
+    const ro = new ResizeObserver(() => el.style.setProperty("--tools-h", `${tools.offsetHeight}px`));
+    ro.observe(tools);
+    return () => ro.disconnect();
+  }, [mobile]);
 
   useEffect(() => {
     if (!playing) return;

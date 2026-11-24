@@ -182,7 +182,10 @@ svg.map:active { cursor: grabbing; }
 .timebar { display: flex; gap: var(--s3); align-items: center; padding: var(--s3) 0; }
 .timebar input[type=range] { flex: 1; accent-color: var(--ink); }
 
-.nodepanel { position: absolute; top: 12px; right: 0; width: 360px; max-height: min(calc(100% - 24px), calc(100dvh - 140px)); overflow-y: auto; padding: var(--s4); z-index: 6; }
+/* The summary panel always opens at its full size: the height of the screen below the sticky toolbar. The map's stage
+   grows to hold it when the drawing around a selection is short, so the panel is never squeezed to the drawing's height. */
+.nodepanel { position: absolute; top: 12px; right: 0; width: 380px; height: max(420px, calc(100dvh - var(--tools-h, 0px) - 24px)); overflow-y: auto; padding: var(--s4); z-index: 6; }
+.mapstage:has(> .nodepanel) { min-height: calc(max(420px, calc(100dvh - var(--tools-h, 0px) - 24px)) + 24px); }
 .nodepanel h2 { font-size: 28px; margin-top: 4px; }
 .nodepanel .close { position: absolute; top: 8px; right: 8px; border: 0; font-size: 20px; padding: 0 8px; }
 .facts { padding-left: 18px; margin: var(--s3) 0; }
@@ -207,8 +210,8 @@ button.linkish:hover { text-decoration-color: var(--ink); }
 .review-item label { display: flex; flex-direction: column; gap: 4px; font-family: var(--f-body); font-size: 11px; }
 .review-item .filters label { flex-direction: row; align-items: center; }
 .flowwrap { position: relative; margin: var(--s4) 0; background: var(--panel); border: 1px solid var(--ink); padding: var(--s3); }
-/* On Funding the chart can be short, so the panel may run past its bottom edge over the table below. */
-.flowwrap .nodepanel { right: 12px; max-height: calc(100dvh - 140px); background: var(--paper); border: 1px solid var(--ink); }
+/* On Funding the chart can be short, so the panel may run past its bottom edge over the notes below. */
+.flowwrap .nodepanel { right: 12px; background: var(--paper); border: 1px solid var(--ink); }
 .filters a[aria-current="page"] { color: var(--ink); font-weight: 700; text-decoration: underline; }
 
 /* Dropdowns (components/Select.tsx, NameSearch.tsx) */
