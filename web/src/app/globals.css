@@ -50,6 +50,8 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+/* A short page and a long one put the title at the same place: room for the scroll bar is kept on both. */
+html { scrollbar-gutter: stable; }
 body {
   background-color: var(--paper);
   color: var(--ink);
@@ -315,7 +317,9 @@ blockquote .src-wrap, .lede .src-wrap { font-size: 1rem; }
 .masthead nav a { position: relative; }
 .masthead nav a[aria-current="page"]::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--carbon); }
 .beta { font-size: 13px; padding: 0 6px; }
-.page { max-width: 1000px; }
+/* Every page shares Funding's width, so titles and subtitles start at the same place. Running text keeps a readable line. */
+.page { max-width: 1240px; }
+.page > p:not(.lede) { max-width: 72ch; }
 .lede { font-size: 20px; line-height: 1.5; max-width: 40ch; margin: 12px 0 0; }
 .profile-head { gap: var(--s5); margin-bottom: var(--s5); }
 .profile-meta { font-size: 16px; color: var(--muted); margin: 8px 0 0; }
@@ -811,7 +815,6 @@ img.mark { background: var(--logo-bg); }
 .topic-profile { display: inline-block; font-size: 14px; margin: 0 0 8px 1em; }
 
 /* Policy page: cards for bills and rules, compact tables for elections and lobbying, a sticky list of groups on wide screens. */
-.pol-page { max-width: 1290px; }
 .pol-page > .lede { max-width: none; }
 @media (min-width: 900px) { .pol-page > .lede { white-space: nowrap; } }
 .pol-body { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--s5); margin-top: var(--s4); }
@@ -904,6 +907,5 @@ img.mark { background: var(--logo-bg); }
 .facts li:hover .src-wrap, .keyfacts div:hover .src-wrap, .src-wrap:focus-within { opacity: 1; }
 .page > .coverage:last-child { margin-top: var(--s5); padding-top: var(--s3); border-top: 1px solid var(--rule); }
 
-/* About: the same page width as Funding, with lines kept to a readable length. */
-.page.about { max-width: 1240px; }
+/* About: lines kept to a readable length. */
 .about p { max-width: 66ch; }
