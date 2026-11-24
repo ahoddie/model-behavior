@@ -124,3 +124,9 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - palmer-luckey: descriptor's "$5.9M to Republicans" is unverified (inkl source blocked).
 - paul-nakasone: fact says "Vanderbilt Institute of National Defense"; node is "Vanderbilt Institute of National Security"; Vanderbilt's URL says Institute for National Defense and Global Security.
 - santi-ruiz: descriptor stresses his IFP fellowship; facts show his current role is at Anthropic.
+
+## people-07
+- sunny-gandhi: descriptor says Gandhi "filed Encode's LDA registration"; no fact supports it.
+- todor-markov: descriptor says "Research Scientist, Meta Superintelligence Labs"; no fact supports it, and his site names no employer.
+- stewart-barber: descriptor says "White House legislative affairs"; NVIDIA's LD-1 lists only "White House (2019–2021)".
+- linkify false match: "White House Office" (a node name) matches inside "White House Office of Management and Budget".
