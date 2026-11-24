@@ -36,6 +36,24 @@ export const landsRank = (c: string) => {
   return 10000 + ["e-undated-races", "e-undated-candidates", "b-federal", "b-california", "b-state", "r-orders", "r-other", "g-congress", "g-whitehouse", "g-agencies"].indexOf(c);
 };
 
+export const STATE_NAMES: Record<string, string> = {
+  al: "Alabama", ak: "Alaska", az: "Arizona", ar: "Arkansas", ca: "California", co: "Colorado", ct: "Connecticut", de: "Delaware",
+  dc: "District of Columbia", fl: "Florida", ga: "Georgia", hi: "Hawaii", id: "Idaho", il: "Illinois", in: "Indiana", ia: "Iowa",
+  ks: "Kansas", ky: "Kentucky", la: "Louisiana", me: "Maine", md: "Maryland", ma: "Massachusetts", mi: "Michigan", mn: "Minnesota",
+  ms: "Mississippi", mo: "Missouri", mt: "Montana", ne: "Nebraska", nv: "Nevada", nh: "New Hampshire", nj: "New Jersey",
+  nm: "New Mexico", ny: "New York", nc: "North Carolina", nd: "North Dakota", oh: "Ohio", ok: "Oklahoma", or: "Oregon",
+  pa: "Pennsylvania", ri: "Rhode Island", sc: "South Carolina", sd: "South Dakota", tn: "Tennessee", tx: "Texas", ut: "Utah",
+  vt: "Vermont", va: "Virginia", wa: "Washington", wv: "West Virginia", wi: "Wisconsin", wy: "Wyoming",
+};
+// Where a bill sits: "us" for Congress, else the state's two-letter code. Bill ids lead with it (us-119-hr5885, il-sb315-2026);
+// a measure without that prefix names its state in the title, as in "(CA ballot initiative, 2026)".
+export const billPlace = (id: string, name = ""): string => {
+  const p = id.match(/^([a-z]{2})-/)?.[1];
+  if (p === "us" || (p && STATE_NAMES[p])) return p;
+  const m = [...name.matchAll(/\b([A-Z]{2})\b/g)].map((x) => x[1].toLowerCase()).find((c) => STATE_NAMES[c]);
+  return m ?? "other";
+};
+
 export const TYPE_LABEL: Record<string, string> = { lab: "Lab", person: "Person", investor: "Investor", funder: "Funder", pac: "PAC", nonprofit: "Nonprofit",
   think_tank: "Think tank", bill: "Bill", race: "Race", rule: "Rule", lawmaker: "Candidate", agency: "Federal body" };
 

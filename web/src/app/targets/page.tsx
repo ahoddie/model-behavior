@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "@/components/Link";
 import { listTargets, targetSides, type SideName } from "@/lib/data";
-import { fmtMoney, clusterName, landsRank } from "@/lib/format";
+import { fmtMoney, clusterName, landsRank, billPlace, STATE_NAMES } from "@/lib/format";
 import Select from "@/components/Select";
 import SectionNav from "@/components/SectionNav";
 import { Named } from "@/components/ProfileHead";
@@ -67,11 +67,15 @@ async function Listing({ sp: spP }: { sp: Sp }) {
   const [ts, sides] = await load();
   const kind = (KINDS.find(([k]) => k === sp.kind) ?? KINDS[0]);
   const want = typeof sp.cycle === "string" ? sp.cycle : "";
-  const inKind = ts.filter((t) => kind[2](t.grp));
+  // Bills are grouped by where they sit: Congress first, then each state on its own, A to Z.
+  const placeOf = (t: any) => `b-${billPlace(t.id, t.name)}`;
+  const inKind = ts.filter((t) => kind[2](t.grp)).map((t) => (kind[0] === "bills" ? { ...t, grp: placeOf(t) } : t));
+  const placeName = (g: string) => (g === "b-us" ? "Federal" : g === "b-other" ? "Other" : STATE_NAMES[g.slice(2)] ?? g.slice(2).toUpperCase());
+  const billRank = (g: string) => (g === "b-us" ? "0" : g === "b-other" ? "2" : `1${placeName(g)}`);
   const cycles = [...new Set(ts.map((t) => cycleOf(t.grp)).filter(Boolean) as string[])].sort().reverse();
   const groups = [...new Set(inKind.map((t) => t.grp as string))]
     .filter((g) => kind[0] !== "elections" || !want || cycleOf(g) === want)
-    .sort((a, b) => landsRank(a) - landsRank(b));
+    .sort((a, b) => (kind[0] === "bills" ? billRank(a).localeCompare(billRank(b)) : landsRank(a) - landsRank(b)));
   // Cards: rows with positions first, then by money, so the busiest debates lead. Tables: by the value their bar draws,
   // so the bars step down in order.
   const isCands = (g: string) => g.endsWith("-candidates");
@@ -82,7 +86,7 @@ async function Listing({ sp: spP }: { sp: Sp }) {
     : total(sides[b.id] as Sides) - total(sides[a.id] as Sides) || b.money - a.money);
   // Under a "2026 races" heading the year and the word "race" are already said.
   const raceName = (n: string) => n.replace(/^\d{4}\s+/, "").replace(/\s+race$/i, "");
-  const groupName = (g: string) => (kind[0] === "elections" && isCands(g) ? clusterName(g).replace(/election$/, "candidates") : clusterName(g));
+  const groupName = (g: string) => kind[0] === "bills" ? placeName(g) : (kind[0] === "elections" && isCands(g) ? clusterName(g).replace(/election$/, "candidates") : clusterName(g));
   const byId = new Map<string, any>(ts.map((t) => [t.id, t]));
   // Each race's candidates, best funded first.
   const candsOf = new Map<string, any[]>();
@@ -117,7 +121,7 @@ async function Listing({ sp: spP }: { sp: Sp }) {
       )}
 
       <div className="pol-body">
-        {groups.length > 1 && <SectionNav key={kind[0] + want} items={groups.map((g) => ({ id: g, label: groupName(g) }))} label="Groups" />}
+        {groups.length > 1 && <SectionNav key={kind[0] + want} items={groups.map((g) => ({ id: g, label: groupName(g), count: kind[0] === "bills" ? rowsOf(g).length : undefined }))} label="Groups" />}
         <div className="pol-main">
           {groups.map((g) => {
             const rows = rowsOf(g);

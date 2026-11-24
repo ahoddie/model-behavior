@@ -640,6 +640,7 @@ svg.map:active { cursor: default; }
 .secnav ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--rule); }
 .secnav li a { display: block; padding: 7px 0 7px 14px; margin-left: -1px; border-left: 2px solid transparent; color: var(--muted); font-size: 15px; line-height: 1.3; }
 .secnav li a:hover { color: var(--ink); }
+.secnav-n { margin-left: 6px; font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 400; color: var(--muted); }
 .secnav li a[aria-current="location"] { color: var(--ink); font-weight: 600; border-left-color: var(--carbon); }
 @media (max-width: 1100px) { .home { display: block; } .secnav { display: none; } }
 
@@ -832,6 +833,12 @@ img.mark { background: var(--logo-bg); }
 .pcards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: var(--s4); }
 .pcard { display: flex; flex-direction: column; gap: var(--s3); background: var(--panel); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--s4) var(--s4) var(--s3); transition: border-color .12s; }
 .pcard:hover { border-color: var(--ink); }
+/* The whole tile opens the bill: the title's link stretches over the card, and the links inside sit above it. */
+.pcard { position: relative; cursor: pointer; }
+.pcard h3 a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.pcard h3 a:focus-visible { outline: none; }
+.pcard:has(h3 a:focus-visible) { outline: 2px solid var(--carbon); outline-offset: 2px; }
+.pcard .pside a, .pcard .pside-more { position: relative; z-index: 1; }
 .pcard h3 { margin: 0; font-size: 19px; line-height: 1.25; }
 .pcard-note { margin: -4px 0 0; font-size: 14px; line-height: 1.4; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .pcard-none { margin: 0; font-size: 14px; color: var(--muted); }
