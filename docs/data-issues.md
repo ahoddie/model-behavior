@@ -143,3 +143,9 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 ## people-10
 - gary-marcus: descriptor says he "testified to the Senate in 2023"; no fact on file supports it.
 - zane-grube: descriptor says "Trader"; the source gives only his employer (Jane Street).
+
+## people-09
+- nicholas-joseph: descriptor "Member Of Technical Staff" (FEC occupation); TechCrunch and 80,000 Hours say he's an Anthropic co-founder and head of pretraining.
+- jeremy-liew: descriptor "Venture Capital Consultant, Self Employed"; Wikipedia says he's still a Lightspeed partner, though his Lightspeed fact is labeled "Previously".
+- joel-kaplan: Meta's page says Chief Global Affairs Officer; Fortune says president of global affairs.
+- More duplicate agency nodes: white-house / agency-executive-office-of-the-president-eop.
