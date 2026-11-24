@@ -247,3 +247,11 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - FEC candidate facts label some challengers "open seat" where an incumbent is listed (e.g. Rhett Marques, AL-2).
 - race-2026-ky-sen, race-2026-mt-1: no incumbent in the dossier.
 - lawmaker-manny-rutinel, lawmaker-melissa-bean: descriptors lack a party.
+
+## Race profile text (races-02)
+
+- race-2026-nj-8: two FEC candidate records for Menendez (H2NJ08232, H2NJ13075) with identical figures.
+- race-2026-tn-6, tx-10, tx-19, wa-4, wy-sen: FEC facts call these open seats yet list the incumbent (Rose, McCaul, Arrington, Newhouse, Lummis) as a candidate.
+- race-2026-tx-33: Colin Allred tagged "open seat" while Marc Veasey is tagged incumbent.
+- Duplicate nodes for Chris Gober: chris-gober (person) and lawmaker-chris-gober.
+- race-2026-sc-sen: Russell Fry (lawmaker-russell-fry) is in the race's FEC facts but not linked to the race via external_ids.
