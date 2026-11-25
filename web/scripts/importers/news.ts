@@ -4,13 +4,16 @@ import "../env.ts";
 import Parser from "rss-parser";
 import { q } from "../../src/lib/db.ts";
 import { startRun, endRun, politeFetch, sleep } from "../lib/ingest.ts";
-import { fetchText, ingestDocument, POLICY_TERMS } from "../lib/text.ts";
+import { fetchText, ingestDocument, POLICY_TERMS, AI_TERMS } from "../lib/text.ts";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { REPO } from "../env.ts";
 
 const timespan = process.argv.find((a) => a.startsWith("--timespan="))?.slice(11) ?? "2d";
 const parser = new Parser();
 
 async function gdelt(name: string) {
-  const query = `"${name}" (regulation OR legislation OR "AI policy" OR congress OR lawmakers)`;
+  const query = `"${name}" "artificial intelligence" (regulation OR legislation OR policy OR congress OR lawmakers)`;
   const u = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(query)}&mode=artlist&format=json&maxrecords=25&timespan=${timespan}&sourcelang=english`;
   const res = await politeFetch(u);
   if (!res.ok) return [];
@@ -26,7 +29,10 @@ async function gnews(name: string) {
 export async function run() {
   const runId = await startRun("news");
   let added = 0;
-  const seen = new Set<string>();
+  // Articles fetched on earlier nights are not fetched again; the list keeps the last 20,000.
+  const seenFile = join(REPO, "data/cache/news-seen.json");
+  const prior: string[] = existsSync(seenFile) ? JSON.parse(readFileSync(seenFile, "utf8")) : [];
+  const seen = new Set<string>(prior);
   try {
     const actors = await q<{ id: string; name: string }>(`SELECT id, name FROM nodes WHERE type IN ('person','lab')`);
     for (const a of actors) {
@@ -36,12 +42,14 @@ export async function run() {
         seen.add(art.url);
         const page = await fetchText(art.url);
         // Google News links are redirects; keep only articles that resolve to the publisher's own URL.
-        if (!page || /news\.google\.com/.test(page.finalUrl) || !POLICY_TERMS.test(page.text)) continue;
+        if (!page || /news\.google\.com/.test(page.finalUrl) || !POLICY_TERMS.test(page.text) || !AI_TERMS.test(page.text)) continue;
         added += await ingestDocument({ text: page.text, url: page.finalUrl, date: art.date, platform: new URL(page.finalUrl).hostname.replace(/^www\./, ""),
-          kind: "quote", origin: "importer:news" });
+          kind: "quote", origin: "importer:news", requireQuote: true });
       }
       await sleep(1500);
     }
+    mkdirSync(join(REPO, "data/cache"), { recursive: true });
+    writeFileSync(seenFile, JSON.stringify([...seen].slice(-20000)));
     await endRun(runId, true, added);
   } catch (e) { await endRun(runId, false, added, String(e)); throw e; }
   return added;

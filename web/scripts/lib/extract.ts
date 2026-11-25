@@ -48,18 +48,27 @@ export async function extract(text: string, candidates: { id: string; name: stri
     .filter((i) => i.excerpt || i.summary);
 }
 
-// No local model server: take quoted sentences within 200 characters of a candidate's name. Still lands as pending.
+// No local model server: keep only quotes the text itself attributes, with a speech verb right beside the speaker's name:
+// `"…," Huang said`, `said Huang`, `Huang said: "…"`. A quote that merely sits near a name (a board statement, a
+// reporter's line, someone else's words) is dropped. Still lands as pending.
+const SAID = "(?:said|says|told|wrote|writes|added|argued|warned|testified|posted|stated|explained|noted)";
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 function heuristic(text: string, candidates: { id: string; name: string }[]): Extracted[] {
   const out: Extracted[] = [];
-  const quotes = [...text.matchAll(/[“"]([^”"]{20,220})[”"]/g)];
   for (const c of candidates) {
-    const last = c.name.split(" ").at(-1)!;
-    for (const m of quotes) {
-      const around = text.slice(Math.max(0, m.index! - 200), m.index! + m[0].length + 200);
-      if (!around.includes(last)) continue;
-      const qt = m[1].trim();
+    const full = c.name.replace(/\s*\(.*?\)/g, "").trim();
+    const last = full.split(" ").at(-1)!;
+    const who = `(?:${esc(full)}|${esc(last)})`;
+    const res = [
+      new RegExp(`[“"]([^”"]{20,220})[,.!?]?[”"]\\s*,?\\s*(?:${who}\\s+${SAID}|${SAID}\\s+${who})\\b`, "g"),
+      new RegExp(`\\b${who}\\s+${SAID}(?:\\s+\\w+){0,3}\\s*[:,]\\s*[“"]([^”"]{20,220})[”"]`, "g"),
+    ];
+    for (const re of res) {
+      const m = re.exec(text);
+      if (!m) continue;
+      const qt = m[1].trim().replace(/[,.]$/, "");
       if (wordCount(qt) > 25) continue;
-      out.push({ node: c.id, excerpt: qt, summary: `Quoted near the name ${c.name}; check attribution.`, stance: null, target: null, issues: [] });
+      out.push({ node: c.id, excerpt: qt, summary: `Attributed to ${full} in the article text.`, stance: null, target: null, issues: [] });
       break;
     }
   }
