@@ -177,8 +177,11 @@ export async function run() {
       for (const [k, rs] of want) {
         const [to, date, amount] = k.split("|");
         if (to === d.id) continue;
-        const have = (await q<{ n: number }>(`SELECT count(*)::int n FROM links WHERE from_id=$1 AND to_id=$2 AND type='money' AND date_start=$3 AND amount=$4
-          AND source_url ILIKE '%fec.gov%'`, [d.id, to, date, amount]))[0].n;
+        // Lines removed by hand (a redesignation or a JFC share counted twice) count as handled, so they don't come back
+        // under another URL.
+        const have = (await q<{ n: number }>(`SELECT ((SELECT count(*) FROM links WHERE from_id=$1 AND to_id=$2 AND type='money' AND date_start=$3 AND amount=$4
+          AND source_url ILIKE '%fec.gov%') + (SELECT count(*) FROM links_removed WHERE from_id=$1 AND to_id=$2 AND type='money' AND date_start=$3 AND amount=$4
+          AND source_url ILIKE '%fec.gov%'))::int n`, [d.id, to, date, amount]))[0].n;
         for (const r of rs.slice(have)) {
           const tx = r.transaction_id ?? r.sub_id;
           if (await insertLink({ from: d.id, to, type: "money", subtype: "contribution", amount: r.contribution_receipt_amount, date_start: r.contribution_receipt_date,
