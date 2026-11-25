@@ -70,6 +70,9 @@ async function nyImport(actors: { id: string; name: string; external_ids: any }[
       const bills = Object.entries(r).filter(([k]) => k.startsWith("bill_details")).map(([, v]) => v).filter((v) => v && v !== "NULL").join("; ");
       const amount = Number(r.total_compensation ?? 0) + Number(r.total_expenses ?? 0) || null;
       const src = `https://data.ny.gov/resource/${ds}.json?$where=${encodeURIComponent(`client_name='${r.client_name.replace(/'/g, "''")}' AND reporting_year='${r.reporting_year}' AND reporting_period='${r.reporting_period}'`)}`;
+      // A few rows carry a client_name thousands of characters long, which makes a URL too big for the filings index and
+      // ended the whole run (2026-11-24). Skip those rows.
+      if (src.length > 2000) { console.warn(`ny: skipped a ${a.id} row whose client_name is ${r.client_name.length} characters`); continue; }
       if (await insertFiling({ node: a.id, filing_type: "state lobbying", period: `NY ${r.reporting_year} ${r.reporting_period}`, amount,
         description: `New York client disclosure. ${bills.slice(0, 1200)}`, url: src, filing_id: `NY-${r.client_name}-${r.reporting_year}-${r.reporting_period}` }, "importer:state-lobbying")) added++;
     }

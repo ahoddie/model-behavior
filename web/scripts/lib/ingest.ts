@@ -229,11 +229,38 @@ export async function endRun(id: number, ok: boolean, added: number, message = "
   await pool.query(`UPDATE import_runs SET finished_at=now(), ok=$2, added=$3, message=$4 WHERE id=$1`, [id, ok, added, message.slice(0, 2000)]);
 }
 
+const STALL_MS = 60000;
+// Pass the body through, aborting the request if no chunk arrives for STALL_MS.
+function stallGuard(res: Response, ac: AbortController): Response {
+  if (!res.body) return res;
+  const reader = res.body.getReader();
+  const body = new ReadableStream<Uint8Array>({
+    async pull(ctrl) {
+      const t = setTimeout(() => ac.abort(new Error(`body stalled for ${STALL_MS / 1000} s`)), STALL_MS);
+      try { const { done, value } = await reader.read(); if (done) ctrl.close(); else ctrl.enqueue(value); }
+      catch (e) { ctrl.error(e); }
+      finally { clearTimeout(t); }
+    },
+    cancel(reason) { return reader.cancel(reason); },
+  });
+  const out = new Response(body, { status: res.status, statusText: res.statusText, headers: res.headers });
+  Object.defineProperty(out, "url", { value: res.url }); // fetchText reads the final URL after redirects
+  return out;
+}
 export async function politeFetch(url: string, init: RequestInit = {}, tries = 3): Promise<Response> {
   for (let i = 0; ; i++) {
     let res: Response;
     try {
-      res = await fetch(url, { ...init, headers: { "User-Agent": "ModelBehavior-local-research/0.1", ...(init.headers ?? {}) } });
+      // A server that accepts the connection and then goes quiet would otherwise hang a whole import run: news hung on
+      // GDELT for hours twice (2026-11-24 before the headers came, 2026-11-25 partway through the body). So a request
+      // that sends no headers for 60 seconds counts as a network failure, and a body that sends nothing for 60 seconds
+      // is aborted, which makes the caller's read throw. Large downloads (LDA, California bill files) keep sending, so
+      // they aren't cut off.
+      const ac = new AbortController();
+      const signal = init.signal ? AbortSignal.any([ac.signal, init.signal]) : ac.signal;
+      const timer = setTimeout(() => ac.abort(new Error("no response in 60 s")), STALL_MS);
+      try { res = stallGuard(await fetch(url, { ...init, signal, headers: { "User-Agent": "ModelBehavior-local-research/0.1", ...(init.headers ?? {}) } }), ac); }
+      finally { clearTimeout(timer); }
     } catch (e) {
       // Network failures (DNS, reset, timeout) retry, then come back as a 599 so one bad request can't end a whole import run.
       if (i < tries) { await new Promise((r) => setTimeout(r, 3000 * (i + 1))); continue; }
