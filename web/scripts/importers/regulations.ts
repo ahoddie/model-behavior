@@ -17,6 +17,9 @@ export async function run() {
     for (const o of orgs) {
       const u = `https://api.regulations.gov/v4/comments?filter[searchTerm]=${encodeURIComponent(`"${o.name}"`)}&filter[postedDate][ge]=${since}&page[size]=50&sort=-postedDate&api_key=${KEY}`;
       const res = await politeFetch(u);
+      // DEMO_KEY shares a small daily cap (about 10 calls a day per IP) with the FEC importer, so on DEMO_KEY the first 429
+      // ends the run instead of trying every org for hours.
+      if (res.status === 429 && KEY === "DEMO_KEY") { console.log(`regulations: DEMO_KEY limit reached after ${o.name}; ${added} added; stopping`); break; }
       if (!res.ok) { console.warn(`regulations ${res.status} ${o.name}`); await pause(); continue; }
       const j: any = await res.json();
       for (const c of j.data ?? []) {

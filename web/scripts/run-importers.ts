@@ -1,4 +1,4 @@
-// Run importers on demand: `pnpm import` (all) or `pnpm import lda fec`.
+// Run importers on demand: `pnpm import` (all), `pnpm import lda fec`, or `pnpm import --skip=fec`.
 // After importing: refresh search. (New URLs are no longer archived, since 2026-11-16.)
 import "./env.ts";
 import { pool } from "../src/lib/db.ts";
@@ -20,7 +20,9 @@ export async function runImporters(names: string[]) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const pick = process.argv.slice(2).filter((a) => !a.startsWith("--"));
-  const names = pick.length ? pick : [...IMPORTERS];
+  // --skip=fec,news leaves those out (daily.sh runs the FEC donor backfill as its own step, before the rest).
+  const skip = process.argv.slice(2).filter((a) => a.startsWith("--skip=")).flatMap((a) => a.slice(7).split(","));
+  const names = (pick.length ? pick : [...IMPORTERS]).filter((n) => !skip.includes(n));
   await runImporters(names);
   const { indexAll } = await import("./index-search.ts");
   await indexAll().catch((e) => console.warn("search index:", e.message));
