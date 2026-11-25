@@ -16,6 +16,7 @@ import { pipeline } from "node:stream/promises";
 import { q } from "../../src/lib/db.ts";
 import { insertFiling, insertLink, startRun, endRun, politeFetch, sleep } from "../lib/ingest.ts";
 
+const CA_SUFFIX = new Set(["AND", "ITS", "AFFILIATES", "AFFILIATED", "COM", "SERVICES", "AMERICA", "USA", "COMPUTER", "HOLDINGS"]);
 const CA_ZIP_URL = "https://campaignfinance.cdn.sos.ca.gov/dbwebexport.zip";
 const tokens = (s: string) => s.toUpperCase().replace(/[^A-Z0-9 ]/g, " ").split(/\s+/).filter((t) => t.length > 1 && !["INC", "LLC", "CORP", "CORPORATION", "THE", "CO", "LP", "PBC"].includes(t));
 
@@ -39,12 +40,16 @@ async function caImport(actors: { id: string; name: string; external_ids: any }[
     if (!header) { header = cols.map((c) => c.trim().toUpperCase()); continue; }
     const row = Object.fromEntries(header.map((h, i) => [h, cols[i]?.trim() ?? ""]));
     if (row.FORM_TYPE !== "F635") continue;
+    // The filer's name must start with the tracked name, followed only by a corporate suffix: "Apple Inc." and "Google LLC
+    // and its affiliates" match, but "California Apple Commission", "Town of Apple Valley", and unions that merely carry
+    // "AFL-CIO" in their names do not.
     const filer = tokens(`${row.FILER_NAML} ${row.FILER_NAMF}`);
-    const hit = want.find(({ t }) => t.length && t.every((x) => filer.includes(x)));
+    const hit = want.find(({ t }) => t.length && t.every((x, i) => filer[i] === x) && (filer.length === t.length || CA_SUFFIX.has(filer[t.length])));
     if (!hit) continue;
     const url = `https://cal-access.sos.ca.gov/PDFGen/pdfgen.prg?filingid=${row.FILING_ID}&amendid=${row.AMEND_ID}`;
     const from = row.FROM_DATE?.split(" ")[0], thru = row.THRU_DATE?.split(" ")[0];
-    const iso = (d?: string) => { const m = d?.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}` : null; };
+    // Some reports carry typo'd years (0212, 2033); a date outside the years CAL-ACCESS covers is dropped, not guessed.
+    const iso = (d?: string) => { const m = d?.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m && +m[3] >= 1999 && +m[3] <= new Date().getFullYear() + 1 ? `${m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}` : null; };
     const activity = row.LBY_ACTVTY ?? "";
     if (await insertFiling({ node: hit.a.id, filing_type: "state lobbying", period: `CA ${iso(from) ?? from} to ${iso(thru) ?? thru}`, filed_date: iso(row.RPT_DATE?.split(" ")[0]),
       description: `California Form 635 (lobbyist employer report). ${activity.slice(0, 1200)}`, url, filing_id: `CA-${row.FILING_ID}-${row.AMEND_ID}` }, "importer:state-lobbying")) added++;
