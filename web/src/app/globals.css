@@ -239,9 +239,9 @@ svg.map:active { cursor: grabbing; }
 
 /* The summary panel always opens at its full size: the height of the screen below the sticky toolbar. The map's stage
    grows to hold it when the drawing around a selection is short, so the panel is never squeezed to the drawing's height. */
-/* The summary panel fills its frame and scrolls inside it, never past it. On the map the frame is the stage, capped at the
+/* The summary panel is as tall as its content, up to its frame, and scrolls inside it past that, never past the frame. On the map the frame is the stage, capped at the
    screen below the sticky toolbar; the stage grows to that height when the drawing around a selection is short. */
-.nodepanel { position: absolute; top: 12px; right: 12px; width: 380px; height: min(calc(100% - 24px), calc(100dvh - var(--tools-h, 0px) - 24px)); overflow-y: auto; padding: var(--s4); z-index: 6; }
+.nodepanel { position: absolute; top: 12px; right: 12px; width: 380px; height: auto; max-height: min(calc(100% - 24px), calc(100dvh - var(--tools-h, 0px) - 24px)); overflow-y: auto; padding: var(--s4); z-index: 6; }
 .mapstage:has(> .nodepanel) { min-height: max(444px, calc(100dvh - var(--tools-h, 0px))); }
 .nodepanel .lede { font-size: 16px; line-height: 1.45; max-width: none; margin: 6px 0 0; }
 .nodepanel .profile-desc { font-size: 15px; line-height: 1.55; margin: 0 0 var(--s3); }
@@ -276,7 +276,7 @@ button.linkish:hover { text-decoration-color: var(--ink); }
 /* On Funding the panel sits inside the trace box, inset by the box's own padding on the top, right, and bottom, and its
    content scrolls inside it. The box clips the slide-in so the panel never crosses the border. */
 .flowwrap:has(> .nodepanel) { overflow: clip; }
-.flowwrap .nodepanel { top: var(--s3); bottom: var(--s3); right: var(--s3); height: auto; background: var(--paper); border: 1px solid var(--ink); }
+.flowwrap .nodepanel { top: var(--s3); right: var(--s3); height: auto; max-height: calc(100% - 2 * var(--s3)); background: var(--paper); border: 1px solid var(--ink); }
 .filters a[aria-current="page"] { color: var(--ink); font-weight: 700; text-decoration: underline; }
 
 /* Dropdowns (components/Select.tsx, NameSearch.tsx) */
