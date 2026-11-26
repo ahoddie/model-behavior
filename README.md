@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="web/public/brand/logo-reversed.png">
-    <img src="web/public/brand/logo.png" alt="Model Behavior" width="460">
-  </picture>
+  <img src="docs/images/banner.png" alt="Model Behavior" width="460">
 </p>
 
 <p align="center"><strong>AI policy influence, on the record.</strong></p>
@@ -19,55 +16,24 @@
   <a href="#run-it-yourself">Run it yourself</a>
 </p>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/network-dark.png">
-  <img src="docs/images/network-light.png" alt="The Network page: givers on the left, the PACs, think tanks, and groups they fund in the middle, and the elections, bills, and agencies the money lands on at the right.">
-</picture>
-
 ## What you can do
 
-Model Behavior is a guide for people new to AI policy. It traces how frontier labs, investors, tech leaders, foundations, and think tanks try to shape U.S. AI policy: the money they give, the lobbying they file, and the positions they take in public.
+Model Behavior is a guide to U.S. AI policy. It traces how frontier labs, investors, tech leaders, foundations, and think tanks try to shape U.S. AI policy: the money they give, the lobbying they file, and the positions they take in public.
 
 | | |
 |---|---|
 | **Network**<br>See the whole landscape as one map: who gives, who receives, and which bills, races, and agencies the money reaches. Scrub the timeline to watch it grow. | **Nodes**<br>Pick any giver and follow each dollar to where it lands, a step at a time. |
 | **Policy**<br>Every public AI bill in Congress and the states, sorted by where it stands, with who weighed in on each. Plus the 2026 races that drew the money. | **Statements**<br>Twelve open questions in AI policy, and who agrees or disagrees, each with a quote and a link to where they said it. |
 
-<table>
-  <tr>
-    <td width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/images/home-dark.png">
-        <img src="docs/images/home-light.png" alt="The homepage, with a box for each page under the title">
-      </picture>
-    </td>
-    <td width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/images/bill-dark.png">
-        <img src="docs/images/bill-light.png" alt="The SB 53 bill page: a plain summary, a fact sheet, and who supported or opposed it">
-      </picture>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/images/statements-dark.png">
-        <img src="docs/images/statements-light.png" alt="The Statements page: who agrees and who disagrees with blocking AI chip sales to China">
-      </picture>
-    </td>
-    <td width="50%" valign="top">
-      <h3>By the numbers</h3>
-      <p>As of November 26, 2026:</p>
-      <ul>
-        <li><strong>1,252</strong> people, groups, lawmakers, agencies, bills, and races</li>
-        <li><strong>11,977</strong> sourced connections between them</li>
-        <li><strong>6,110</strong> lobbying, tax, and campaign filings</li>
-        <li><strong>2,956</strong> AI bills, federal and state</li>
-        <li><strong>656</strong> public statements, word for word</li>
-      </ul>
-    </td>
-  </tr>
-</table>
+### By the numbers
+
+As of November 26, 2026:
+
+- **1,252** people, groups, lawmakers, agencies, bills, and races
+- **11,977** sourced connections between them
+- **6,110** lobbying, tax, and campaign filings
+- **2,956** AI bills, federal and state
+- **656** public statements, word for word
 
 ## Where the data comes from
 
@@ -146,6 +112,6 @@ web/scripts/        importers, the nightly job, and data tools
 ---
 
 <p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="web/public/brand/mark-reversed.svg"><img src="web/public/brand/mark.svg" alt="" width="28"></picture><br>
+  <img src="web/public/brand/icon.svg" alt="" width="32"><br>
   Made by Allegra Hoddie.
 </p>
