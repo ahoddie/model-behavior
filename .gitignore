@@ -6,6 +6,9 @@ data/raw/
 data/cache/
 *.log
 .env*.local
-.claude/settings.local.json
+.claude/
 data/pruned/
 
+# Notes for coding assistants; next dev writes this file
+AGENTS.md
+CLAUDE.md
