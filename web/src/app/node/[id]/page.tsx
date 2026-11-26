@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import { sourceName } from "@/lib/format";
-import Linked from "@/components/Linked";
 import Link from "@/components/Link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { getProfile, getTarget, getNodeSummary, getCoverage, getActorIssues, getActorLobbyingIssues, getMergedInto, approvedConflictFlags, allNodeIds, TARGET_TYPES } from "@/lib/data";

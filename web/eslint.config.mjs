@@ -7,6 +7,8 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Database rows and third-party API payloads are loosely typed on purpose.
   { rules: { "@typescript-eslint/no-explicit-any": "off" } },
+  // `const { key, ...rest } = row` is how a field is dropped from a row; the dropped name is not a mistake.
+  { rules: { "@typescript-eslint/no-unused-vars": ["warn", { ignoreRestSiblings: true }] } },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

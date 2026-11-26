@@ -39,7 +39,7 @@ for (const file of process.argv.slice(2)) {
   const keep: any[] = [], held: any[] = [...fixed], socials: any[] = [];
   for (const f of todo) {
     if (f.label === "Website") { // the homepage itself is the source; just confirm it loads
-      (await page(f.url)) ? keep.push(f) : held.push({ ...f, reason: "homepage did not load" });
+      if (await page(f.url)) keep.push(f); else held.push({ ...f, reason: "homepage did not load" });
       continue;
     }
     if (f.label === "Social") { socials.push(f); continue; }
@@ -56,8 +56,9 @@ for (const file of process.argv.slice(2)) {
   for (const f of socials) {
     const h = norm((f.text.match(/@([\w.-]+)/)?.[1] ?? f.url.replace(/\/$/, "").split("/").pop() ?? ""));
     const pages = await Promise.all(keep.filter((k) => k.node === f.node && k.url !== f.url).map((k) => page(k.url)));
-    h && pages.some((t) => t && (t.includes("x.com/" + h) || t.includes("twitter.com/" + h) || t.includes("@" + h) || t.includes("bsky.app/profile/" + h)))
-      ? keep.push(f) : held.push({ ...f, reason: "handle not found on another cited page for this actor" });
+    if (h && pages.some((t) => t && (t.includes("x.com/" + h) || t.includes("twitter.com/" + h) || t.includes("@" + h) || t.includes("bsky.app/profile/" + h))))
+      keep.push(f);
+    else held.push({ ...f, reason: "handle not found on another cited page for this actor" });
   }
   d.facts = keep; d.held = held;
   fs.writeFileSync(file, JSON.stringify(d, null, 2));

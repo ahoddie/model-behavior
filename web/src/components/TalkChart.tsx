@@ -73,7 +73,7 @@ export default function TalkChart({ issues, all, byActor }: { issues: TalkIssue[
           selected={open} onSelect={toggle} detail={detail} />
         {issue.topicId && <p className="more"><Link href={`/statements#${issue.topicId}`}>See all quotes</Link></p>}
       </> : <>
-        <p className="chart-sub">Click a bar for that actor's issues, or pick an issue.</p>
+        <p className="chart-sub">Click a bar for that actor&apos;s issues, or pick an issue.</p>
         <RankChart label="Actors with the most quoted statements on record" unit="statements"
           rows={actors.map((a) => ({ id: a.id, name: a.name, value: a.n, label: name(a) }))}
           selected={open} onSelect={toggle} detail={detail} />

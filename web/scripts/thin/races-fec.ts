@@ -22,7 +22,7 @@ for (const l of readFileSync(resolve(dir, "weball26.txt"), "utf8").split("\n")) 
   (byRace.get(key) ?? byRace.set(key, []).get(key)!).push({ id: c[0], name: nm(c[1]), party: c[4], ici: c[2], rec: Number(c[5]) || 0, disb: Number(c[7]) || 0, cash: Number(c[10]) || 0, end: c.find((x) => /^\d\d\/\d\d\/\d{4}$/.test(x)) ?? "" });
 }
 const races = await q<{ id: string }>(`SELECT id FROM nodes WHERE type='race'`);
-let added = 0, missing: string[] = [];
+let added = 0; const missing: string[] = [];
 const nice = (s: string) => { const m = s.match(/^(\d\d)\/(\d\d)\/(\d{4})$/); return m ? new Date(`${m[3]}-${m[1]}-${m[2]}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : null; };
 for (const { id } of races) {
   const cs = byRace.get(id);

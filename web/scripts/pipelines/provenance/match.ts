@@ -5,7 +5,7 @@
 // Only a source dated strictly before the bill version can be a source; a bill never matches its own earlier versions.
 import { q, pool, readText, EVAL_DIR } from "./lib.ts";
 import { isBoilerplate, sourceMentionsBill } from "./filters.ts";
-import { splitClauses, words, shingles, overlap, wc, excerpt, STOP } from "./clauses.ts";
+import { splitClauses, words, shingles, overlap, excerpt, STOP } from "./clauses.ts";
 import { llmJson } from "../../lib/llm.ts";
 import { enqueue } from "../../lib/review.ts";
 import { readFileSync, existsSync } from "node:fs";
@@ -45,7 +45,6 @@ if (has("--candidates")) {
     for (const s of c.sh) { let a = shIdx.get(s); if (!a) shIdx.set(s, (a = [])); a.push(i); }
     for (const w of c.terms.keys()) if ((df.get(w) ?? 0) <= 300 && !STOP.has(w)) { let a = tIdx.get(w); if (!a) tIdx.set(w, (a = [])); a.push(i); }
   });
-  const tdate = (c: Cl) => byId.get(c.text)!.text_date;
   const seenBillClause = new Map<string, Set<string>>();     // per tracked bill: clauses already handled in an earlier version
   await pool.query(`DELETE FROM prov_cands WHERE relation IS NULL`);   // keep model verdicts, rebuild the rest
   let kept = 0;

@@ -6,7 +6,6 @@ const base = (s: string) => strip(s).toLowerCase().replace(/[’'`.]/g, "").repl
 
 // ---------- organizations ----------
 const LEGAL = /\b(inc|incorporated|llc|l l c|lp|l p|llp|ltd|limited|corp|corporation|co|company|pbc|plc|gmbh|sa|ag|opco|holdings?|group|capital management|management|services|the|of america|usa|us|international|foundation inc|fund inc)\b/g;
-const GENERIC_ORG_SUFFIX = /\b(pac|political action committee|super pac|action fund|committee|campaign)\b/g;
 
 export function orgCore(name: string): string {
   let s = base(name.replace(/\([^)]*\)/g, " "));

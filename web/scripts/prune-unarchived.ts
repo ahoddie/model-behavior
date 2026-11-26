@@ -22,7 +22,7 @@ for (const [t, col] of [["nodes", "source_url"], ["links", "source_url"], ["feed
 
 const TABLES = [["links", "source_url"], ["feed_items", "url"], ["filings", "url"], ["facts", "url"], ["money_hops", "source_url"]] as const;
 const plan: { table: string; total: number; doomed: number }[] = [];
-for (const [t, col] of TABLES) {
+for (const [t] of TABLES) {
   const [r] = await q<{ total: string; doomed: string }>(`SELECT count(*) total, count(*) FILTER (WHERE coalesce(archive_url,'')='') doomed FROM ${t}`);
   plan.push({ table: t, total: Number(r.total), doomed: Number(r.doomed) });
 }

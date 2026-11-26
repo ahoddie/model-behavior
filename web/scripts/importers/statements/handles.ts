@@ -90,7 +90,7 @@ export async function discoverHandles(opts: { limit?: number; tierMin?: number; 
       await pool.query(`INSERT INTO stmt_handles (node_id, platform, handle, did, status, verified_via, verified_at, followers, note) VALUES ($1,'bluesky',$2,$3,$4,$5,$6,$7,$8)
         ON CONFLICT (node_id, platform, handle) DO UPDATE SET did=$3, status=$4, verified_via=$5, verified_at=$6, followers=$7, note=$8`,
         [id, prof.handle, prof.did, ok ? "verified" : "candidate", ok ? f.page : null, ok ? new Date() : null, prof.followersCount ?? null, ok ? null : `linked from ${f.page} but display name "${prof.displayName}" does not match`]);
-      ok ? verified++ : candidates++;
+      if (ok) verified++; else candidates++;
     } else if (f.platform === "mastodon") {
       const [user, host] = f.handle.split("@");
       const r = await politeFetch(`https://${host}/api/v1/accounts/lookup?acct=${encodeURIComponent(user)}`);

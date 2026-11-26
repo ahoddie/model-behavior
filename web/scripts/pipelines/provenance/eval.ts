@@ -4,7 +4,7 @@
 // The gold labels were written by a model (Claude), not by a person: see data/eval/provenance/README.md.
 import { isBoilerplate, sourceMentionsBill } from "./filters.ts";
 import { q, pool, EVAL_DIR, ensureDir } from "./lib.ts";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const args = process.argv.slice(2);

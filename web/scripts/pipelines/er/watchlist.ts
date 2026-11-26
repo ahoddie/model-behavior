@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { pool, q } from "../../../src/lib/db.ts";
 import { enqueue } from "../../lib/review.ts";
 import { loadStore } from "./profiles.ts";
-import { agencyKey, orgKey, parsePerson, compareNames } from "./normalize.ts";
+import { orgKey, parsePerson, compareNames } from "./normalize.ts";
 import { LOOSE, SPEC_ACTORS } from "./spec-actors.ts";
 
 const store = await loadStore(true);

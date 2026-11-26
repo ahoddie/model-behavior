@@ -21,7 +21,7 @@ for (const r of lm) {
   for (const [sys, val] of [["bioguide", l.id.bioguide], ["wikidata", l.id.wikidata]] as const) {
     if (!val) continue;
     const res = await addExternalId(r.node_id, sys, val, undefined, "er:legislators");
-    if (res === "added") sys === "bioguide" ? b++ : w++; else if (typeof res === "object") conflicts.push(`${sys}:${val} for ${r.node_id} already on ${res.conflict}`);
+    if (res === "added") { if (sys === "bioguide") b++; else w++; } else if (typeof res === "object") conflicts.push(`${sys}:${val} for ${r.node_id} already on ${res.conflict}`);
   }
 }
 console.log(`lawmaker nodes matched via FEC candidate ID: ${hit}; bioguide added ${b}; wikidata added ${w}; conflicts ${conflicts.length}`);

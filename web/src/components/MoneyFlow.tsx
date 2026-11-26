@@ -14,7 +14,9 @@ type Flow = { from_id: string; to_id: string; from_name: string; to_name: string
 
 export default function MoneyFlow({ start, flows }: { start: string; flows: Flow[] }) {
   const [selected, setSelected] = useState<string | null>(null);
-  useEffect(() => { setSelected(null); }, [start]);
+  // A new starting point clears the selection.
+  const [shownStart, setShownStart] = useState(start);
+  if (shownStart !== start) { setShownStart(start); setSelected(null); }
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setSelected(null); };
     window.addEventListener("keydown", esc);

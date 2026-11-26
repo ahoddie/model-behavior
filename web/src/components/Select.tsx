@@ -46,9 +46,8 @@ export default function Select({ label, options, value, defaultValue, onChange, 
   // so opening a dropdown at the end of a row never widens the page.
   const [flip, setFlip] = useState(false);
   useLayoutEffect(() => {
-    if (!open) { setFlip(false); return; }
-    const pop = root.current?.querySelector<HTMLElement>(".sel-pop");
-    if (pop && pop.getBoundingClientRect().right > document.documentElement.clientWidth - 8) setFlip(true);
+    const pop = open ? root.current?.querySelector<HTMLElement>(".sel-pop") : null;
+    setFlip(!!pop && pop.getBoundingClientRect().right > document.documentElement.clientWidth - 8);
   }, [open]);
 
   const show = () => { setFind(""); setActive(selIdx); setOpen(true); };

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -H 127.0.0.1",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "up": "./scripts/up.sh",
     "down": "colima stop",
     "db:up": "docker compose -f ../docker-compose.yml up -d",

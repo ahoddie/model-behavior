@@ -11,7 +11,7 @@ import { q } from "../../../../src/lib/db.ts";
 import { getCursor, setCursor } from "../cursors.ts";
 import { politeFetch, sleep } from "../../../lib/ingest.ts";
 import { htmlToText } from "../../../lib/text.ts";
-import { loadWatchlist, processDoc, type Doc } from "../pipeline.ts";
+import { loadWatchlist, processDoc } from "../pipeline.ts";
 import { FLOOR, emptyStats, type Stats } from "./bluesky.ts";
 import { allowedByRobots, fetchPage } from "../textutil.ts";
 

@@ -5,7 +5,7 @@ import "../../env.ts";
 import { pool, q } from "../../../src/lib/db.ts";
 import { detectServer } from "../../lib/llm.ts";
 import { gatePair, describeType1, findMoneyPaths, gateMoney, describeType2, gateReversal, describeType4, assertNeutral, severityFor, versionLabel,
-  type Pos, type Version, type Edge, type IE, type Sponsor, type Event, type Ev, type MoneyPath, type Prec } from "./core.ts";
+  type Pos, type Version, type Edge, type IE, type Sponsor, type Event, type Ev, type MoneyPath } from "./core.ts";
 import { judgePair } from "./judge.ts";
 import { store, DRY, type Cand } from "./store.ts";
 

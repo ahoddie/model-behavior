@@ -239,7 +239,6 @@ async function persist(edges: Map<string, Edge>, byId: Map<string, any>) {
   const network = (id: string) => TRACKED.find((t) => t.node === id)?.network ?? null;
   const archives = new Map((await q<{ url: string; archive_url: string }>(`SELECT url, archive_url FROM archives WHERE archive_url IS NOT NULL`)).map((r) => [r.url, r.archive_url]));
   let nChains = 0, nHops = 0;
-  const hopIdByEdge = new Map<string, number>();
   for (const p of uniq.values()) {
     const src = p[0].from ?? p[0].to, tgt = p[p.length - 1].to;
     const label = p.map((e) => (e.from ? byId.get(e.from)?.name : "Undisclosed donors")).concat(byId.get(tgt)?.name).join(" → ");

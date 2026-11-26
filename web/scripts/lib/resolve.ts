@@ -27,8 +27,6 @@ export const normName = (s: string) =>
     .replace(/\b(inc|llc|lp|llp|ltd|corp|corporation|co|company|pbc|the)\b/g, " ").replace(/\s+/g, " ").trim();
 
 const slug = (s: string) => normName(s).replace(/ /g, "-").slice(0, 40) || "x";
-const ORG_FAMILY: EntityType[] = ["lab", "investor", "think_tank", "pac", "nonprofit", "funder", "agency"];
-const family = (t: EntityType) => (ORG_FAMILY.includes(t) ? ORG_FAMILY : [t]);
 
 export function provisionalId(input: ResolveInput) {
   const key = JSON.stringify([input.type, normName(input.name), Object.entries(input.externalIds ?? {}).sort()]);

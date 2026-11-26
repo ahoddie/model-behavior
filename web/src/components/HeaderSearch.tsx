@@ -30,13 +30,14 @@ export default function HeaderSearch() {
   }, []);
   useEffect(() => { if (open) input.current?.focus(); }, [open]);
   useEffect(() => {
-    if (term.trim().length < 2) { setHits([]); return; }
+    if (term.trim().length < 2) return; // the change handler already cleared the results
     const ctl = new AbortController();
     const t = setTimeout(() => fetch(`/api/search?q=${encodeURIComponent(term)}`, { signal: ctl.signal }).then((r) => r.json()).then((h) => { setHits(h); setActive(-1); }).catch(() => {}), 120);
     return () => { clearTimeout(t); ctl.abort(); };
   }, [term]);
 
-  const go = (href: string) => { setOpen(false); setTerm(""); router.push(href); };
+  const type = (value: string) => { setTerm(value); if (value.trim().length < 2) setHits([]); };
+  const go = (href: string) => { setOpen(false); type(""); router.push(href); };
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") setOpen(false);
     else if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => Math.min(a + 1, hits.length)); }
@@ -52,7 +53,7 @@ export default function HeaderSearch() {
       <button type="button" className="iconbtn" aria-label="Search" aria-expanded={open} title="Search ( / )" onClick={() => setOpen(!open)}><SearchIcon /></button>
       {open && (
         <div className="hsearch-pop">
-          <input ref={input} type="search" value={term} onChange={(e) => setTerm(e.target.value)} onKeyDown={onKeyDown}
+          <input ref={input} type="search" value={term} onChange={(e) => type(e.target.value)} onKeyDown={onKeyDown}
             placeholder="Search people, groups, bills, quotes" aria-label="Search" role="combobox" aria-expanded={hits.length > 0} aria-controls="hsearch-list"
             aria-activedescendant={active >= 0 ? `hs-${active}` : undefined} />
           {term.trim().length >= 2 && (

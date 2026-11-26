@@ -198,7 +198,8 @@ for (const it of todo) {
   const hash = hashOf(it);
   const ai = it.ai.length > 0;
   if (!it.text) counts.no_text++;
-  let issues: string[] = [], via: Record<string, string> = {}, reason: string | null = null;
+  let issues: string[] = [], reason: string | null = null;
+  const via: Record<string, string> = {};
   if (ai) {
     counts.ai_related++;
     const sentences = aiSentences(it.ai);

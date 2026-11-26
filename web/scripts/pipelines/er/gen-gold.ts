@@ -39,7 +39,6 @@ async function main() {
   const real = people.filter((p) => roleOrg.has(p.id));
   const sample = (a: any[], n: number) => { const c = [...a]; const out: any[] = []; while (out.length < n && c.length) out.push(c.splice(Math.floor(rnd() * c.length), 1)[0]); return out; };
   const base = (n: string, emp: string, c: [string, string, string], occ = pick(OCC)) => ({ name: fec(n), hints: { employer: empVar(emp), occupation: occ, ...city(c) } });
-  let k = 0;
   for (const p of sample(real, 60)) {   // P1 same person, same employer, same city, differently formatted
     const c = pick(CITIES), emp = roleOrg.get(p.id)!;
     push({ a: { type: "person", ...base(p.name, emp, c) }, b: { type: "person", name: p.name, hints: { employer: empVar(emp), ...city(c), zip5: pick(CITIES.filter((x) => x[0] === c[0]))[2] } }, label: "same", kind: "person:same_employer_city", hard: false, origin: "synthetic", note: `${p.name}: two FEC-style records, employer and city agree` });
@@ -70,11 +69,11 @@ async function main() {
 
   // ---------- people: negatives ----------
   for (const nm of sample(COMMON, 30)) {   // N1 common name, different employer and city
-    let c1 = pick(CITIES), c2 = pick(CITIES); while (c2[0] === c1[0]) c2 = pick(CITIES);
+    const c1 = pick(CITIES); let c2 = pick(CITIES); while (c2[0] === c1[0]) c2 = pick(CITIES);
     push({ a: { type: "person", name: fec(nm), hints: { employer: pick(FICT_EMP), occupation: pick(OCC), ...city(c1) } }, b: { type: "person", name: nm, hints: { employer: pick(["TEXAS DEPARTMENT OF EDUCATION", "SELF-EMPLOYED", "KAISER PERMANENTE", "US ARMY", "WALMART"]), occupation: pick(OCC), ...city(c2) } }, label: "different", kind: "person:common_name", hard: true, origin: "synthetic", note: "common name, different employer and city" });
   }
   for (const nm of sample(COMMON, 20)) {   // N2 same name, same big employer, different city and occupation
-    let c1 = pick(CITIES), c2 = pick(CITIES); while (c2[0] === c1[0]) c2 = pick(CITIES);
+    const c1 = pick(CITIES); let c2 = pick(CITIES); while (c2[0] === c1[0]) c2 = pick(CITIES);
     const emp = pick(["GOOGLE", "MICROSOFT", "AMAZON", "META", "APPLE", "KAISER PERMANENTE"]);
     push({ a: { type: "person", name: nm, hints: { employer: emp, occupation: "ENGINEER", ...city(c1) } }, b: { type: "person", name: fec(nm), hints: { employer: empVar(emp), occupation: "ATTORNEY", ...city(c2) } }, label: "different", kind: "person:same_employer_only", hard: true, origin: "synthetic", note: "same name and large shared employer, different city and occupation: only one attribute" });
   }

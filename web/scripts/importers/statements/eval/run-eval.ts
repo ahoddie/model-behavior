@@ -14,7 +14,7 @@ import { REPO } from "../../../env.ts";
 import { analyzeUnit, PRIMARY_STANCE, type Unit } from "../pipeline.ts";
 import * as J from "../judge.ts";
 import { detectTargets } from "../taxonomy.ts";
-import { passesPrefilter, verifyQuote, words } from "../textutil.ts";
+import { passesPrefilter, words } from "../textutil.ts";
 
 type Gold = { id: string; source: string; person: string; person_id: string | null; url: string; date: string; text: string; attribution: "direct" | "quoted" | "paraphrased"; quote_span?: string | null;
   relevant: boolean; issue: string | null; target: string | null; stance: "support" | "oppose" | "mixed" | "none"; reg_attitude?: number | null; names?: string[]; speaker?: string | null; note?: string };

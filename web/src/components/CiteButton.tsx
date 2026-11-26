@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { fmtDate } from "@/lib/format";
 
 // "Cite" opens a small card with a ready-to-paste citation and a copy button.
@@ -18,14 +18,16 @@ function text(c: PageCite | QuoteCite, origin: string) {
   return `${c.speaker}, “${c.quote}” ${c.outlet || host(c.url)}${c.date ? `, ${c.date}` : ""}. ${c.url}${c.archive ? ` (archived: ${c.archive})` : ""}`;
 }
 
+// The page's origin, read on the client only (the server render leaves it blank).
+const noSubscribe = () => () => {};
+
 // plain: the word alone, a quiet text button (the item rail).
 export default function CiteButton(props: (PageCite | QuoteCite) & { small?: boolean; plain?: boolean }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [origin, setOrigin] = useState("");
+  const origin = useSyncExternalStore(noSubscribe, () => window.location.origin, () => "");
   const [side, setSide] = useState<"left" | "right">("left");
   const box = useRef<HTMLSpanElement>(null);
-  useEffect(() => { setOrigin(window.location.origin); }, []);
   useEffect(() => {
     if (!open) return;
     const off = (e: MouseEvent | KeyboardEvent) => {

@@ -23,11 +23,13 @@ function spokes(c: LinkCounts, max = MAX): Kind[] {
   return out;
 }
 
+// A small seeded random generator, so each thumbnail is drawn the same way every time.
+const seeded = (seed: number) => { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; };
+
 const seedOf = (id: string) => [...id].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 2147483646, 7) + 1;
 
 function Mini({ w, h, seed, links }: { w: number; h: number; seed: number; links: Kind[] }) {
-  let s = seed;
-  const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  const r = seeded(seed);
   const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.38;
   const pts = links.map((t, i) => {
     const a = (i / links.length) * 6.283 + r() * 0.5, rr = R * (0.7 + r() * 0.35);

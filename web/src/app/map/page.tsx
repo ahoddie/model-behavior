@@ -9,7 +9,7 @@ export default async function MapPage() {
     <>
       <div className="home-head">
         <h1>Who shapes AI policy?</h1>
-        <p>The Valley's labs, investors, and tech leaders on the left. PACs, think tanks, and filings in the middle, leading to the elections, bills, and rules they fund.</p>
+        <p>The Valley&apos;s labs, investors, and tech leaders on the left. PACs, think tanks, and filings in the middle, leading to the elections, bills, and rules they fund.</p>
       </div>
       {links.length === 0 ? (
         <p className="page">No sourced links are loaded yet. Run <code>pnpm load</code> after the research files land in <code>data/research</code>.</p>

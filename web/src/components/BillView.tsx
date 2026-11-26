@@ -136,7 +136,7 @@ export default async function BillView({ t }: { t: any }) {
   if (bill?.introduced_date) facts.push(["Introduced", longDate(bill.introduced_date)]);
   if (stage) facts.push(["Status", `${STAGE_LABEL[stage] ?? stage}${bill.stage_date ? `, ${longDate(bill.stage_date)}` : ""}`]);
   if (amended) facts.push(["Amended", amended === 1 ? "Once" : `${amended} times`]);
-  if (bill?.source_url) facts.push(["Full text", <a className="ext" href={bill.source_url} target="_blank" rel="noreferrer">{(() => { try { return new URL(bill.source_url).hostname.replace(/^www\./, ""); } catch { return "Official page"; } })()}</a>]);
+  if (bill?.source_url) facts.push(["Full text", <a key="text" className="ext" href={bill.source_url} target="_blank" rel="noreferrer">{(() => { try { return new URL(bill.source_url).hostname.replace(/^www\./, ""); } catch { return "Official page"; } })()}</a>]);
 
   // Trajectory
   const stops = bill ? billStops(bill) : [];

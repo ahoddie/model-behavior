@@ -3,7 +3,7 @@
 // California: leginfo is behind a Cloudflare challenge, so we read the Wayback copy of the bill page (latest version at capture time).
 // New York: legislation.nysenate.gov PDFs. Others: the legislature's own file where a stable URL exists.
 // Usage: tsx scripts/pipelines/provenance/fetch-bills.ts [--only node-id]
-import { q, getBytes, toText, firstDate, saveText, logGap, decodeEntities, sleep } from "./lib.ts";
+import { q, getBytes, toText, firstDate, saveText, logGap, sleep } from "./lib.ts";
 
 const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1] : null;
 const GOV_CODES: Record<string, string> = { ih: "Introduced in House", is: "Introduced in Senate", rh: "Reported in House", rs: "Reported in Senate", rfs: "Referred in Senate",

@@ -2,7 +2,7 @@
 // Back, named for where it goes. It returns to the page the reader came from on this site and says that page's name
 // ("Anthropic", "Policy"); opened from elsewhere (a shared link, a new tab), it goes to the item's list ("All bills").
 // Page names come from PageNames (in the layout), which notes each page's title as the reader moves through the site.
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { NAV } from "./MainNav";
 
@@ -37,11 +37,14 @@ function nameFor(path: string): string | null {
   } catch { return null; }
 }
 
+// History and the page names don't announce changes; reading them once per render is enough.
+const noSubscribe = () => () => {};
+
 export default function BackButton({ fallback, fallbackLabel, icon }: { fallback: string; fallbackLabel: string; icon?: boolean }) {
   const router = useRouter();
   // Server render and first paint say where the fallback goes; once the browser knows the history, the name follows it.
-  const [prev, setPrev] = useState<{ path: string; name: string | null } | null>(null);
-  useEffect(() => { const p = previousOnSite(); if (p) setPrev({ path: p, name: nameFor(p) }); }, []);
+  const path = useSyncExternalStore(noSubscribe, previousOnSite, () => null);
+  const prev = path ? { path, name: nameFor(path) } : null;
   const label = prev ? prev.name ?? "Back" : fallbackLabel;
   return (
     <a className={`back${icon ? " icon" : ""}`} href={fallback} aria-label={icon ? `Back to ${label === "Back" ? "the previous page" : label}` : undefined}

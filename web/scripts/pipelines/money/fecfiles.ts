@@ -2,7 +2,7 @@
 // robots.txt asks for a 10 s crawl delay, which we keep. Files are cached under data/cache/money/fec/ (gitignored).
 //   tsx fecfiles.ts            # file numbers from the DB's existing FEC links/filings + the cached FEC filings lists
 import "../../env.ts";
-import { mkdirSync, existsSync, writeFileSync, readdirSync } from "node:fs";
+import { mkdirSync, writeFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { REPO } from "../../env.ts";
 import { q, pool } from "../../../src/lib/db.ts";
