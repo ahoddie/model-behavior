@@ -1,40 +1,151 @@
-# Model Behavior
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="web/public/brand/logo-reversed.png">
+    <img src="web/public/brand/logo.png" alt="Model Behavior" width="460">
+  </picture>
+</p>
 
-A sourced, local-only map of how frontier labs, investors, tech leaders, and think tanks push on U.S. AI policy. Every node, line, quote, amount, and filing links to its source. Wayback copies stored before 2026-11-16 are kept and shown; new sources are no longer archived.
+<p align="center"><strong>AI policy influence, on the record.</strong></p>
 
-Nothing here is deployed. Everything runs on this machine and binds to `localhost`.
+<p align="center">
+  Who funds AI policy in the U.S., who they fund, what they lobby on, and what they say,<br>
+  drawn as one connected map, with every line linked to its source.
+</p>
 
-## Run it
+<p align="center">
+  <a href="#what-you-can-do">What you can do</a> ·
+  <a href="#where-the-data-comes-from">Where the data comes from</a> ·
+  <a href="#how-it-stays-current">How it stays current</a> ·
+  <a href="#run-it-yourself">Run it yourself</a>
+</p>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/network-dark.png">
+  <img src="docs/images/network-light.png" alt="The Network page: givers on the left, the PACs, think tanks, and groups they fund in the middle, and the elections, bills, and agencies the money lands on at the right.">
+</picture>
+
+## What you can do
+
+Model Behavior is a guide for people new to AI policy. It traces how frontier labs, investors, tech leaders, foundations, and think tanks try to shape U.S. AI policy: the money they give, the lobbying they file, and the positions they take in public.
+
+| | |
+|---|---|
+| **Network**<br>See the whole landscape as one map: who gives, who receives, and which bills, races, and agencies the money reaches. Scrub the timeline to watch it grow. | **Nodes**<br>Pick any giver and follow each dollar to where it lands, a step at a time. |
+| **Policy**<br>Every public AI bill in Congress and the states, sorted by where it stands, with who weighed in on each. Plus the 2026 races that drew the money. | **Statements**<br>Twelve open questions in AI policy, and who agrees or disagrees, each with a quote and a link to where they said it. |
+
+<table>
+  <tr>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/images/home-dark.png">
+        <img src="docs/images/home-light.png" alt="The homepage, with a box for each page under the title">
+      </picture>
+    </td>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/images/bill-dark.png">
+        <img src="docs/images/bill-light.png" alt="The SB 53 bill page: a plain summary, a fact sheet, and who supported or opposed it">
+      </picture>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/images/statements-dark.png">
+        <img src="docs/images/statements-light.png" alt="The Statements page: who agrees and who disagrees with blocking AI chip sales to China">
+      </picture>
+    </td>
+    <td width="50%" valign="top">
+      <h3>By the numbers</h3>
+      <p>As of November 26, 2026:</p>
+      <ul>
+        <li><strong>1,252</strong> people, groups, lawmakers, agencies, bills, and races</li>
+        <li><strong>11,977</strong> sourced connections between them</li>
+        <li><strong>6,110</strong> lobbying, tax, and campaign filings</li>
+        <li><strong>2,956</strong> AI bills, federal and state</li>
+        <li><strong>656</strong> public statements, word for word</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+## Where the data comes from
+
+Everything comes from public records, mostly primary sources. Each importer lives in [`web/scripts/importers/`](web/scripts/importers).
+
+| What | Source | Importer |
+|---|---|---|
+| Campaign contributions and PAC spending | [FEC](https://www.fec.gov/data/) (OpenFEC API) | `fec.ts` |
+| Federal lobbying reports (LD-1, LD-2) | [Senate Lobbying Disclosure](https://lda.gov/) | `lda.ts` |
+| Nonprofit tax returns (990s) | [ProPublica Nonprofit Explorer](https://projects.propublica.org/nonprofits/) | `propublica.ts` |
+| Public comments on federal rules | [Regulations.gov](https://www.regulations.gov/) | `regulations.ts` |
+| Federal bills, status, and votes | [GovInfo](https://www.govinfo.gov/bulkdata/BILLSTATUS) bulk data and [Congress.gov](https://www.congress.gov/) | `bills-federal.ts`, `congress.ts` |
+| California bills | [California LegInfo](https://leginfo.legislature.ca.gov/) public database exports | `bills-ca.ts` |
+| AI bills in every other state | [NCSL](https://www.ncsl.org/) AI legislation database and [Open States](https://open.pluralpolicy.com/) | `bills-ncsl.ts`, `bills-states.ts` |
+| State lobbying | [CAL-ACCESS](https://cal-access.sos.ca.gov/) (California) and [data.ny.gov](https://data.ny.gov/) (New York) | `state-lobbying.ts` |
+| What people and groups say | Their own blogs and newsrooms, Bluesky posts, and news coverage via [GDELT](https://www.gdeltproject.org/) | `blogs.ts`, `social.ts`, `news.ts` |
+| Boards, grants, and background | Hand research from primary sources, one file per topic in [`data/research/`](data/research) | `scripts/load-research.ts` |
+
+A few ground rules hold everywhere:
+
+- **No source, no row.** The database rejects any connection, filing, or quote without a link.
+- **Quotes are word for word,** 25 words at most, and checked against the page they link to.
+- **Money is credited to whoever gave it.** A founder's donation is theirs, not their company's.
+- **Machine work is marked.** Anything an importer finds waits as *pending* until it's reviewed, and a statement reading no person has checked yet says so on the page.
+- **Corrections are public.** Edits to published facts are logged on the site's Corrections page.
+
+## How it stays current
+
+Every night a job refreshes the record, step by step, and each step picks up where the last run stopped:
+
+1. **FEC backfill:** donors' contributions, resuming across nights within the free API limit
+2. **Importers:** lobbying, bills, rule comments, state lobbying, blogs, Bluesky, and news
+3. **Source check:** new links and quotes are fetched and verified
+4. **Labeling:** an open model ([Qwen 2.5 7B](https://ollama.com/library/qwen2.5)) sorts new statements by issue and side
+5. **Search:** the Postgres full-text index is rebuilt
+6. **Refresh:** the site's pages are rebuilt from the new record
+
+It runs from [`web/scripts/daily.sh`](web/scripts/daily.sh) on a local machine, or from [`.github/workflows/nightly.yml`](.github/workflows/nightly.yml) on GitHub Actions.
+
+## Run it yourself
+
+You need [Node](https://nodejs.org/), [pnpm](https://pnpm.io/), and Docker (or [Colima](https://github.com/abiosoft/colima)).
 
 ```bash
-colima start                      # or any Docker runtime
-docker compose up -d              # Postgres on 127.0.0.1:5433 (it also serves search)
+docker compose up -d              # Postgres on 127.0.0.1:5433
 cd web && pnpm install
-pnpm load                         # merge data/research/*.json into Postgres, write data/gaps.md
-pnpm index                        # fill the search table (run db/migrations/220_search_docs.sql once first)
-pnpm build && pnpm start           # fast local server at http://localhost:3010 (rebuild after code changes)
-pnpm dev                          # slower, but reloads as you edit code
+pnpm load                         # load data/research/ into Postgres
+pnpm index                        # build the search table
+pnpm build && pnpm start          # the site, at http://localhost:3010
 ```
 
-## Keep it current
+Use `pnpm dev` instead of `build` and `start` while editing code. Keys go in `web/.env.local` (see [`web/.env.example`](web/.env.example)). All are optional: importers that need a missing key skip themselves.
 
 | Command | What it does |
 |---|---|
-| `pnpm import` | Run every importer now (or `pnpm import lda fec` for some) |
-| `pnpm scheduler` | Stay running; importers 05:00, source audit 07:00 |
-| `pnpm firehose` | Follow tracked Bluesky accounts live through Jetstream |
-| `pnpm archive` | Not run since 2026-11-16: look up or create a Wayback copy of every source URL and store it on each row |
-| `pnpm sources` | Fetch every source; re-check dead links, then delete rows whose source is gone and has no Wayback copy (logged as corrections); send quotes not found on their page back to review |
+| `pnpm import` | Run every importer, or name some: `pnpm import lda fec` |
+| `pnpm sources` | Re-check every source link and quote |
+| `pnpm analyze` | Label new statements with the local model ([Ollama](https://ollama.com/)) |
+| `pnpm index` | Rebuild the search table |
 
-Importer-found items arrive as **pending**. Approve, edit or reject them at http://localhost:3010/review (it opens only on localhost).
+New items from importers wait at http://localhost:3010/review, which only opens on your own machine. To put the site online, follow [`docs/deploy.md`](docs/deploy.md).
 
-Keys go in `web/.env.local` (see `web/.env.example`). All are optional; importers that need a missing key skip themselves.
+## Where things are
 
-## Layout
+```
+db/                 Postgres schema and migrations
+data/research/      hand-researched records, one JSON file per topic
+data/sources/       feeds and accounts the importers follow
+docs/               the bill page spec, known data issues, and deploy steps
+web/src/app/        the site's pages (Next.js)
+web/src/components/ the map, charts, and page pieces
+web/src/lib/        database queries and formatting
+web/scripts/        importers, the nightly job, and data tools
+```
 
-- `db/schema.sql`: tables, the URL-required constraint, the 25-word quote check, changelog triggers
-- `data/research/`: research slices (one JSON file per slice; contract in `data/research/README.md`)
-- `data/gaps.md`: what we looked for and could not source
-- `data/sources/feeds.json`: company feeds and newsrooms polled by the blog importer
-- `web/scripts/importers/`: FEC, LDA, ProPublica 990s, Regulations.gov, Congress.gov, OpenStates, state lobbying, news (GDELT + Google News RSS), Bluesky/X, company blogs, Whisper transcripts
-- `web/src/`: the Next.js site (map, profiles, target pages, money flows, timeline, search, open data, review)
+---
+
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="web/public/brand/mark-reversed.svg"><img src="web/public/brand/mark.svg" alt="" width="28"></picture><br>
+  Made by Allegra Hoddie.
+</p>
