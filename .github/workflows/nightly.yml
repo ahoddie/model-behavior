@@ -11,7 +11,7 @@
 # A typical night is 2.5-3 hours, 5.5 at most. Free for a public repository (standard runners have no minute limit
 # there). A private repository gets 2,000 minutes a month, which this does not fit: see docs/deploy.md.
 #
-# DEMO_KEY (FEC, Regulations.gov) allows about 10 calls a day per IP, and runner IPs are shared, so both importers stop
+# Without DATA_GOV_KEY, DEMO_KEY (FEC, Regulations.gov) allows about 10 calls a day per IP, and runner IPs are shared, so both importers stop
 # cleanly at the first 429 and resume the next night from where they were. Their progress lives in data/cache, which
 # is carried from night to night with actions/cache.
 name: nightly
