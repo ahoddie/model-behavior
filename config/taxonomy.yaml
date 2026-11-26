@@ -1,0 +1,85 @@
+# Controlled vocabulary for issue tags and stance targets (data/CONTRACTS.md §3).
+# Issue ids match the issue_areas table, so the existing analysis keeps working. Pipelines may only emit ids listed here.
+# To add or change an entry, request a contract change from the orchestrator.
+version: 1
+
+issues:
+  - id: preemption
+    label: Federal preemption of state AI laws
+    statement: Federal law should override or pause state AI laws.
+  - id: frontier_rules
+    label: Frontier safety testing and reporting
+    statement: The most powerful AI models should face required safety testing, transparency or reporting.
+  - id: catastrophic_risk
+    label: Catastrophic risk
+    statement: Catastrophic risks from AI are serious and need action.
+  - id: liability
+    label: Liability
+    statement: AI developers should be legally liable for harms their systems cause.
+  - id: open_models
+    label: Open-weight models
+    statement: AI model weights should be free to release openly.
+  - id: china
+    label: Export controls, chips and China
+    statement: The US should take tougher measures against China on AI, such as stricter export controls.
+  - id: energy
+    label: Data centers and energy
+    statement: Data centers and power for AI should be built faster, with fewer limits.
+  - id: copyright
+    label: Copyright and training data
+    statement: Rights holders should be protected or paid when their work is used to train AI.
+  - id: kids_safety
+    label: Kids' online safety
+    statement: Children need new protections from AI chatbots and harmful content.
+  - id: federal_framework
+    label: Federal AI framework bills
+    statement: Congress should pass a comprehensive federal AI law.
+  - id: agency_rules
+    label: Agency rules and executive action
+    statement: Federal agencies should issue binding rules on AI.
+  - id: jobs
+    label: Jobs and workers
+    statement: The government should act to protect workers from AI's effects.
+  - id: national_security
+    label: National security and defense
+    statement: The government and military should use more AI.
+  - id: civil_rights
+    label: Civil rights and bias
+    statement: AI needs new protections against bias and discrimination.
+  - id: elections
+    label: Elections and deepfakes
+    statement: Deepfakes and AI in elections need new rules.
+  - id: innovation
+    label: Innovation and competitiveness
+    statement: Lighter AI rules are better for innovation and competition.
+
+# Named targets. `node` is the nodes.id the target links to (bill, rule or race). Stance targets must come from this list
+# or be null. `issues` says which issue ids the target is mainly about.
+targets:
+  - { id: us-ai-moratorium-2025, node: us-ai-moratorium-2025, label: "Federal state-AI-law moratorium (2025)", issues: [preemption] }
+  - { id: us-ndaa-fy2026-ai-preemption, node: us-ndaa-fy2026-ai-preemption, label: "NDAA FY2026 AI preemption push", issues: [preemption] }
+  - { id: eo-14365, node: eo-14365, label: "EO 14365: National Policy Framework for AI", issues: [preemption, agency_rules] }
+  - { id: wh-ai-legislative-framework-2026, node: wh-ai-legislative-framework-2026, label: "White House AI legislative framework (Mar 2026)", issues: [federal_framework, preemption] }
+  - { id: us-great-american-ai-act-draft-2026, node: us-great-american-ai-act-draft-2026, label: "Great American AI Act draft (2026)", issues: [federal_framework, preemption] }
+  - { id: ca-sb53-2025, node: ca-sb53-2025, label: "CA SB 53 (2025)", issues: [frontier_rules] }
+  - { id: ca-sb1047-2024, node: ca-sb1047-2024, label: "CA SB 1047 (2024)", issues: [frontier_rules, liability] }
+  - { id: ny-raise-act-2025, node: ny-raise-act-2025, label: "NY RAISE Act (2025)", issues: [frontier_rules] }
+  - { id: ca-sb813-2025, node: ca-sb813-2025, label: "CA SB 813 (2025-26)", issues: [frontier_rules] }
+  - { id: us-119-hr9925, node: us-119-hr9925, label: "FRONTIER Act (H.R. 9925)", issues: [frontier_rules, federal_framework] }
+  - { id: il-sb3444-2026, node: il-sb3444-2026, label: "Illinois SB 3444 (liability safe harbor)", issues: [liability] }
+  - { id: us-119-s1792, node: us-119-s1792, label: "AI Whistleblower Protection Act (S. 1792)", issues: [frontier_rules] }
+  - { id: rule-bis-ai-diffusion, node: rule-bis-ai-diffusion, label: "BIS Framework for AI Diffusion", issues: [china, agency_rules] }
+  - { id: us-119-hr3447, node: us-119-hr3447, label: "Chip Security Act (H.R. 3447)", issues: [china] }
+  - { id: us-119-s1705, node: us-119-s1705, label: "Chip Security Act (S. 1705)", issues: [china] }
+  - { id: us-119-s3150, node: us-119-s3150, label: "GAIN AI Act (S. 3150)", issues: [china] }
+  - { id: us-119-hr5885, node: us-119-hr5885, label: "GAIN AI Act (H.R. 5885)", issues: [china] }
+  - { id: us-119-s146, node: us-119-s146, label: "TAKE IT DOWN Act (S. 146)", issues: [kids_safety, elections] }
+  - { id: ca-sb1119-2026, node: ca-sb1119-2026, label: "CA SB 1119 (2026): companion chatbots", issues: [kids_safety] }
+  - { id: ca-ab2023-2026, node: ca-ab2023-2026, label: "CA AB 2023 (2026): companion chatbots", issues: [kids_safety] }
+  - { id: us-119-s1367, node: us-119-s1367, label: "NO FAKES Act (S. 1367)", issues: [copyright, elections] }
+  - { id: us-119-s2750, node: us-119-s2750, label: "SANDBOX Act (S. 2750)", issues: [innovation, federal_framework] }
+  - { id: ostp-ai-action-plan-rfi-2025, node: ostp-ai-action-plan-rfi-2025, label: "OSTP AI Action Plan RFI (2025)", issues: [agency_rules] }
+  - { id: ai-action-plan-2025, node: ai-action-plan-2025, label: "America's AI Action Plan (2025)", issues: [agency_rules, innovation, energy] }
+  - { id: eo-14110, node: eo-14110, label: "Executive Order 14110", issues: [agency_rules, frontier_rules] }
+  - { id: co-sb24-205-2024, node: co-sb24-205-2024, label: "Colorado AI Act (SB24-205)", issues: [civil_rights] }
+  - { id: ca-ab1018-2025, node: ca-ab1018-2025, label: "CA AB 1018 (2025-26): automated decision systems", issues: [civil_rights] }

@@ -1,7 +1,7 @@
 // Personal blogs, Substacks and company newsrooms.
 //  - Verified blog/Substack feeds of watchlist people (stmt_handles platform blog_rss | substack): the post is the person's own words (direct).
 //    Substack backfill walks the site's public archive API back to 2023-01-01.
-//  - Company newsrooms (data/sources/feeds.json): the post is the company's text, so only people the post names are looked at
+//  - Company newsrooms (config/feeds.json): the post is the company's text, so only people the post names are looked at
 //    (their quoted words become `quoted`, attributed statements `paraphrased`). Bylined posts by a watchlist person are direct.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -65,7 +65,7 @@ const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
 
 export async function pollNewsrooms(opts: { days?: number } = {}): Promise<Stats> {
   const st = emptyStats();
-  const cfg = JSON.parse(readFileSync(join(REPO, "data/sources/feeds.json"), "utf8"));
+  const cfg = JSON.parse(readFileSync(join(REPO, "config/feeds.json"), "utf8"));
   const people = await loadWatchlist();
   const cutoff = new Date(Date.now() - (opts.days ?? 14) * 864e5).toISOString().slice(0, 10);
   const urls: { url: string; date: string }[] = [];

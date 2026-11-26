@@ -1,4 +1,4 @@
-// Reads data/taxonomy.yaml (CONTRACTS.md section 3) and adds deterministic target detection.
+// Reads config/taxonomy.yaml (CONTRACTS.md section 3) and adds deterministic target detection.
 // The yaml is small and regular, so this is a line parser rather than a dependency (a `yaml` dependency would be a contract change).
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -8,7 +8,7 @@ export type Issue = { id: string; label: string; statement: string };
 export type Target = { id: string; node: string; label: string; issues: string[] };
 
 function load() {
-  const lines = readFileSync(join(REPO, "data/taxonomy.yaml"), "utf8").split("\n");
+  const lines = readFileSync(join(REPO, "config/taxonomy.yaml"), "utf8").split("\n");
   const issues: Issue[] = [], targets: Target[] = [];
   let section = "", cur: Partial<Issue> | null = null;
   const flush = () => { if (cur?.id && cur.label && cur.statement) issues.push(cur as Issue); cur = null; };

@@ -151,7 +151,7 @@ Problems in the shared data (nodes, facts, links) found while writing profile te
 - More duplicate agency nodes: white-house / agency-executive-office-of-the-president-eop. **Fixed:** merged (36).
 
 ## Bills (public bill records)
-- us-ndaa-ai-preemption-2025 / us-ndaa-fy2026-ai-preemption: two nodes for the same FY2026 NDAA preemption push; both carry stage failed from data/bills/curated-stages.json. **Fixed:** merged (41).
+- us-ndaa-ai-preemption-2025 / us-ndaa-fy2026-ai-preemption: two nodes for the same FY2026 NDAA preemption push; both carry stage failed from config/bill-stages.json. **Fixed:** merged (41).
 - AI relevance for federal and California bills is matched on the title (and, for California, NCSL's AI list), so bills with generic titles, such as omnibus or appropriations bills carrying AI provisions, are only included when they're on the map. CRS legislative subjects in GovInfo matched no bills. **Fixed (no change):** a coverage note, not an error.
 - State bills other than California's come from NCSL's AI database, which starts in 2025. State bills from 2023–24 are only present when they're on the map (for example, the Colorado AI Act, SB24-205, has a research stage). **Fixed (no change):** a coverage note, not an error.
 - NCSL counts some loosely related bills as AI legislation (budget bills with an AI line, STEM councils); they're kept, with ai_match 'ncsl'. **Fixed (no change):** a coverage note, not an error.

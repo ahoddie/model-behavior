@@ -1,0 +1,17 @@
+{
+  "_note": "Company blogs and newsrooms polled by scripts/importers/blogs.ts. Each URL was checked to load on 2026-11-14. Sites that block automated requests (xAI, Microsoft On the Issues) are listed in data/gaps.md instead.",
+  "rss": [
+    { "node": "openai", "url": "https://openai.com/news/rss.xml" },
+    { "node": "google", "url": "https://blog.google/rss/" },
+    { "node": "meta", "url": "https://about.fb.com/feed/" },
+    { "node": "nvidia", "url": "https://blogs.nvidia.com/feed/" },
+    { "node": "amazon", "url": "https://www.aboutamazon.com/news/rss" }
+  ],
+  "index": [
+    { "node": "anthropic", "url": "https://www.anthropic.com/news", "pattern": "^/news/[a-z0-9-]+$" },
+    { "node": "mistral", "url": "https://mistral.ai/news", "pattern": "^/news/[a-z0-9-]+$" },
+    { "node": "thinking-machines", "url": "https://thinkingmachines.ai/blog/", "pattern": "^/blog/[a-z0-9-]+/?$" }
+  ],
+  "youtube": [],
+  "podcasts": []
+}

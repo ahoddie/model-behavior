@@ -1,5 +1,5 @@
-// Apply data/feed_targets.tsv: what each approved statement is about, as read from its own source page.
-// Sets feed_items.target_id (+ stance_target when the target is in data/taxonomy.yaml) or, when the bill, rule or
+// Apply config/feed_targets.tsv: what each approved statement is about, as read from its own source page.
+// Sets feed_items.target_id (+ stance_target when the target is in config/taxonomy.yaml) or, when the bill, rule or
 // action has no node yet, feed_items.context. New targets with an official page go to the review queue as kind "node".
 // Only target_id, stance_target and context are written; no rows are created or deleted in feed_items or nodes.
 import { readFileSync } from "node:fs";
@@ -8,8 +8,8 @@ import { enqueue } from "../../lib/review.ts";
 import { setActor } from "../../lib/ingest.ts";
 
 const root = new URL("../../../../", import.meta.url).pathname;
-const taxonomyTargets = new Set([...readFileSync(`${root}data/taxonomy.yaml`, "utf8").matchAll(/^\s*- \{ id: ([\w-]+), node:/gm)].map((m) => m[1]));
-const rows = readFileSync(`${root}data/feed_targets.tsv`, "utf8").trim().split("\n").slice(1).map((l) => {
+const taxonomyTargets = new Set([...readFileSync(`${root}config/taxonomy.yaml`, "utf8").matchAll(/^\s*- \{ id: ([\w-]+), node:/gm)].map((m) => m[1]));
+const rows = readFileSync(`${root}config/feed_targets.tsv`, "utf8").trim().split("\n").slice(1).map((l) => {
   const [id, target, context, basis] = l.split("\t");
   return { id: Number(id), target: target || null, context: context || null, basis };
 });

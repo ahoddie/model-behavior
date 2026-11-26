@@ -12,3 +12,6 @@ data/pruned/
 # Notes for coding assistants; next dev writes this file
 AGENTS.md
 CLAUDE.md
+
+# The record lives in Postgres (local or Neon). Research files, exports, and caches stay on your machine.
+data/

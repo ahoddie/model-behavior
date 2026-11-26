@@ -1,0 +1,11 @@
+{
+  "_note": "Stages for bills on the map that no official feed covers yet (drafts, provisions, ballot measures, states without a feed). Only outcomes the node's own record states. A bill an official source later matches drops its row here automatically: the official record wins. Fields: jurisdiction, session, identifier, stage, stage_date (optional), source_url (optional; defaults to the node's).",
+  "co-sb24-205-2024": { "jurisdiction": "co", "session": "2024A", "identifier": "SB24-205", "stage": "enacted", "stage_date": "2024-05-17" },
+  "co-sb25b-004-2025": { "jurisdiction": "co", "session": "2025B", "identifier": "SB25B-004", "stage": "enacted" },
+  "il-sb315-2026": { "jurisdiction": "il", "session": "104th", "identifier": "SB 315", "stage": "enacted" },
+  "ny-raise-act-2025": { "jurisdiction": "ny", "session": "2025-2026", "identifier": "S6953B / A6453B", "stage": "enacted", "stage_date": "2025-12-19" },
+  "parents-kids-safe-ai-act": { "jurisdiction": "ca", "session": "2026 ballot", "identifier": "Ballot initiative", "stage": "failed", "stage_date": "2026-08-21" },
+  "us-ai-moratorium-2025": { "jurisdiction": "us", "session": "119", "identifier": "H.R. 1 provision", "stage": "failed", "stage_date": "2025-07-01" },
+  "us-great-american-ai-act-draft-2026": { "jurisdiction": "us", "session": "119", "identifier": "Discussion draft", "stage": "proposed" },
+  "us-ndaa-fy2026-ai-preemption": { "jurisdiction": "us", "session": "119", "identifier": "FY2026 NDAA provision (Nov 2025)", "stage": "failed" }
+}

@@ -68,7 +68,7 @@ const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 /**
  * Point each bill node on the map at its public record. Federal and LegInfo ids are exact; a state node id like
  * il-sb3444-2026 matches that state's record whose identifier is SB 3444 in a session covering 2026. Nodes no feed
- * covers get the research stage in data/bills/curated-stages.json, and only while no official record matches.
+ * covers get the research stage in config/bill-stages.json, and only while no official record matches.
  */
 export async function linkCuratedBills(): Promise<number> {
   const { readFileSync } = await import("node:fs");
@@ -91,7 +91,7 @@ export async function linkCuratedBills(): Promise<number> {
     await pool.query(`UPDATE bills SET node_id=$2, ai_match='curated' WHERE id=$1`, [hit.id, n.id]);
     linked++;
   }
-  const curated = JSON.parse(readFileSync(`${REPO}/data/bills/curated-stages.json`, "utf8"));
+  const curated = JSON.parse(readFileSync(`${REPO}/config/bill-stages.json`, "utf8"));
   const official = new Set((await pool.query(`SELECT node_id FROM bills WHERE node_id IS NOT NULL AND source <> 'research'`)).rows.map((r: any) => r.node_id));
   await pool.query(`DELETE FROM bills WHERE source='research' AND (node_id IS NULL OR node_id = ANY($1))`, [[...official]]);
   for (const n of nodes) {

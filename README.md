@@ -37,7 +37,7 @@ As of November 26, 2026:
 
 ## Where the data comes from
 
-Everything comes from public records, mostly primary sources. Each importer lives in [`web/scripts/importers/`](web/scripts/importers).
+Everything comes from public records, mostly primary sources. This repository holds the code; the record itself lives in Postgres, and the site reads only from there. Each importer lives in [`web/scripts/importers/`](web/scripts/importers).
 
 | What | Source | Importer |
 |---|---|---|
@@ -50,7 +50,7 @@ Everything comes from public records, mostly primary sources. Each importer live
 | AI bills in every other state | [NCSL](https://www.ncsl.org/) AI legislation database and [Open States](https://open.pluralpolicy.com/) | `bills-ncsl.ts`, `bills-states.ts` |
 | State lobbying | [CAL-ACCESS](https://cal-access.sos.ca.gov/) (California) and [data.ny.gov](https://data.ny.gov/) (New York) | `state-lobbying.ts` |
 | What people and groups say | Their own blogs and newsrooms, Bluesky posts, and news coverage via [GDELT](https://www.gdeltproject.org/) | `blogs.ts`, `social.ts`, `news.ts` |
-| Boards, grants, and background | Hand research from primary sources, one file per topic in [`data/research/`](data/research) | `scripts/load-research.ts` |
+| Boards, grants, and background | Hand research from primary sources | entered by hand |
 
 A few ground rules hold everywhere:
 
@@ -80,7 +80,7 @@ You need [Node](https://nodejs.org/), [pnpm](https://pnpm.io/), and Docker (or [
 ```bash
 docker compose up -d              # Postgres on 127.0.0.1:5433
 cd web && pnpm install
-pnpm load                         # load data/research/ into Postgres
+pnpm import                       # fill the database from the public sources (slow the first time)
 pnpm index                        # build the search table
 pnpm build && pnpm start          # the site, at http://localhost:3010
 ```
@@ -100,8 +100,7 @@ New items from importers wait at http://localhost:3010/review, which only opens 
 
 ```
 db/                 Postgres schema and migrations
-data/research/      hand-researched records, one JSON file per topic
-data/sources/       feeds and accounts the importers follow
+config/             feeds the importers follow, the issue list, and hand-set bill stages
 docs/               known data issues and deploy steps
 web/src/app/        the site's pages (Next.js)
 web/src/components/ the map, charts, and page pieces

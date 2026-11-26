@@ -1,4 +1,4 @@
-// Company blogs and newsrooms (data/sources/feeds.json): RSS feeds, plus index pages for sites without RSS.
+// Company blogs and newsrooms (config/feeds.json): RSS feeds, plus index pages for sites without RSS.
 // Only posts that touch AI policy are kept; statements are attributed to the publishing company's node.
 import { REPO } from "../env.ts";
 import { readFileSync } from "node:fs";
@@ -8,7 +8,7 @@ import { q } from "../../src/lib/db.ts";
 import { nodeExists, startRun, endRun, politeFetch, sleep } from "../lib/ingest.ts";
 import { fetchText, ingestDocument, POLICY_TERMS } from "../lib/text.ts";
 
-const cfg = JSON.parse(readFileSync(join(REPO, "data/sources/feeds.json"), "utf8"));
+const cfg = JSON.parse(readFileSync(join(REPO, "config/feeds.json"), "utf8"));
 const parser = new Parser();
 const sinceDays = Number(process.argv.find((a) => a.startsWith("--days="))?.slice(7) ?? 14);
 const cutoff = Date.now() - sinceDays * 864e5;

@@ -1,5 +1,5 @@
 // Podcast and YouTube transcripts via Whisper.
-// Sources: data/sources/feeds.json → "youtube": [{ node?, channel_id }] and "podcasts": [{ node?, url }] (podcast RSS).
+// Sources: config/feeds.json → "youtube": [{ node?, channel_id }] and "podcasts": [{ node?, url }] (podcast RSS).
 // Needs `yt-dlp` and a Whisper CLI (`whisper` from openai-whisper, or whisper.cpp's `whisper-cli` with WHISPER_MODEL set).
 // Each new episode is downloaded as audio to data/raw/audio, transcribed to JSON segments, and scanned for
 // statements by tracked people. Quotes link to the episode at the timestamp where they were said.
@@ -12,7 +12,7 @@ import { q } from "../../src/lib/db.ts";
 import { startRun, endRun } from "../lib/ingest.ts";
 import { ingestDocument, POLICY_TERMS } from "../lib/text.ts";
 
-const cfg = JSON.parse(readFileSync(join(REPO, "data/sources/feeds.json"), "utf8"));
+const cfg = JSON.parse(readFileSync(join(REPO, "config/feeds.json"), "utf8"));
 const dir = join(REPO, "data/raw/audio");
 const has = (bin: string) => spawnSync("which", [bin]).status === 0;
 const parser = new Parser();
@@ -39,7 +39,7 @@ export async function run() {
     console.log("transcripts: needs yt-dlp and whisper (pip install openai-whisper, brew install yt-dlp ffmpeg); skipping");
     return 0;
   }
-  if (!cfg.youtube.length && !cfg.podcasts.length) { console.log("transcripts: no channels or podcasts configured in data/sources/feeds.json"); return 0; }
+  if (!cfg.youtube.length && !cfg.podcasts.length) { console.log("transcripts: no channels or podcasts configured in config/feeds.json"); return 0; }
   mkdirSync(dir, { recursive: true });
   const runId = await startRun("transcripts");
   let added = 0;
