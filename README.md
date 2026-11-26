@@ -102,7 +102,7 @@ New items from importers wait at http://localhost:3010/review, which only opens 
 db/                 Postgres schema and migrations
 data/research/      hand-researched records, one JSON file per topic
 data/sources/       feeds and accounts the importers follow
-docs/               the bill page spec, known data issues, and deploy steps
+docs/               known data issues and deploy steps
 web/src/app/        the site's pages (Next.js)
 web/src/components/ the map, charts, and page pieces
 web/src/lib/        database queries and formatting

@@ -14,7 +14,7 @@ const SIDES = [["support", "For"], ["support_if_amended", "For, if amended"], ["
 
 export default function TargetView({ t, coverage, text }: { t: any; coverage: Coverage; text: ProfileText | null }) {
   const n = t.node;
-  // Bills have their own page (docs/bill-page-spec.md).
+  // Bills have their own page (BillView).
   if (n.type === "bill") return <BillView t={t} />;
   const sideOf = (s: string | null) => (s === "support" || s === "oppose" || s === "support_if_amended" ? s : "");
   const isRace = n.type === "race";

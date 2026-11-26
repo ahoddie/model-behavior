@@ -1,4 +1,4 @@
-// A bill's page, as docs/bill-page-spec.md lays it out (the "fact sheet"): a sticky rail, then Overview (number, title,
+// A bill's page, laid out as a fact sheet: a sticky rail, then Overview (number, title,
 // status stamp, headline, description, facts), Trajectory, Positions (groups by side, as cards), People, and one numbered
 // list of sources. The small grey numbers in the page are its only citation marks. A block with no data is left out.
 import Link from "@/components/Link";

@@ -1,6 +1,7 @@
 #!/bin/zsh
 # Daily refresh, run on this Mac by launchd (no GitHub Actions needed). Each step logs and continues if one fails.
-# Install: see PLAN.md, "Keeping it updated".
+# Install: a LaunchAgent in ~/Library/LaunchAgents that runs this script with a daily StartCalendarInterval, loaded with
+# `launchctl load`. launchd runs a missed job when the Mac wakes.
 set -u
 cd "$(dirname "$0")/.."
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
