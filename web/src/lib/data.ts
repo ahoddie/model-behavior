@@ -478,19 +478,6 @@ export async function getLobbyingByIssue(): Promise<Record<string, { filings: nu
   return Object.fromEntries(rows.map((r: any) => [r.issue, { filings: r.filings, actors: r.actors }]));
 }
 
-// ---- Said and did: reviewed conflict flags (Workstream C). Only flags a reviewer approved. ------------------------------
-export type FlagEvidence = { label: string; url: string; archive_url: string | null; date: string | null };
-export type ApprovedFlag = { id: number; type: "statement_vs_action" | "statement_vs_money" | "commitment_weakened" | "reversal_near_event";
-  target_id: string | null; target_name: string | null; severity: number; description: string; said: FlagEvidence[]; did: FlagEvidence[] };
-export async function approvedConflictFlags(id: string): Promise<ApprovedFlag[]> {
-  "use cache";
-  cached();
-  return q<ApprovedFlag>(`
-    SELECT f.id, f.type, f.target_id, t.name AS target_name, f.severity, f.description, f.said_evidence AS said, f.did_evidence AS did
-    FROM conflict_flags f LEFT JOIN nodes t ON t.id = f.target_id
-    WHERE f.node_id = $1 AND f.status = 'approved' ORDER BY f.severity DESC, f.created_at DESC`, [id]);
-}
-
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Workstream D (money chains). Reads money_chains / money_hops, built by web/scripts/pipelines/money/.
 // One row per distinct pair of parties. Amounts are pool-level totals of the filed lines between the pair: a chain does not trace one

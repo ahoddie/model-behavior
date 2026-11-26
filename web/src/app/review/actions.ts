@@ -80,7 +80,7 @@ export async function runImporter(form: FormData) {
   await cleared();
 }
 
-// Shared pipeline queue (CONTRACTS.md §5). The referenced feed item or conflict flag follows the decision.
+// Shared pipeline queue (CONTRACTS.md §5). A referenced feed item follows the decision.
 export async function decideQueued(form: FormData) {
   await localOnly();
   const id = Number(form.get("id"));
@@ -89,7 +89,7 @@ export async function decideQueued(form: FormData) {
   await withActor(async (c) => {
     const r = await c.query(`UPDATE review_queue SET status=$2, reviewer_note=$3, decided_at=now() WHERE id=$1 AND status='pending' RETURNING ref_table, ref_id`, [id, status, note]);
     const row = r.rows[0];
-    if (row?.ref_table === "feed_items" || row?.ref_table === "conflict_flags") await c.query(`UPDATE ${row.ref_table} SET status=$2 WHERE id=$1`, [row.ref_id, status]);
+    if (row?.ref_table === "feed_items") await c.query(`UPDATE ${row.ref_table} SET status=$2 WHERE id=$1`, [row.ref_id, status]);
   });
   await cleared();
   revalidatePath("/review");

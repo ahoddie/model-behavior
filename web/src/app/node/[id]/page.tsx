@@ -2,8 +2,7 @@ import { Suspense } from "react";
 import { sourceName } from "@/lib/format";
 import Link from "@/components/Link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { getProfile, getTarget, getNodeSummary, getCoverage, getActorIssues, getActorLobbyingIssues, getMergedInto, approvedConflictFlags, allNodeIds, TARGET_TYPES } from "@/lib/data";
-import ConflictFlags from "@/components/ConflictFlags";
+import { getProfile, getTarget, getNodeSummary, getCoverage, getActorIssues, getActorLobbyingIssues, getMergedInto, allNodeIds, TARGET_TYPES } from "@/lib/data";
 import StanceBar from "@/components/StanceBar";
 import CoverageLine from "@/components/CoverageLine";
 import { fmtMoney, fmtDate, TYPE_LABEL, clusterName } from "@/lib/format";
@@ -16,7 +15,7 @@ import Src from "@/components/Src";
 import KnownRecord from "@/components/KnownRecord";
 import ProfileTabs, { TabLink } from "@/components/ProfileTabs";
 
-const TABS = [["record", "Record"], ["feed", "All statements"], ["positions", "Positions table"], ["money", "Filings"], ["people", "People"], ["connections", "Connections"], ["flags", "Said and did"]] as const;
+const TABS = [["record", "Record"], ["feed", "All statements"], ["positions", "Positions table"], ["money", "Filings"], ["people", "People"], ["connections", "Connections"]] as const;
 
 // Positions read as plain sentences in the past tense, dated, so an old stance never reads as a current one.
 const STANCE_VERB: Record<string, string> = { support: "Supported", oppose: "Opposed", support_if_amended: "Supported, if amended,", neutral: "Took a neutral position on" };
@@ -35,7 +34,7 @@ export async function generateStaticParams() {
   return (await allNodeIds()).slice(0, 24).map((id) => ({ id }));
 }
 
-const loadActor = (id: string) => Promise.all([getProfile(id), getActorIssues(id), getActorLobbyingIssues(id), approvedConflictFlags(id)]);
+const loadActor = (id: string) => Promise.all([getProfile(id), getActorIssues(id), getActorLobbyingIssues(id)]);
 
 // Only the statements filter waits for the URL; tabs switch in the browser (components/ProfileTabs). Awaited here, outside the boundary, the profile's cached reads are stored
 // with the prebuilt page; the same calls inside the boundary are answered from that copy, so no tab or filter runs a query.
@@ -53,9 +52,9 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
     </>;
   }
 
-  const [[pr, , lobbyIssues, flags], coverage, text] = await Promise.all([loadActor(id), getCoverage(id), getProfileText(id)]);
+  const [[pr, , lobbyIssues], coverage, text] = await Promise.all([loadActor(id), getCoverage(id), getProfileText(id)]);
   const p = pr!;
-  const noRecords = !p.keyFacts.length && !p.facts.length && !p.feed.length && !p.filings.length && !p.links.length && !lobbyIssues.length && !flags.length;
+  const noRecords = !p.keyFacts.length && !p.facts.length && !p.feed.length && !p.filings.length && !p.links.length && !lobbyIssues.length;
 
   // The written headline and description when there is one (table profile_text); until then the descriptor and the first
   // few sourced notes stand in, as one paragraph with the same links.
@@ -106,7 +105,7 @@ export default async function NodePage(props: PageProps<"/node/[id]">) {
 
 async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams"]; id: string }) {
   const sp = await spP;
-  const [pr, actorIssues, lobbyIssues, flags] = await loadActor(id);
+  const [pr, actorIssues, lobbyIssues] = await loadActor(id);
   const p = pr!;
   const kind = typeof sp.kind === "string" ? sp.kind : "";
   const issue = typeof sp.issue === "string" ? sp.issue : "";
@@ -273,10 +272,8 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
           </section>
         );
       }),
-
-    flags: <ConflictFlags flags={flags} />,
   };
-  const tabs = TABS.map(([t, label]) => [t, `${label}${t === "flags" && flags.length ? ` (${flags.length})` : ""}`] as [string, string]);
+  const tabs = TABS.map(([t, label]) => [t, label] as [string, string]);
   const search = new URLSearchParams(Object.entries(sp).filter((e): e is [string, string] => typeof e[1] === "string")).toString();
   return <ProfileTabs base={`/node/${id}`} search={search ? `?${search}` : ""} tabs={tabs} panels={panels} />;
 }

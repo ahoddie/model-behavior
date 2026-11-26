@@ -31,11 +31,11 @@ export async function enqueue(item: ReviewItem): Promise<number | null> {
   return r.rows[0]?.id ?? null;
 }
 
-// Approve or reject. For feed_items and conflict_flags the referenced row's status follows the decision.
+// Approve or reject. For feed_items the referenced row's status follows the decision.
 export async function decide(id: number, status: "approved" | "rejected", note?: string) {
   const r = await pool.query(`UPDATE review_queue SET status=$2, reviewer_note=$3, decided_at=now() WHERE id=$1 RETURNING ref_table, ref_id`, [id, status, note ?? null]);
   const row = r.rows[0];
-  if (row?.ref_table === "feed_items" || row?.ref_table === "conflict_flags")
+  if (row?.ref_table === "feed_items")
     await pool.query(`UPDATE ${row.ref_table} SET status=$2 WHERE id=$1`, [row.ref_id, status]);
   return row;
 }
