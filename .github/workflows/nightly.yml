@@ -1,0 +1,145 @@
+# Nightly refresh in the cloud: the same steps as web/scripts/daily.sh, writing to the hosted database.
+# FEC donor backfill, then the other importers, then the source check, statement labeling, the search table, and a
+# refresh of the hosted site. See docs/deploy.md for the secrets it reads and for the caps below.
+#
+# Caps (a full local run took 9 hours or more, mostly news):
+#   news         NEWS_BUDGET_MIN minutes a night, actors in rotation (data/cache/news-cursor.json); about 100 of the
+#                ~600 people and labs a night, so each is covered every 6 nights or so, with --timespan=7d to match.
+#   regulations  REGULATIONS_BUDGET_MIN minutes, resuming at the org where it stopped.
+#   analyze      ANALYZE_BUDGET_MIN minutes of labeling on the runner's CPU; the rest waits for the next night.
+#   every step   has its own timeout-minutes as a backstop, and continue-on-error, so one failure never stops the rest.
+# A typical night is 2.5-3 hours, 5.5 at most. Free for a public repository (standard runners have no minute limit
+# there). A private repository gets 2,000 minutes a month, which this does not fit: see docs/deploy.md.
+#
+# DEMO_KEY (FEC, Regulations.gov) allows about 10 calls a day per IP, and runner IPs are shared, so both importers stop
+# cleanly at the first 429 and resume the next night from where they were. Their progress lives in data/cache, which
+# is carried from night to night with actions/cache.
+name: nightly
+
+on:
+  schedule:
+    - cron: "15 11 * * *"   # 03:15 Pacific standard time (04:15 in summer)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    defaults:
+      run:
+        working-directory: web
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATA_GOV_KEY: ${{ secrets.DATA_GOV_KEY }}           # optional; DEMO_KEY when empty
+      CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}   # optional
+      OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }} # optional
+      SITE_URL: ${{ vars.SITE_URL }}                      # e.g. https://model-behavior.vercel.app
+      REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+      NEWS_BUDGET_MIN: "45"
+      REGULATIONS_BUDGET_MIN: "20"
+      ANALYZE_BUDGET_MIN: "45"
+      OLLAMA_HOST: http://localhost:11434
+      LLM_BASE_URL: http://localhost:11434/v1
+    services:
+      # The same open model as on the Mac (qwen2.5:7b-instruct), on the runner's CPU. No key, no cost, and labels keyed
+      # by the same model name as the ones made locally.
+      ollama:
+        image: ollama/ollama:latest
+        ports: ["11434:11434"]
+    steps:
+      - name: Check for the database secret
+        id: gate
+        working-directory: .
+        run: |
+          if [ -z "$DATABASE_URL" ]; then echo "::notice::DATABASE_URL is not set; nothing to do (see docs/deploy.md)."; echo "go=false" >> "$GITHUB_OUTPUT"; else echo "go=true" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/checkout@v5
+        if: steps.gate.outputs.go == 'true'
+
+      - uses: pnpm/action-setup@v4
+        if: steps.gate.outputs.go == 'true'
+        with:
+          package_json_file: web/package.json
+
+      - uses: actions/setup-node@v5
+        if: steps.gate.outputs.go == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Install
+        if: steps.gate.outputs.go == 'true'
+        run: pnpm install --frozen-lockfile
+
+      # Resume state: FEC donor progress, the news rotation and seen-article list, the Regulations.gov cursor, and the
+      # model's answer cache. Restored from the newest earlier night, saved under a new key at the end.
+      - name: Restore importer state
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: data/cache
+          key: nightly-state-${{ github.run_id }}
+          restore-keys: nightly-state-
+
+      - name: FEC donor backfill
+        if: steps.gate.outputs.go == 'true'
+        continue-on-error: true
+        timeout-minutes: 25
+        run: pnpm exec tsx scripts/importers/fec.ts
+
+      - name: Importers (LDA, Congress, Regulations.gov, bills, news, Bluesky, blogs, state lobbying)
+        if: steps.gate.outputs.go == 'true'
+        continue-on-error: true
+        timeout-minutes: 180
+        # transcripts skip themselves here (no yt-dlp or whisper on the runner); state lobbying skips without the
+        # CAL-ACCESS bulk file, as it does on the Mac unless run with --ca-download.
+        run: pnpm run import --skip=fec --timespan=7d
+
+      - name: Check new sources and quotes
+        if: steps.gate.outputs.go == 'true'
+        continue-on-error: true
+        timeout-minutes: 30
+        run: pnpm run sources
+
+      - name: Load the labeling model
+        id: model
+        if: steps.gate.outputs.go == 'true'
+        continue-on-error: true
+        timeout-minutes: 15
+        working-directory: .
+        run: |
+          curl -sf http://localhost:11434/api/pull -d '{"model":"qwen2.5:7b-instruct","stream":false}'
+
+      - name: Label new statements
+        if: steps.gate.outputs.go == 'true' && steps.model.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 55
+        run: pnpm run analyze
+
+      - name: Rebuild the search table
+        if: steps.gate.outputs.go == 'true'
+        continue-on-error: true
+        timeout-minutes: 10
+        run: pnpm run index
+
+      - name: Save importer state
+        if: always() && steps.gate.outputs.go == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: data/cache
+          key: nightly-state-${{ github.run_id }}
+
+      # Marks the hosted site's cached record stale; each page is rebuilt from the database on its next visit.
+      - name: Refresh the site
+        if: always() && steps.gate.outputs.go == 'true' && env.SITE_URL != '' && env.REVALIDATE_SECRET != ''
+        working-directory: .
+        run: |
+          curl -sf -X POST -H "Authorization: Bearer $REVALIDATE_SECRET" "$SITE_URL/api/revalidate"

@@ -273,6 +273,14 @@ export async function politeFetch(url: string, init: RequestInit = {}, tries = 3
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Tell the running site its cached record is stale. Silent if the site isn't running.
+// Tell the site the record changed. The local site on this Mac, or, when SITE_URL and REVALIDATE_SECRET are set (the
+// nightly GitHub Actions job), the hosted one.
 export async function notifySite() {
-  try { await fetch("http://127.0.0.1:3010/api/revalidate", { method: "POST", signal: AbortSignal.timeout(3000) }); } catch { /* site not running */ }
+  const remote = process.env.SITE_URL && process.env.REVALIDATE_SECRET;
+  const url = remote ? `${process.env.SITE_URL!.replace(/\/$/, "")}/api/revalidate` : "http://127.0.0.1:3010/api/revalidate";
+  try {
+    const r = await fetch(url, { method: "POST", signal: AbortSignal.timeout(remote ? 20_000 : 3000),
+      headers: remote ? { Authorization: `Bearer ${process.env.REVALIDATE_SECRET}` } : {} });
+    if (remote) console.log(`site refresh: ${r.status}`);
+  } catch (e) { if (remote) console.warn(`site refresh failed: ${(e as Error).message}`); /* local site not running */ }
 }

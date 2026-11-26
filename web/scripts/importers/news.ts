@@ -10,6 +10,14 @@ import { join } from "node:path";
 import { REPO } from "../env.ts";
 
 const timespan = process.argv.find((a) => a.startsWith("--timespan="))?.slice(11) ?? "2d";
+// Caps, for the nightly GitHub Actions job (a full pass over every person and lab took up to 9 hours). Unset = no cap.
+//   NEWS_BUDGET_MIN   stop after this many minutes
+//   NEWS_MAX_ACTORS   stop after this many actors
+// Actors are taken in id order from where the last run stopped (data/cache/news-cursor.json), wrapping around, so a
+// capped run each night still reaches everyone in rotation. The 2-day --timespan should then be widened to match the
+// rotation length; the nightly job passes --timespan to cover it.
+const BUDGET_MS = Number(process.env.NEWS_BUDGET_MIN ?? 0) * 60_000;
+const MAX_ACTORS = Number(process.env.NEWS_MAX_ACTORS ?? 0);
 const parser = new Parser();
 
 async function gdelt(name: string) {
@@ -33,9 +41,25 @@ export async function run() {
   const seenFile = join(REPO, "data/cache/news-seen.json");
   const prior: string[] = existsSync(seenFile) ? JSON.parse(readFileSync(seenFile, "utf8")) : [];
   const seen = new Set<string>(prior);
+  const cursorFile = join(REPO, "data/cache/news-cursor.json");
+  const save = (last?: string) => {
+    mkdirSync(join(REPO, "data/cache"), { recursive: true });
+    writeFileSync(seenFile, JSON.stringify([...seen].slice(-20000)));
+    if (last !== undefined) writeFileSync(cursorFile, JSON.stringify({ last, at: new Date().toISOString() }));
+  };
+  const t0 = Date.now();
   try {
-    const actors = await q<{ id: string; name: string }>(`SELECT id, name FROM nodes WHERE type IN ('person','lab')`);
+    const all = await q<{ id: string; name: string }>(`SELECT id, name FROM nodes WHERE type IN ('person','lab') ORDER BY id`);
+    const capped = BUDGET_MS > 0 || MAX_ACTORS > 0;
+    const after: string = capped && existsSync(cursorFile) ? JSON.parse(readFileSync(cursorFile, "utf8")).last ?? "" : "";
+    const start = Math.max(0, all.findIndex((a) => a.id > after));
+    const actors = capped ? [...all.slice(start), ...all.slice(0, start)] : all;
+    let done = 0;
     for (const a of actors) {
+      if ((BUDGET_MS && Date.now() - t0 > BUDGET_MS) || (MAX_ACTORS && done >= MAX_ACTORS)) {
+        console.log(`news: cap reached after ${done} of ${all.length} actors; next run starts after ${actors[done - 1]?.id}`);
+        break;
+      }
       const arts = [...(await gdelt(a.name)), ...(await gnews(a.name))];
       for (const art of arts) {
         if (!art.url || seen.has(art.url)) continue;
@@ -47,9 +71,10 @@ export async function run() {
           kind: "quote", origin: "importer:news", requireQuote: true });
       }
       await sleep(1500);
+      done++;
+      if (capped && done % 10 === 0) save(a.id); // a run cut off by the job's own timeout still keeps most of its progress
     }
-    mkdirSync(join(REPO, "data/cache"), { recursive: true });
-    writeFileSync(seenFile, JSON.stringify([...seen].slice(-20000)));
+    save(capped && done ? actors[done - 1].id : undefined);
     await endRun(runId, true, added);
   } catch (e) { await endRun(runId, false, added, String(e)); throw e; }
   return added;
