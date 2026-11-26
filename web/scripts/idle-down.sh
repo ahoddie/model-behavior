@@ -11,8 +11,8 @@ busy() { log "busy: $*"; rm -f "$STATE"; exit 0; }
 
 colima status >/dev/null 2>&1 || { rm -f "$STATE"; exit 0; }   # already stopped
 
-# Any tsx/node script (imports, archive, analyze, tests in other projects) or a build counts as work.
-pgrep -f "tsx|next build|archive-then-prune|daily.sh" >/dev/null && busy "script running"
+# Any tsx/node script (imports, analyze, tests in other projects) or a build counts as work.
+pgrep -f "tsx|next build|daily.sh" >/dev/null && busy "script running"
 # A model loaded in Ollama means a job is mid-run.
 [[ -n "$(ollama ps 2>/dev/null | sed 1d)" ]] && busy "model loaded"
 # Any container doing real work (including other projects in the same VM).

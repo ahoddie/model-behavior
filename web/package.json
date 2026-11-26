@@ -18,7 +18,6 @@
     "index": "tsx scripts/index-search.ts",
     "scheduler": "tsx scripts/scheduler.ts",
     "firehose": "tsx scripts/importers/social.ts --firehose",
-    "archive": "tsx scripts/archive.ts",
     "logos": "tsx scripts/logos.ts",
     "validate": "tsx scripts/validate.ts",
     "tag-filings": "tsx scripts/tag-filings.ts",
@@ -44,7 +43,6 @@
     "er:wikidata": "tsx scripts/pipelines/er/wikidata.ts",
     "provenance:bills": "tsx scripts/pipelines/provenance/fetch-bills.ts",
     "provenance:library": "tsx scripts/pipelines/provenance/fetch-library.ts",
-    "provenance:archive": "tsx scripts/pipelines/provenance/archive.ts",
     "provenance:match": "tsx scripts/pipelines/provenance/match.ts",
     "provenance:eval": "tsx scripts/pipelines/provenance/eval.ts",
     "money:fec-api": "tsx scripts/pipelines/money/fecapi.ts",
@@ -56,8 +54,7 @@
     "money:facts": "tsx scripts/pipelines/money/facts.ts",
     "money:export": "tsx scripts/pipelines/money/export.ts",
     "money:totals": "tsx scripts/pipelines/money/totals.ts",
-    "money:spotcheck": "tsx scripts/pipelines/money/spotcheck.ts",
-    "money:archive": "tsx scripts/pipelines/money/archive-hops.ts"
+    "money:spotcheck": "tsx scripts/pipelines/money/spotcheck.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

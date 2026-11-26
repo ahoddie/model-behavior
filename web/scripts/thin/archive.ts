@@ -1,5 +1,5 @@
 // Archives only the URLs the thin-profile enrichers wrote (data/cache/thin/urls.txt) on the Wayback Machine, then
-// copies archive links onto those rows. Same method and pace as scripts/archive.ts. Resumable.
+// copies archive links onto those rows: the availability API first, then Save Page Now, 6 s apart. Resumable.
 // Usage: tsx scripts/thin/archive.ts [--limit N]
 import { readFileSync, existsSync } from "node:fs";
 import { begin, URLS, q, pool, sleep } from "./lib.ts";
