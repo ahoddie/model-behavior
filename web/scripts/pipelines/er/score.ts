@@ -16,7 +16,7 @@ export type Profile = {
   cluster?: string;
 };
 
-// ER_PERSON_AUTO_GROUPS=3 makes people need three independent attributes to auto-merge (precision over recall); default 2 per the brief.
+// ER_PERSON_AUTO_GROUPS=3 makes people need three independent attributes to auto-merge (precision over recall); default 2.
 export const PERSON_AUTO_GROUPS = Number(process.env.ER_PERSON_AUTO_GROUPS ?? 2);
 export const THRESHOLDS = { auto: 0.93, review: 0.5 } as const;
 // Identifiers that name exactly one entity of the kind (a second, different value in the same system means two entities).

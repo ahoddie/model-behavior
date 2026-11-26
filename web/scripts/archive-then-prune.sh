@@ -1,6 +1,7 @@
 #!/bin/zsh -l
 # Archive every source URL on the Wayback Machine, retry failures after a pause, then delete rows that still have no copy
 # (rule 1). The prune step stops without deleting if any table would lose more than 20% of its rows.
+# Not run since archiving stopped on 2026-11-16: rows added after that have no copy, so the prune step would delete them.
 set -u
 cd "$(dirname "$0")/.."
 echo "== pass 1 $(date)"; pnpm -s archive; pnpm -s money:archive

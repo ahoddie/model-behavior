@@ -1,4 +1,5 @@
-// §0.7: archive every source URL on the Wayback Machine and store the archive link on each row.
+// Archive every source URL on the Wayback Machine and store the archive link on each row. Run by hand only: the nightly
+// job stopped archiving on 2026-11-16, and an archive link is optional on every row.
 // Uses the availability API first; if there is no snapshot, asks Save Page Now for one.
 // Resumable: URLs already in the archives table with an archive_url are skipped.
 // Usage: tsx scripts/archive.ts [--no-save] [--limit N]
