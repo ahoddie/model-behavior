@@ -6,7 +6,7 @@ import Select from "@/components/Select";
 import ActorSummary from "@/components/ActorSummary";
 import RandomStart from "@/components/RandomStart";
 
-export const metadata = { title: "Trace Spending · Model Behavior" };
+export const metadata = { title: "Nodes · Model Behavior" };
 
 // Two sources of money steps: curated links (research, grants, filings already loaded) and the filed FEC chains built by the
 // money pipeline. When both describe the same gift (same two parties, same amount), the filed hop is kept: it carries the
@@ -40,7 +40,7 @@ export default async function Money(props: PageProps<"/money">) {
   if (first) await Promise.all([flowsFrom(first), isUndisclosed(first) ? null : getNodeSummary(first)]);
   return (
     <div className="page wide">
-      <h1>Trace Spending</h1>
+      <h1>Nodes</h1>
       <p className="lede">Pick a giver to see the spending and contributions on record, step by step.</p>
       <Suspense fallback={<p className="mono muted" role="status">Loading the record…</p>}>
         <Trace sp={props.searchParams} />

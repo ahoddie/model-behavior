@@ -17,7 +17,7 @@ function Actor({ a }: { a: TopicActor }) {
   return (
     <li>
       <details>
-        <summary><span className="topic-name">{a.name}</span> <span className="muted">{summary}</span></summary>
+        <summary><span className="topic-name">{a.name}</span> <span className={`muted${letters.length ? "" : " topic-count"}`}>{summary}</span></summary>
         {!a.onSite && a.role && <p className="muted topic-role">{a.role}</p>}
         <ul className="topic-evidence">{a.items.map((i, k) => (
           <li key={k}>
@@ -41,7 +41,7 @@ function coverage(t: TopicRow) {
   ].filter(Boolean);
   const onlyLetters = t.confirmed === 0 && t.letters.length > 0;
   const machine = t.machine > 0 ? ` ${t.machine} of the shown quotes are machine readings: the quote was found word for word at its link and the reading was high confidence, but no person has checked it yet.` : "";
-  return `Based on ${parts.join(" and ")}.${machine}${onlyLetters ? " A letter records only the people who signed it, so it cannot show who disagrees." : ""}`;
+  return `Based on ${(parts.length < 3 ? parts.join(" and ") : `${parts.slice(0, -1).join(", ")}, and ${parts.at(-1)}`)}.${machine}${onlyLetters ? " A letter records only the people who signed it, so it cannot show who disagrees." : ""}`;
 }
 
 function Column({ title, actors }: { title: string; actors: TopicActor[] }) {

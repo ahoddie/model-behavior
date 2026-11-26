@@ -277,7 +277,7 @@ export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // nightly GitHub Actions job), the hosted one.
 export async function notifySite() {
   const remote = process.env.SITE_URL && process.env.REVALIDATE_SECRET;
-  const url = remote ? `${process.env.SITE_URL!.replace(/\/$/, "")}/api/revalidate` : "http://127.0.0.1:3010/api/revalidate";
+  const url = remote ? `${process.env.SITE_URL!.replace(/\/$/, "")}/api/revalidate` : "http://localhost:3010/api/revalidate";
   try {
     const r = await fetch(url, { method: "POST", signal: AbortSignal.timeout(remote ? 20_000 : 3000),
       headers: remote ? { Authorization: `Bearer ${process.env.REVALIDATE_SECRET}` } : {} });

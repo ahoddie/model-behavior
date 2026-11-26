@@ -33,7 +33,8 @@ export function countSharedQuotesOnce<T extends { kind: string; text: string; no
     const people = g.filter((r) => who.get(r.node_id)?.type === "person");
     const orgs = g.filter((r) => who.has(r.node_id) && who.get(r.node_id)!.type !== "person");
     if (!people.length || !orgs.length) continue;
-    const speaker = [...new Set(people.map((r) => who.get(r.node_id)!.name))].join(" and ");
+    const names = [...new Set(people.map((r) => who.get(r.node_id)!.name))];
+    const speaker = names.length < 3 ? names.join(" and ") : `${names.slice(0, -1).join(", ")}, and ${names.at(-1)}`;
     for (const p of people) drop.add(p);
     for (const o of orgs) o.speaker = speaker;
   }

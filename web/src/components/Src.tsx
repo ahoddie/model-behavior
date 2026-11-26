@@ -4,7 +4,9 @@
 import { useState } from "react";
 import { sourceName, sourceKind } from "@/lib/format";
 
-export default function Src({ url, archive }: { url: string; archive?: string | null }) {
+// Archived copies stay in the database and exports; since archiving stopped (2026-11-16) only older rows have one,
+// so the pill no longer shows them.
+export default function Src({ url }: { url: string; archive?: string | null }) {
   const [icon, setIcon] = useState(true);
   let host = "";
   try { host = new URL(url).hostname; } catch { return null; }
@@ -18,7 +20,6 @@ export default function Src({ url, archive }: { url: string; archive?: string | 
         )}
         {name}
       </a>
-      {archive && <a className="src src-arch" href={archive} target="_blank" rel="noreferrer" title="Archived copy">archive</a>}
     </span>
   );
 }

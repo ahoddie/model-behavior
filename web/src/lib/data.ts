@@ -331,7 +331,7 @@ export async function targetSides() {
 const LABELS = `(SELECT DISTINCT ON (sl.feed_id) sl.*,
     (SELECT coalesce(jsonb_object_agg(e.key, e.value), '{}'::jsonb) FROM jsonb_each(sl.issues) e WHERE e.key = ANY(r.issues)) AS issues_ok
   FROM statement_labels sl LEFT JOIN statement_issue_rules r ON r.feed_id = sl.feed_id
-  ORDER BY sl.feed_id, sl.labeled_at DESC)`;
+  ORDER BY sl.feed_id, (sl.model = 'human') DESC, sl.labeled_at DESC)`;  // a person's reading outranks any machine run, even a later one
 const GOOD = `l.own_voice AND l.confidence >= 0.6`;  // qualified: feed_items also has a confidence column
 export type IssueRow = { id: string; label: string; description: string; positive: string; statements: number; actors: number; avg: number | null;
   plus: number; minus: number; neutral: number; money: number; money_givers: { id: string; name: string; total: number }[] };

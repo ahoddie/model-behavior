@@ -182,7 +182,7 @@ export default async function Home() {
             </div>}
             <p className="iss-facts note">
               From {i.statements} {i.statements === 1 ? "statement" : "statements"} by {i.actors} {i.actors === 1 ? "speaker" : "speakers"}: {i.plus} agree, {i.minus} disagree, {i.neutral} neutral.
-              {i.money > 0 && <> {fmtMoney(i.money)} went to groups that speak on it, mostly from {i.money_givers.map((g, k) => <span key={g.id}>{k > 0 && (k === i.money_givers.length - 1 ? " and " : ", ")}<Link href={`/node/${g.id}`}>{g.name}</Link></span>)}.</>}
+              {i.money > 0 && <> {fmtMoney(i.money)} went to groups that speak on it, mostly from {i.money_givers.map((g, k) => <span key={g.id}>{k > 0 && (k === i.money_givers.length - 1 ? (i.money_givers.length > 2 ? ", and " : " and ") : ", ")}<Link href={`/node/${g.id}`}>{g.name}</Link></span>)}.</>}
               {lobbying[i.id] && <> {lobbying[i.id].filings.toLocaleString()} lobbying {lobbying[i.id].filings === 1 ? "filing" : "filings"} from {lobbying[i.id].actors} {lobbying[i.id].actors === 1 ? "group" : "groups"} name it.</>}
             </p>
           </li>
