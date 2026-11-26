@@ -108,10 +108,3 @@ web/src/components/ the map, charts, and page pieces
 web/src/lib/        database queries and formatting
 web/scripts/        importers, the nightly job, and data tools
 ```
-
----
-
-<p align="center">
-  <img src="web/public/brand/icon.svg" alt="" width="32"><br>
-  Made by Allegra Hoddie.
-</p>
