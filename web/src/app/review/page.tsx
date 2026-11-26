@@ -13,7 +13,7 @@ const IMPORTERS = ["lda", "fec", "propublica", "regulations", "congress", "opens
 export default async function Review(props: PageProps<"/review">) {
   await connection();
   const host = ((await headers()).get("host") ?? "").split(":")[0];
-  if (!["localhost", "127.0.0.1", "[::1]"].includes(host)) return <div className="page"><h1>Review</h1><p>The review screen only opens on this machine.</p></div>;
+  if (process.env.VERCEL || !["localhost", "127.0.0.1", "[::1]"].includes(host)) return <div className="page"><h1>Review</h1><p>The review screen only opens on this machine.</p></div>;
   const sp = await props.searchParams;
   const origin = typeof sp.origin === "string" ? sp.origin : "";
   const pending = await q<any>(`SELECT f.*, f.date::text, n.name FROM feed_items f JOIN nodes n ON n.id=f.node_id WHERE f.status='pending' AND ($1='' OR f.origin=$1)

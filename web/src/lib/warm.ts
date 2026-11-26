@@ -26,6 +26,9 @@ async function version() {
 }
 
 export function warmSite(origin: string, quietMs = 15_000) {
+  // On Vercel each request may land on a fresh, short-lived instance with no server of its own to fetch from; pages are
+  // rebuilt there on the first visit after a refresh instead.
+  if (process.env.VERCEL) return;
   clearTimeout(state.timer);
   const pass = ++state.pass;
   state.timer = setTimeout(async () => {
