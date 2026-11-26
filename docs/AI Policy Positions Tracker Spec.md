@@ -1,5 +1,9 @@
 # Model Behavior: How Silicon Valley Shapes AI Policy
 
+> This is the original brief the project started from, kept for the record. The site grew from it but does not follow it
+> everywhere: some parts were not kept, such as Meilisearch (search runs on Postgres full-text search) and email digests.
+> The [README](../README.md) describes the site as it is.
+
 Build **Model Behavior**: an interactive map that traces how frontier labs, investors, tech leaders and think tanks influence U.S. AI policy. It covers who funds whom, who works where, what they say, and what lands on which bills, races and rules. Build all of it in this session: the research, the data, the site and the live importers.
 
 ---
