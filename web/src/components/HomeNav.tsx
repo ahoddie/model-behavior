@@ -90,6 +90,24 @@ const PAGES = [
   { href: "/statements", name: "Statements", note: "Where leaders stand on AI's open questions in their own words", Mock: StatementsMock },
 ];
 
+// The same box, laid flat, at the top of a homepage section: the drawing on the left, the page's name and note beside it.
+export function PageCard({ href }: { href: string }) {
+  const p = PAGES.find((x) => x.href === href);
+  if (!p) return null;
+  const { name, note, Mock } = p;
+  return (
+    <div className="hn-card hn-inline">
+      <Link href={href}>
+        <span className="hn-art"><Mock /></span>
+        <span className="hn-body">
+          <span className="hn-name">{name}<span className="hn-arrow" aria-hidden>→</span></span>
+          <span className="hn-note">{note}</span>
+        </span>
+      </Link>
+    </div>
+  );
+}
+
 export default function HomeNav() {
   return (
     <nav className="hn" aria-labelledby="hn-head">

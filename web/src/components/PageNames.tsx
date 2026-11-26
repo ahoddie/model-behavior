@@ -10,7 +10,7 @@ import { PAGE_NAMES_KEY } from "./BackButton";
 let last: Element | null = null;
 
 export default function PageNames() {
-  const path = usePathname();
+  const path = usePathname() ?? "/";
   const search = useSearchParams().toString();
   useEffect(() => {
     const key = search ? `${path}?${search}` : path;

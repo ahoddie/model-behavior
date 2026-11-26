@@ -42,6 +42,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <HeaderSearch />
           </div>
         </header>
+        {/* The top bar stays on screen; its height goes to --mast-h so everything else that sticks sits just below it. */}
+        <script dangerouslySetInnerHTML={{ __html: `(()=>{const m=document.querySelector(".masthead");if(!m)return;const s=()=>document.documentElement.style.setProperty("--mast-h",m.offsetHeight+"px");s();new ResizeObserver(s).observe(m)})()` }} />
         {/* Navigations, tab links and filter changes are transitions, so the page content crossfades between them (the
             "page" view transition in globals.css). Plain state changes, like the map's, never start one. */}
         <main id="main"><ViewTransition default="page">{children}</ViewTransition></main>

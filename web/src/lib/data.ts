@@ -412,6 +412,22 @@ export async function getIssueActors(): Promise<Record<string, { agree: IssueAct
   return out;
 }
 
+// One quote from each side of every issue, for the homepage: the clearest (strongest stance), then the most recent.
+export type IssueQuote = { issue: string; side: "agree" | "disagree"; id: string; excerpt: string; url: string; date: string; node_id: string; name: string; type: string; logo_url: string | null };
+export async function getIssueQuotes(): Promise<Record<string, Partial<Record<"agree" | "disagree", IssueQuote>>>> {
+  "use cache";
+  cached();
+  const rows = await q<IssueQuote>(`
+    SELECT DISTINCT ON (e.key, sign(e.value::int)) e.key AS issue, CASE WHEN e.value::int > 0 THEN 'agree' ELSE 'disagree' END AS side,
+           fi.id::text AS id, fi.excerpt, fi.url, fi.date::date::text AS date, n.id AS node_id, n.name, n.type, n.logo_url
+    FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id JOIN nodes n ON n.id=fi.node_id, jsonb_each_text(l.issues_ok) e
+    WHERE ${GOOD} AND fi.status='approved' AND fi.excerpt IS NOT NULL AND e.value::int <> 0
+    ORDER BY e.key, sign(e.value::int), abs(e.value::int) DESC, fi.date DESC`);
+  const out: Record<string, Partial<Record<"agree" | "disagree", IssueQuote>>> = {};
+  for (const r of rows) (out[r.issue] ??= {})[r.side] = r;
+  return out;
+}
+
 export async function getAnalysis() {
   "use cache";
   cached();

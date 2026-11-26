@@ -9,9 +9,3 @@ data/cache/
 .claude/settings.local.json
 data/pruned/
 
-# Kept out of iCloud Drive: heavy folders renamed *.nosync, with a link under the old name.
-*.nosync
-web/.next
-web/node_modules
-data/raw
-data/cache

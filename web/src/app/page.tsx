@@ -1,5 +1,5 @@
 import Link from "@/components/Link";
-import { getHome, getAnalysis, getLobbyingByIssue, getTopics, getIssueActors, type IssueActor } from "@/lib/data";
+import { getHome, getAnalysis, getLobbyingByIssue, getTopics, getIssueActors, getIssueQuotes, type IssueActor } from "@/lib/data";
 import StanceBar from "@/components/StanceBar";
 import { fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
 import Src from "@/components/Src";
@@ -12,7 +12,7 @@ import RankChart from "@/components/RankChart";
 import TrendChart from "@/components/TrendChart";
 import TalkChart, { type TalkIssue, type ActorTopic } from "@/components/TalkChart";
 import { sourceName } from "@/lib/format";
-import HomeNav from "@/components/HomeNav";
+import HomeNav, { PageCard } from "@/components/HomeNav";
 
 // Ordered for someone new to this: who has the money, then the fights it lands on and who is on each side, then what
 // they say, and last the wider analysis by issue and over time. The page links (Network and the rest) sit under the title.
@@ -54,7 +54,7 @@ function Who({ sides, topicId }: { sides?: { agree: IssueActor[]; disagree: Issu
 }
 
 export default async function Home() {
-  const [{ counts, givers, recipients, stances, byYear, quotes, talkers, today }, analysis, lobbying, topics, who] = await Promise.all([getHome(), getAnalysis(), getLobbyingByIssue(), getTopics(), getIssueActors()]);
+  const [{ counts, givers, recipients, stances, byYear, quotes, talkers, today }, analysis, lobbying, topics, who, issueQuotes] = await Promise.all([getHome(), getAnalysis(), getLobbyingByIssue(), getTopics(), getIssueActors(), getIssueQuotes()]);
   const asOf = fmtDate(today);
   // The chart of who talks most about each statement: the 15 actors with the most sided statements, most-discussed issue first.
   const talk: TalkIssue[] = (analysis?.issues ?? []).map((i) => ({
@@ -85,6 +85,7 @@ export default async function Home() {
         <p className="sec-lede">
           {fmtMoney(counts.direct)} given directly to candidates, PACs, parties, and advocacy groups. Lobbying is separate: {counts.filings.toLocaleString()} filings.
         </p>
+        <PageCard href="/money" />
         <figure className="chart">
           <figcaption className="chart-head"><h3>Top givers</h3></figcaption>
           <RankChart label="The ten largest givers, by dollars given directly" unit="given" fmt={fmtMoney}
@@ -99,7 +100,6 @@ export default async function Home() {
               label: <><Link href={`/node/${r.id}`}>{r.name}</Link></>,
               note: `From ${r.top_givers}${r.givers > 3 ? ` and ${r.givers - 3} more` : ""}` }))} />
         </figure>
-        <p className="more"><Link href="/money">Trace the money</Link></p>
       </section>
 
       <section id="stances" className="home-sec">
@@ -107,6 +107,7 @@ export default async function Home() {
         <p className="sec-lede">
           The bills, orders, and rules with the most public positions. Each name links to its source.
         </p>
+        <PageCard href="/targets" />
         {stances.slice(0, 4).map((t: any) => (
           <article key={t.id} className="stance">
             <h3><Link href={`/node/${t.id}`}>{t.name}</Link></h3>
@@ -131,7 +132,6 @@ export default async function Home() {
             })()}
           </article>
         ))}
-        <p className="more"><Link href="/targets">Every bill, rule, and race, with who weighed in</Link></p>
       </section>
 
       <section id="words" className="home-sec">
@@ -173,16 +173,27 @@ export default async function Home() {
               <StanceBar value={i.avg} />
             </div>
             <Who sides={who[i.id]} topicId={topics.find((t) => t.issue_id === i.id && t.confirmed > 0)?.id} />
-            <details className="iss-rests">
-              <summary>What this rests on</summary>
-              <p className="iss-facts">
-                {i.statements} {i.statements === 1 ? "statement" : "statements"} from {i.actors} {i.actors === 1 ? "actor" : "actors"}: {i.plus} agree, {i.minus} disagree, {i.neutral} neutral.
-                {i.money > 0 && <> {fmtMoney(i.money)} to groups that speak on it, mostly from {i.money_givers.map((g, k) => <span key={g.id}>{k > 0 && (k === i.money_givers.length - 1 ? " and " : ", ")}<Link href={`/node/${g.id}`}>{g.name}</Link></span>)}.</>}
-                {lobbying[i.id] && <> {lobbying[i.id].filings.toLocaleString()} lobbying {lobbying[i.id].filings === 1 ? "filing" : "filings"} from {lobbying[i.id].actors} {lobbying[i.id].actors === 1 ? "actor" : "actors"}.</>}
-              </p>
-            </details>
+            {(issueQuotes[i.id]?.agree || issueQuotes[i.id]?.disagree) && <div className="iss-quotes">
+              {(["agree", "disagree"] as const).map((side) => { const qt = issueQuotes[i.id]?.[side]; return qt && (
+                <blockquote key={side} className={`iss-quote ${side === "agree" ? "support" : "oppose"}`}>
+                  <p className="q">“{qt.excerpt}”<Src url={qt.url} /></p>
+                  <p className="note"><Named node={{ name: qt.name, type: qt.type, logo_url: qt.logo_url }} size={16}><Link href={`/node/${qt.node_id}`}>{qt.name}</Link></Named> · {side === "agree" ? "agrees" : "disagrees"} · {fmtDate(qt.date)}</p>
+                </blockquote>); })}
+            </div>}
+            <p className="iss-facts note">
+              From {i.statements} {i.statements === 1 ? "statement" : "statements"} by {i.actors} {i.actors === 1 ? "speaker" : "speakers"}: {i.plus} agree, {i.minus} disagree, {i.neutral} neutral.
+              {i.money > 0 && <> {fmtMoney(i.money)} went to groups that speak on it, mostly from {i.money_givers.map((g, k) => <span key={g.id}>{k > 0 && (k === i.money_givers.length - 1 ? " and " : ", ")}<Link href={`/node/${g.id}`}>{g.name}</Link></span>)}.</>}
+              {lobbying[i.id] && <> {lobbying[i.id].filings.toLocaleString()} lobbying {lobbying[i.id].filings === 1 ? "filing" : "filings"} from {lobbying[i.id].actors} {lobbying[i.id].actors === 1 ? "group" : "groups"} name it.</>}
+            </p>
           </li>
         ))}</ul>
+        {(() => {
+          const quiet = analysis.issues.filter((i) => i.statements === 0 && lobbying[i.id]).sort((a, b) => lobbying[b.id].filings - lobbying[a.id].filings);
+          return quiet.length > 0 && <div className="iss-quiet">
+            <h3>Lobbied on, with no public statements on file yet</h3>
+            <ul>{quiet.map((i) => <li key={i.id}><strong>{i.label}</strong> <span className="muted">{lobbying[i.id].filings.toLocaleString()} {lobbying[i.id].filings === 1 ? "filing" : "filings"} from {lobbying[i.id].actors} {lobbying[i.id].actors === 1 ? "group" : "groups"}</span></li>)}</ul>
+          </div>;
+        })()}
         <p className="note">
           {fmtMoney(analysis.cover.assigned)} of {fmtMoney(analysis.cover.total)} in direct giving went to groups with enough statements to place by issue. Most of the rest went to candidates and parties.
         </p>
