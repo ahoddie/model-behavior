@@ -18,7 +18,7 @@
 
 ## What you can do
 
-Model Behavior is a guide to U.S. AI policy. It traces how frontier labs, investors, tech leaders, foundations, and think tanks try to shape U.S. AI policy: the money they give, the lobbying they file, and the positions they take in public.
+Model Behavior is a guide to U.S. AI policy and the people trying to shape it: frontier labs, investors, tech leaders, foundations, and think tanks. It traces the money they give, the lobbying they file, and the positions they take in public.
 
 | | |
 |---|---|
