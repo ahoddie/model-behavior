@@ -82,13 +82,6 @@ async function nodeNames() {
   return q<{ id: string; name: string; type: string }>(`SELECT id, name, type FROM nodes`);
 }
 
-// Type and logo for a set of nodes, so a list can show each one's mark (logo, or the initials box).
-export async function nodeMarks(ids: string[]): Promise<Record<string, { name: string; type: string; logo_url: string | null }>> {
-  if (!ids.length) return {};
-  const rows = await q<any>(`SELECT id, name, type, logo_url FROM nodes WHERE id = ANY($1)`, [ids]);
-  return Object.fromEntries(rows.map((r: any) => [r.id, r]));
-}
-
 export async function getNodeSummary(id: string) {
   "use cache";
   cached();
@@ -138,56 +131,6 @@ export async function getProfile(id: string) {
     FROM links_removed r JOIN links k ON k.id = r.kept_id JOIN nodes t ON t.id = r.to_id JOIN nodes pn ON pn.id = k.from_id
     WHERE r.from_id=$1 AND r.reason LIKE 'recommended:%' ORDER BY r.date_start DESC NULLS LAST`, [id])]);
   return { ...s, feed, filings, links, recommended };
-}
-
-/** Places where what an actor says and what its money does point different ways. Each flag carries both sources. */
-export async function conflictFlags(id: string) {
-  "use cache";
-  cached();
-  type Ev = { label: string; url: string; date: string | null };
-  const flags: { kind: string; text: string; said: Ev; did: Ev }[] = [];
-  // 1. Says it supports bill B; funds a committee that opposes B, or spends against a candidate tied to B.
-  const supports = await q<any>(`
-    SELECT b.id AS bill, b.name AS bill_name, b.descriptor AS bill_desc, src.url, src.date, src.label FROM (
-      SELECT target_id AS bill, url, pdate(date, date_prec) AS date, coalesce(excerpt, summary) AS label FROM feed_items WHERE node_id=$1 AND status='approved' AND stance='support' AND target_id IS NOT NULL
-      UNION ALL SELECT to_id, source_url, pdate(date_start, date_start_prec) AS date_start, coalesce(note, 'Registered support') FROM links WHERE from_id=$1 AND type='position' AND stance IN ('support','support_if_amended')
-    ) src JOIN nodes b ON b.id=src.bill AND b.type='bill'`, [id]);
-  for (const s of supports) {
-    const against = await q<any>(`
-      SELECT p.name AS pac, m.source_url AS money_url, m.amount::float8, pdate(m.date_start, m.date_start_prec) AS date_start, opp.source_url AS opp_url, opp.note AS opp_note, pdate(opp.date_start, opp.date_start_prec) AS opp_date, opp.kind, tgt.name AS tgt
-      FROM links m JOIN nodes p ON p.id=m.to_id
-      JOIN LATERAL (
-        SELECT 'bill' AS kind, source_url, note, date_start, date_start_prec, NULL::text AS to_id FROM links WHERE from_id=p.id AND to_id=$2 AND type='position' AND stance='oppose'
-        UNION ALL
-        SELECT 'candidate', l.source_url, l.note, l.date_start, l.date_start_prec, l.to_id FROM links l JOIN nodes lw ON lw.id=l.to_id AND lw.type='lawmaker'
-          WHERE l.from_id=p.id AND l.stance='oppose' AND l.type='money'
-            AND (position(lower(split_part(lw.name,' ',array_length(string_to_array(lw.name,' '),1))) in lower(coalesce($3,''))) > 0)
-      ) opp ON true LEFT JOIN nodes tgt ON tgt.id=opp.to_id
-      WHERE m.from_id=$1 AND m.type='money' AND p.type IN ('pac','nonprofit') LIMIT 5`, [id, s.bill, s.bill_desc]);
-    for (const a of against) flags.push({
-      kind: "says vs. funds",
-      text: a.kind === "bill" ? `Backed ${s.bill_name}, and funds ${a.pac}, which opposed it.` : `Backed ${s.bill_name}, and funds ${a.pac}, which spent against ${a.tgt}, named in the bill's description.`,
-      said: { label: s.label, url: s.url, date: s.date },
-      did: { label: a.opp_note ?? `${a.pac} opposed it`, url: a.opp_url, date: a.opp_date },
-    });
-  }
-  // 2. Opposite stances on the same target from the same actor.
-  const flips = await q<any>(`
-    WITH st AS (
-      SELECT target_id AS t, stance, url, pdate(date, date_prec) AS date, coalesce(excerpt, summary) AS label FROM feed_items WHERE node_id=$1 AND status='approved' AND stance IN ('support','oppose') AND target_id IS NOT NULL
-      UNION ALL SELECT to_id, CASE WHEN stance='support_if_amended' THEN 'support' ELSE stance END, source_url, pdate(date_start, date_start_prec) AS date_start, coalesce(note, stance) FROM links WHERE from_id=$1 AND type='position' AND stance IN ('support','oppose','support_if_amended'))
-    SELECT a.t, n.name, a.label AS a_label, a.url AS a_url, a.date AS a_date, b.label AS b_label, b.url AS b_url, b.date AS b_date
-    FROM st a JOIN st b ON a.t=b.t AND a.stance='support' AND b.stance='oppose' JOIN nodes n ON n.id=a.t LIMIT 10`, [id]);
-  for (const f of flips) flags.push({ kind: "both sides", text: `On record both for and against ${f.name}.`, said: { label: f.a_label, url: f.a_url, date: f.a_date }, did: { label: f.b_label, url: f.b_url, date: f.b_date } });
-  // 3. Calls for safety rules in public; pays a committee that spends against candidates who back them.
-  const pro = await q<any>(`SELECT url, pdate(date, date_prec) AS date, coalesce(excerpt, summary) AS label FROM feed_items WHERE node_id=$1 AND status='approved' AND stance='support'
-                            AND issues && ARRAY['frontier safety','transparency','state laws']::text[] ORDER BY date DESC LIMIT 1`, [id]);
-  if (pro[0]) {
-    const opp = await q<any>(`SELECT p.name AS pac, l.note, l.source_url, pdate(l.date_start, l.date_start_prec) AS date FROM links m JOIN nodes p ON p.id=m.to_id JOIN links l ON l.from_id=p.id
-                              WHERE m.from_id=$1 AND m.type='money' AND l.type='money' AND l.stance='oppose' ORDER BY l.amount DESC NULLS LAST LIMIT 1`, [id]);
-    if (opp[0]) flags.push({ kind: "says vs. funds", text: `Speaks for safety rules; funds ${opp[0].pac}, which spends against candidates.`, said: pro[0], did: { label: opp[0].note ?? "", url: opp[0].source_url, date: opp[0].date } });
-  }
-  return flags;
 }
 
 // Coverage: how much of this profile's sourcing has been checked. "No record" is never a position, so the

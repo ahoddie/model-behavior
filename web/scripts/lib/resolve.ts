@@ -41,9 +41,3 @@ export async function resolve(input: ResolveInput): Promise<ResolveResult> {
   return realResolve(input, provisionalId);
 }
 
-// Batch helper with the same semantics.
-export async function resolveMany(inputs: ResolveInput[]) {
-  const out: ResolveResult[] = [];
-  for (const i of inputs) out.push(await resolve(i));
-  return out;
-}

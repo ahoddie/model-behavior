@@ -155,8 +155,3 @@ export async function llmJson<T = any>(req: LlmRequest): Promise<LlmResult<T>> {
   throw new Error(`LLM gave no valid output after 3 attempts (${req.promptVersion}): ${lastErr}`);
 }
 
-// Run many requests through the gate; failures come back as errors instead of throwing. A rate limit still throws
-// (LlmRateLimited), so a batch job stops instead of marking every remaining item as failed.
-export async function llmBatch<T = any>(reqs: LlmRequest[]): Promise<(LlmResult<T> | { error: string })[]> {
-  return Promise.all(reqs.map((r) => llmJson<T>(r).catch((e: Error) => { if (e instanceof LlmRateLimited) throw e; return { error: e.message }; })));
-}
