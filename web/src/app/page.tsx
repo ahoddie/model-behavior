@@ -137,12 +137,12 @@ export default async function Home() {
       <section id="words" className="home-sec">
         <div className="sec-head"><h2>What are they saying?</h2><CiteButton kind="page" title="What are they saying?" path="/#words" asOf={asOf} /></div>
         <p className="sec-lede">The latest public statements, word for word.</p>
+        <PageCard href="/statements" />
         <ul className="record">{quotes.slice(0, 6).map((f: any) => (
           <li key={f.id}><div className="when">{fmtDate(f.date)}</div>
             <div><p className="q">“{f.excerpt}”<Src url={f.url} archive={f.archive_url} /></p>
               <p className="note"><Link href={`/node/${f.node_id}`}>{f.name}</Link>{f.target_name && <> · on {f.target_id ? <Link href={`/node/${f.target_id}`}>{f.target_name}</Link> : f.target_name}</>}</p></div></li>
         ))}</ul>
-        <p className="more"><Link href="/search">Search every statement</Link></p>
       </section>
 
       {analysis && <section id="issues" className="home-sec">
