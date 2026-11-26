@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Run by launchd every 10 minutes. When nothing has used the database for two checks in a row (about 20 minutes)
-# and no job is running, stop the Colima VM (Postgres, search) and Ollama so they stop using memory.
+# and no job is running, stop the Colima VM (Postgres) and Ollama so they stop using memory.
 # Bring everything back with `pnpm up` (scripts/up.sh). The 3:15 daily job starts them on its own.
 set -u
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"

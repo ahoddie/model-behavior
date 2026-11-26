@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { cacheLife, cacheTag } from "next/cache";
 import { RECORD_TAG } from "@/lib/data";
 import Link from "@/components/Link";
-import { Meilisearch } from "meilisearch";
 import { q } from "@/lib/db";
+import { searchDocs, type SearchHit } from "@/lib/search";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import Select from "@/components/Select";
 import Src from "@/components/Src";
@@ -11,7 +11,7 @@ import { nodeKey, quoteKey } from "@/lib/sameness";
 
 const KIND_LABEL: Record<string, string> = { node: "Profile", feed: "Statement", filing: "Filing" };
 
-type Hit = { key: string; kind: string; title: string; body: string; url: string; node_id: string; node_name: string; node_type?: string; date?: string; amount?: number | null; also?: { id: string; name: string }[] };
+type Hit = SearchHit;
 
 // Collapse results that are the same item (also guards against a stale index). Keeps the first, best-ranked hit.
 function collapse(hits: Hit[]): Hit[] {
@@ -31,11 +31,9 @@ async function search(term: string, kind: string): Promise<{ hits: Hit[]; engine
   "use cache";
   cacheLife("record"); cacheTag(RECORD_TAG);
   try {
-    const ms = new Meilisearch({ host: process.env.MEILI_HOST ?? "http://127.0.0.1:7700", apiKey: process.env.MEILI_KEY });
-    const r = await ms.index("everything").search<Hit>(term, { limit: 60, filter: kind ? [`kind = "${kind}"`] : undefined });
-    return { hits: r.hits, engine: "meilisearch" };
+    return { hits: await searchDocs(term, kind), engine: "postgres-fts" };
   } catch {
-    // Fallback when Meilisearch is down: Postgres trigram/ILIKE across the same three tables.
+    // Fallback when the search table is missing (db/migrations/220 not applied yet): ILIKE across the same three tables.
     const like = `%${term}%`;
     const rows = await q<Hit>(`
       SELECT * FROM (
@@ -43,7 +41,7 @@ async function search(term: string, kind: string): Promise<{ hits: Hit[]; engine
         UNION ALL SELECT 'feed-'||f.id, 'feed', n.name||': '||f.kind, coalesce(f.excerpt,f.summary), f.url, n.id, n.name, n.type, pdate(f.date, f.date_prec), NULL FROM feed_items f JOIN nodes n ON n.id=f.node_id WHERE f.status='approved' AND (f.excerpt ILIKE $1 OR f.summary ILIKE $1)
         UNION ALL SELECT 'filing-'||f.id, 'filing', n.name||': '||f.filing_type||' '||coalesce(f.period,''), coalesce(f.description,''), f.url, n.id, n.name, n.type, pdate(f.filed_date, f.filed_prec), f.amount::float8 FROM filings f JOIN nodes n ON n.id=f.node_id WHERE f.description ILIKE $1
       ) x WHERE $2 = '' OR kind = $2 LIMIT 60`, [like, kind]);
-    return { hits: rows, engine: "postgres" };
+    return { hits: rows, engine: "postgres-ilike" };
   }
 }
 

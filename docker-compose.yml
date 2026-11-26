@@ -10,15 +10,5 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-  search:
-    image: getmeili/meilisearch:v1.12
-    environment:
-      MEILI_MASTER_KEY: mb_local_master_key
-      MEILI_ENV: development
-      MEILI_NO_ANALYTICS: "true"
-    ports: ["127.0.0.1:7700:7700"]
-    volumes:
-      - meili:/meili_data
 volumes:
   pgdata:
-  meili:

@@ -8,10 +8,10 @@ Nothing here is deployed. Everything runs on this machine and binds to `localhos
 
 ```bash
 colima start                      # or any Docker runtime
-docker compose up -d              # Postgres on 127.0.0.1:5433, Meilisearch on 127.0.0.1:7700
+docker compose up -d              # Postgres on 127.0.0.1:5433 (it also serves search)
 cd web && pnpm install
 pnpm load                         # merge data/research/*.json into Postgres, write data/gaps.md
-pnpm index                        # build the search index
+pnpm index                        # fill the search table (run db/migrations/220_search_docs.sql once first)
 pnpm build && pnpm start           # fast local server at http://localhost:3010 (rebuild after code changes)
 pnpm dev                          # slower, but reloads as you edit code
 ```

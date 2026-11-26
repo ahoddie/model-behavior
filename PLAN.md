@@ -61,7 +61,7 @@ Run it on this Mac with launchd, macOS's built-in scheduler. It costs nothing, a
 
 ## 4. Hosting, when you want it
 
-Recommended: **Vercel (free) for the site, plus Neon or Supabase (free Postgres)**. Keep importing and analysis on this Mac, writing to the hosted database. Search needs Meilisearch Cloud's free tier, or a switch to Postgres full-text search, which is easy here.
+Recommended: **Vercel (free) for the site, plus Neon or Supabase (free Postgres)**. Keep importing and analysis on this Mac, writing to the hosted database. Search now runs on Postgres full-text search (db/migrations/220), so it needs nothing extra. See docs/deploy.md.
 
 Alternative: **a $5/month VPS** (for example Hetzner) running the existing `docker-compose.yml`, with cron for updates. That's one box and everything works as it does locally, apart from the model, which still runs on the Mac. You'd handle security updates yourself.
 
