@@ -5,8 +5,8 @@
 <p align="center"><strong>AI policy influence, on the record.</strong></p>
 
 <p align="center">
-  Who funds AI policy in the U.S., who they fund, what they lobby on, and what they say,<br>
-  drawn as one connected map, with every line linked to its source.
+  Who is trying to shape U.S. AI policy from outside government, and how.<br>
+  Every gift, filing, and quote links to its source.
 </p>
 
 <p align="center">
@@ -19,6 +19,8 @@
 ## What you can do
 
 Model Behavior is a guide to U.S. AI policy and the people trying to shape it: frontier labs, investors, tech leaders, foundations, and think tanks. It traces the money they give, the lobbying they file, and the positions they take in public. It takes no sides: it shows what the record says and lets you draw the conclusions.
+
+It's meant to be read next to a view from inside Washington. Lawmakers, staff, and agencies write the policy. This is the outside view: who is pushing on that work from beyond the policy world, and which bills and rules they're aiming at. The Policy section doubles as a library of every public AI bill in Congress and the states, so you can go from an influence campaign straight to the legislation it targets.
 
 | | |
 |---|---|
