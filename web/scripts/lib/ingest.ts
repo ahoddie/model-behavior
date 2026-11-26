@@ -274,5 +274,5 @@ export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Tell the running site its cached record is stale. Silent if the site isn't running.
 export async function notifySite() {
-  try { await fetch("http://127.0.0.1:3000/api/revalidate", { method: "POST", signal: AbortSignal.timeout(3000) }); } catch { /* site not running */ }
+  try { await fetch("http://127.0.0.1:3010/api/revalidate", { method: "POST", signal: AbortSignal.timeout(3000) }); } catch { /* site not running */ }
 }

@@ -29,7 +29,7 @@ echo "$N $COUNT" > "$STATE"
 (( COUNT < 2 )) && exit 0
 
 log "idle for two checks; stopping site, Ollama and Colima"
-pkill -f "next start -H localhost -p 3000" 2>/dev/null
+pkill -f "next start -H localhost -p 3010" 2>/dev/null
 pkill -x ollama 2>/dev/null
 colima stop >> "$LOG" 2>&1
 rm -f "$STATE"
