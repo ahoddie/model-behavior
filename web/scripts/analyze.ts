@@ -7,7 +7,9 @@
 //   confidence - 0..1, how likely a careful human reader is to agree.
 // Results go to statement_labels, keyed by model + prompt version + a hash of the input, so re-runs only label what changed.
 // Nothing here is published as fact: the site labels these as machine-classified and links every one to its quote.
-// Usage: pnpm analyze [--model qwen2.5:7b-instruct] [--limit N] [--ids 1,2] [--redo]
+// Usage: pnpm analyze [--model qwen2.5:7b-instruct] [--limit N] [--ids 1,2] [--redo] [--budget-min M]
+// --budget-min (or ANALYZE_BUDGET_MIN): stop cleanly after M minutes; the rest is labeled next run. Used by the nightly
+// GitHub Actions job, where the model runs on the runner's CPU and is slower than on this Mac.
 import "./env.ts";
 import { createHash } from "node:crypto";
 import { pool, q } from "../src/lib/db.ts";
@@ -19,6 +21,7 @@ const OLLAMA = process.env.OLLAMA_HOST ?? "http://localhost:11434";
 const LIMIT = Number(arg("--limit") ?? 0);
 const REDO = process.argv.includes("--redo");
 const IDS = arg("--ids")?.split(",").map(Number);
+const BUDGET_MS = Number(arg("--budget-min") ?? process.env.ANALYZE_BUDGET_MIN ?? 0) * 60_000;
 export const PROMPT_VERSION = "v5";
 
 type Area = { id: string; label: string; description: string; positive: string };
@@ -115,6 +118,7 @@ console.log(`${MODEL}: ${rows.length} statements, ${todo.length} to label`);
 let n = 0, failed = 0;
 const t0 = Date.now();
 for (const r of todo) {
+  if (BUDGET_MS && Date.now() - t0 > BUDGET_MS) { console.log(`time budget reached; ${todo.length - n - failed} left for next run`); break; }
   const hash = createHash("sha256").update(`${promptHash}|${r.name}|${r.excerpt}`).digest("hex").slice(0, 16);
   try {
     const l = await label(r.name, r.excerpt);
