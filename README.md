@@ -12,7 +12,7 @@ docker compose up -d              # Postgres on 127.0.0.1:5433, Meilisearch on 1
 cd web && pnpm install
 pnpm load                         # merge data/research/*.json into Postgres, write data/gaps.md
 pnpm index                        # build the search index
-pnpm build && pnpm start           # fast local server at http://localhost:3000 (rebuild after code changes)
+pnpm build && pnpm start           # fast local server at http://localhost:3010 (rebuild after code changes)
 pnpm dev                          # slower, but reloads as you edit code
 ```
 
@@ -26,7 +26,7 @@ pnpm dev                          # slower, but reloads as you edit code
 | `pnpm archive` | Not run since 2026-11-16: look up or create a Wayback copy of every source URL and store it on each row |
 | `pnpm sources` | Fetch every source; re-check dead links, then delete rows whose source is gone and has no Wayback copy (logged as corrections); send quotes not found on their page back to review |
 
-Importer-found items arrive as **pending**. Approve, edit or reject them at http://localhost:3000/review (it opens only on localhost).
+Importer-found items arrive as **pending**. Approve, edit or reject them at http://localhost:3010/review (it opens only on localhost).
 
 Keys go in `web/.env.local` (see `web/.env.example`). All are optional; importers that need a missing key skip themselves.
 
