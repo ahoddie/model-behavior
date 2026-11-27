@@ -22,8 +22,34 @@ const SECTIONS: { id: string; label: string; title: string }[] = [
   { id: "trend", label: "Change over time", title: "How has that changed?" },
 ];
 
-const SIDES = [["support", "Supported"], ["mixed", "Mixed or conditional"], ["oppose", "Opposed"]] as const;
-const sideOf = (s: string) => (s === "support" ? "support" : s === "oppose" ? "oppose" : "mixed");
+// The positions section: a roll call on the two California bills and the two federal moves to override state AI laws.
+// One row per person or group on record for at least two of them, sorted into the two camps.
+const ROLL = [
+  { id: "ca-sb1047-2024", name: "SB 1047", sub: "2024, vetoed", side: 1 },
+  { id: "ca-sb53-2025", name: "SB 53", sub: "2025, signed", side: 1 },
+  { id: "us-ai-moratorium-2025", name: "Moratorium", sub: "2025, struck 99–1", side: -1 },
+  { id: "eo-14365", name: "EO 14365", sub: "2025, issued", side: -1 },
+] as const;
+const MARK = { s: "supported", o: "opposed", m: "had a mixed or conditional position on" } as const;
+type Mark = { k: keyof typeof MARK; url: string };
+type RollRow = { node: any; cells: (Mark | null)[] };
+function rollCall(stances: any[]) {
+  const rows = new Map<string, RollRow>();
+  ROLL.forEach((b, i) => {
+    for (const a of stances.find((t) => t.id === b.id)?.actors ?? []) {
+      const row = rows.get(a.id) ?? { node: { ...a, name: a.name.replace(/\s*\([^)]*\)\s*$/, "") }, cells: ROLL.map(() => null) };
+      row.cells[i] = { k: a.stance === "support" ? "s" : a.stance === "oppose" ? "o" : "m", url: a.url };
+      rows.set(a.id, row);
+    }
+  });
+  // For state AI rules: backed the California bills or fought the override, and not the reverse.
+  const lean = (r: RollRow, side: number) => r.cells.reduce((n, c, i) => n + (c && ROLL[i].side === side ? ({ s: 1, o: -1, m: 0 })[c.k] : 0), 0);
+  const camp = (r: RollRow) => { const ca = lean(r, 1), fed = lean(r, -1);
+    return (ca >= 0 && fed < 0) || (ca > 0 && fed <= 0) ? 0 : (ca <= 0 && fed > 0) || (ca < 0 && fed >= 0) ? 1 : -1; };
+  const multi = [...rows.values()].filter((r) => r.cells.filter(Boolean).length >= 2)
+    .sort((x, y) => y.cells.filter(Boolean).length - x.cells.filter(Boolean).length || x.node.name.localeCompare(y.node.name));
+  return [["For", multi.filter((r) => camp(r) === 0)], ["Against", multi.filter((r) => camp(r) === 1)]] as const;
+}
 
 // Built ahead of time from the cached record: a visit reads no request data and runs no query.
 // Old links to the map (/?focus=…, /?view=time) are redirected in next.config.ts.
@@ -31,8 +57,6 @@ const sideOf = (s: string) => (s === "support" ? "support" : s === "oppose" ? "o
 // then by how many took a side. The full list is on Statements.
 const CONTESTED = 4;
 const PREVIEW = 3;
-// The positions section: the first few names per side, then "and N more".
-const SHOW = 6;
 function TallySide({ side, actors }: { side: "agree" | "disagree"; actors: IssueActor[] }) {
   const n = actors.length, verb = side === "agree" ? (n === 1 ? "agrees" : "agree") : (n === 1 ? "disagrees" : "disagree");
   const li = (a: IssueActor) => <li key={a.id}><Link href={`/node/${a.id}`}>{a.name}</Link></li>;
@@ -56,6 +80,7 @@ export default async function Home() {
     .sort((x, y) => Math.min(y.agree.length, y.disagree.length) - Math.min(x.agree.length, x.disagree.length)
       || (y.agree.length + y.disagree.length) - (x.agree.length + x.disagree.length))
     .slice(0, CONTESTED);
+  const roll = rollCall(stances);
   const most = Math.max(1, ...contested.flatMap((i) => [i.agree.length, i.disagree.length]));
 
   return (
@@ -92,34 +117,27 @@ export default async function Home() {
 
       <section id="stances" className="home-sec">
         <div className="sec-head"><h2>Where do they stand?</h2><CiteButton kind="page" title="Where do they stand?" path="/#stances" asOf={asOf} /></div>
-        <p className="sec-lede">
-          See the bills, orders, and rules with the most public positions and open any name to reach its source.
-        </p>
+        <p className="sec-lede">See who lines up with whom on state AI rules.</p>
         <PageCard href="/targets" />
-        {stances.slice(0, 4).map((t: any) => (
-          <article key={t.id} className="stance">
-            <h3><Link href={`/node/${t.id}`}>{t.name}</Link></h3>
-            {t.descriptor && <p className="note">{t.descriptor}</p>}
-            {(() => {
-              const sides = SIDES.map(([side, label]) => ({ side, label, who: t.actors.filter((a: any) => sideOf(a.stance) === side) })).filter((x) => x.who.length);
-              return (
-                <div className="stance-cols" style={{ ["--n" as any]: sides.length }}>
-                  {sides.map(({ side, label, who }) => (
-                    <div key={side} className={`stance-side ${side}`}>
-                      <h4>{label} <span className="muted">{who.length}</span></h4>
-                      <ul>{who.slice(0, SHOW).map((a: any) => (
-                        <li key={a.id}><Named node={a}><Link href={`/node/${a.id}`}>{a.name}</Link></Named>
-                          <a className="stance-src" href={a.url} target="_blank" rel="noreferrer" title={sourceName(a.url)} aria-label={`Source: ${sourceName(a.url)}`}>
-                            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden><path d="M3 1.5h5.5V7M8.5 1.5 1.5 8.5" fill="none" stroke="currentColor" strokeWidth="1.3" /></svg>
-                          </a></li>
-                      ))}{who.length > SHOW && <li className="who-rest"><Link href={`/node/${t.id}`}>and {who.length - SHOW} more</Link></li>}</ul>
-                    </div>
-                  ))}
+        <div className="roll" role="table" aria-label="Positions on four AI bills and orders">
+          <div className="roll-row roll-head" role="row">
+            <div className="roll-key" role="columnheader"><span><i className="mark s" />Supported</span><span><i className="mark o" />Opposed</span><span><i className="mark m" />Mixed</span></div>
+            {ROLL.map((b) => <div key={b.id} className="roll-col" role="columnheader"><Link href={`/node/${b.id}`} title={b.sub}>{b.name === "Moratorium" ? "Mora\u00ADtorium" : b.name}</Link></div>)}
+          </div>
+          {roll.map(([label, rows], g) => rows.length > 0 && (
+            <div key={label} role="rowgroup">
+              <div className={`roll-group g${g}`} role="row"><span role="rowheader">{label} state AI rules</span></div>
+              {rows.map((r) => (
+                <div key={r.node.id} className="roll-row" role="row">
+                  <div className="roll-name" role="rowheader"><Named node={r.node}><Link href={`/node/${r.node.id}`}>{r.node.name}</Link></Named></div>
+                  {r.cells.map((c, i) => <div key={ROLL[i].id} className="roll-cell" role="cell">{c
+                    ? <a className={`mark ${c.k}`} href={c.url} target="_blank" rel="noreferrer" title={`${r.node.name} ${MARK[c.k]} ${ROLL[i].name}. Source: ${sourceName(c.url)}`} aria-label={`${r.node.name} ${MARK[c.k]} ${ROLL[i].name}. Open the source.`} />
+                    : <span className="mark none" aria-label="No position" />}</div>)}
                 </div>
-              );
-            })()}
-          </article>
-        ))}
+              ))}
+            </div>
+          ))}
+        </div>
       </section>
 
       <section id="words" className="home-sec">
