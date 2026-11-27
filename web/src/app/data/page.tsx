@@ -30,7 +30,7 @@ async function Sections({ sp }: { sp: PageProps<"/data">["searchParams"] }) {
       </nav>
 
       {view === "download" && <>
-        <p className="lede">Every table, with each row&apos;s source URL, and an archive copy where one was saved.</p>
+        <p className="lede">Download every table with each row&apos;s source URL and an archive copy wherever one was saved.</p>
         <table className="data-table"><thead><tr><th>Table</th><th className="num">Rows</th><th>Files</th></tr></thead><tbody>
           {(["nodes", "links", "feed_items", "filings", "facts"] as const).map((t) => (
             <tr key={t}><td className="mono">{t}</td><td className="num">{counts[t].toLocaleString()}</td>

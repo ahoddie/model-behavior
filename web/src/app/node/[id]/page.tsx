@@ -152,7 +152,7 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
           </section>}
           {lobbyIssues.length > 0 && <section>
             <h2>Lobbying by issue</h2>
-            <p className="note">Issues named in {p.node.name}&apos;s federal lobbying reports and grants, in the filed words. Filings list topics, not positions; amounts are per filing. <TabLink href={href("money")}>All filings</TabLink>.</p>
+            <p className="note">Read the issues named in {p.node.name}&apos;s federal lobbying reports and grants in the filed words as topics rather than positions with amounts given per filing, or see <TabLink href={href("money")}>all filings</TabLink>.</p>
             <ul className="lobby-issues">{lobbyIssues.map((i) => (
               <li key={i.id}>
                 <details>
@@ -191,7 +191,7 @@ async function Tabs({ sp: spP, id }: { sp: PageProps<"/node/[id]">["searchParams
           </section>}
           {p.recommended.length > 0 && <section>
             <h2>Grants it recommended</h2>
-            <p className="note">Grants {p.node.name} recommended that another funder paid. They are counted once, under the funder that paid, and are not in {p.node.name}&apos;s totals.</p>
+            <p className="note">See the grants {p.node.name} recommended and another funder paid, each counted once under the funder that paid and kept out of {p.node.name}&apos;s totals.</p>
             <ul className="record">{p.recommended.map((r: any) => (
               <li key={r.id}><div className="when">{fmtDate(r.date_start) || "Undated"}</div>
                 <div><p>Recommended {dollars(r.amount)} to <Link href={`/node/${r.other_id}`}>{r.other_name}</Link>, paid by <Link href={`/node/${r.payer_id}`}>{r.payer_name}</Link>.<Src url={r.source_url} /></p>

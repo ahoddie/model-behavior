@@ -41,7 +41,7 @@ export default async function Money(props: PageProps<"/money">) {
   return (
     <div className="page wide">
       <h1>Nodes</h1>
-      <p className="lede">Pick a giver to see the spending and contributions on record, step by step.</p>
+      <p className="lede">Pick a giver to follow its spending and contributions on record step by step.</p>
       <Suspense fallback={<p className="mono muted" role="status">Loading the record…</p>}>
         <Trace sp={props.searchParams} />
       </Suspense>
@@ -65,7 +65,7 @@ async function Trace({ sp: spP }: { sp: PageProps<"/money">["searchParams"] }) {
       {start && !isUndisclosed(start) ? <ActorSummary id={start} /> : null}
       {flows.length === 0 ? <p className="muted">No sourced money leaves this starting point.</p> : <>
         <MoneyFlow start={start!} flows={flows} />
-        <p className="muted">Later steps show everything the next committee spent, not only {name}&apos;s share of it. Money is fungible inside a committee; the filings don&apos;t say whose dollar paid for which ad.</p>
+        <p className="muted">Read later steps as everything the next committee spent, which runs past {name}&apos;s share because money mixes inside a committee and the filings leave open whose dollar paid for which ad.</p>
       </>}
     </>
   );

@@ -83,7 +83,7 @@ export default async function Home() {
       <section id="money" className="home-sec">
         <div className="sec-head"><h2>Where is the money going?</h2><CiteButton kind="page" title="Where is the money going?" path="/#money" asOf={asOf} /></div>
         <p className="sec-lede">
-          {fmtMoney(counts.direct)} given directly to candidates, PACs, parties, and advocacy groups. Lobbying is separate: {counts.filings.toLocaleString()} filings.
+          Follow {fmtMoney(counts.direct)} in direct giving to candidates, PACs, parties, and advocacy groups and track {counts.filings.toLocaleString()} lobbying filings separately.
         </p>
         <PageCard href="/money" />
         <figure className="chart">
@@ -105,7 +105,7 @@ export default async function Home() {
       <section id="stances" className="home-sec">
         <div className="sec-head"><h2>Where do they stand?</h2><CiteButton kind="page" title="Where do they stand?" path="/#stances" asOf={asOf} /></div>
         <p className="sec-lede">
-          The bills, orders, and rules with the most public positions. Each name links to its source.
+          See the bills, orders, and rules with the most public positions and open any name to reach its source.
         </p>
         <PageCard href="/targets" />
         {stances.slice(0, 4).map((t: any) => (
@@ -136,7 +136,7 @@ export default async function Home() {
 
       <section id="words" className="home-sec">
         <div className="sec-head"><h2>What are they saying?</h2><CiteButton kind="page" title="What are they saying?" path="/#words" asOf={asOf} /></div>
-        <p className="sec-lede">The latest public statements, word for word.</p>
+        <p className="sec-lede">Read the latest public statements word for word.</p>
         <PageCard href="/statements" />
         <ul className="record">{quotes.slice(0, 6).map((f: any) => (
           <li key={f.id}><div className="when">{fmtDate(f.date)}</div>
@@ -148,8 +148,7 @@ export default async function Home() {
       {analysis && <section id="issues" className="home-sec">
         <div className="sec-head"><h2>What do they care about?</h2><CiteButton kind="page" title="What do they care about?" path="/#issues" asOf={asOf} /></div>
         <p className="sec-lede">
-          {analysis.meta.used.toLocaleString()} quotes, sorted by issue and by whether the speaker agrees.
-          {" "}<Link href="/data?view=methodology#analysis">How this works</Link>.
+          Browse {analysis.meta.used.toLocaleString()} quotes sorted by issue and by whether each speaker agrees and see <Link href="/data?view=methodology#analysis">how the sorting works</Link>.
         </p>
         <div className="grid2 chart-pair">
           <figure className="chart">
@@ -202,7 +201,7 @@ export default async function Home() {
       <section id="trend" className="home-sec">
         <div className="sec-head"><h2>How has that changed?</h2><CiteButton kind="page" title="How has that changed?" path="/#trend" asOf={asOf} /></div>
         <p className="sec-lede">
-          Public positions on bills and rules, by year. Later years have more coverage.
+          Watch public positions on bills and rules change year by year with fuller coverage in later years.
         </p>
         <div className="legend-row">
           <span><i className="sw sw-support" aria-hidden /> Supported</span>

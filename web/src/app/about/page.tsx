@@ -7,8 +7,8 @@ export default function About() {
     <div className="page about">
       <h1>About</h1>
       <p>
-        Model Behavior traces how frontier AI labs, investors, tech leaders, and think tanks shape U.S. AI policy: who funds
-        whom, who works where, what they say in public, and which bills, rules, and races they weigh in on.
+        Trace how frontier AI labs, investors, tech leaders, and think tanks shape U.S. AI policy through who funds whom, who
+        works where, what they say in public, and which bills, rules, and races they weigh in on.
       </p>
       <p>
         It was inspired by <a href="https://dconai.org">DConAI.org</a>, which scores how each member of Congress talks about

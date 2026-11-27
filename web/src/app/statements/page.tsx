@@ -61,7 +61,7 @@ export default async function Topics() {
       <SectionNav items={topics.map((t) => ({ id: t.id, label: t.label }))} label="Statements" />
       <div className="home-main page">
         <h1>Statements</h1>
-        <p className="lede">Each statement below is a live question in US AI policy. Under it are people and groups who have taken a side, each with a quote and a link to where they said it. Most never repeat the statement word for word, so many quotes are read as implying a side. Open a name to see the quote and judge for yourself.</p>
+        <p className="lede">Open any name under these live questions in US AI policy to read the quote and source behind its side and judge for yourself, since most quotes imply a side rather than repeat the statement.</p>
         {topics.map((t) => (
           <section key={t.id} id={t.id} className="topic">
             <h2>{t.positive}</h2>

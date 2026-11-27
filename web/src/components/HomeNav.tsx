@@ -84,10 +84,10 @@ function StatementsMock() {
 }
 
 const PAGES = [
-  { href: "/map", name: "Network", note: "The money behind AI policy drawn as one connected map", Mock: NetworkMock, wide: true },
+  { href: "/map", name: "Network", note: "Explore the money behind AI policy drawn as one connected map", Mock: NetworkMock, wide: true },
   { href: "/money", name: "Nodes", note: "Pick any giver and follow each dollar to where it lands", Mock: NodesMock },
-  { href: "/targets", name: "Policy", note: "AI bills and rules in play plus the races that drew the money", Mock: PolicyMock },
-  { href: "/statements", name: "Statements", note: "Where leaders stand on AI's open questions in their own words", Mock: StatementsMock },
+  { href: "/targets", name: "Policy", note: "Browse the AI bills and rules in play and the races that drew the money", Mock: PolicyMock },
+  { href: "/statements", name: "Statements", note: "Read where leaders stand on AI's open questions in their own words", Mock: StatementsMock },
 ];
 
 // The same box, laid flat, at the top of a homepage section: the drawing on the left, the page's name and note beside it.
@@ -111,7 +111,7 @@ export function PageCard({ href }: { href: string }) {
 export default function HomeNav() {
   return (
     <nav className="hn" aria-labelledby="hn-head">
-      <h2 id="hn-head" className="hn-head">Scroll for an overview, or go straight to a page:</h2>
+      <h2 id="hn-head" className="hn-head">Scroll for an overview or go straight to a page:</h2>
       <ul className="hn-row">{PAGES.map(({ href, name, note, Mock, wide }) => (
         <li key={href} className={`hn-card${wide ? " hn-wide" : ""}`}>
           <Link href={href}>

@@ -122,7 +122,7 @@ export default function RaceView({ t }: { t: any }) {
       {rows.length > 0 && (
         <section className="race-block" aria-labelledby="race-outside">
           <h2 id="race-outside">Outside spending by AI-focused groups</h2>
-          <p className="race-note">Independent expenditures reported to the FEC by super PACs in this dataset{pacs ? <>, through filings available {pacs.asOf} <Src url={pacs.url} /></> : null}. Each segment is one group.</p>
+          <p className="race-note">Compare the independent expenditures that super PACs in this dataset reported to the FEC{pacs ? <> through filings available {pacs.asOf} <Src url={pacs.url} /></> : null} and read each segment as one group.</p>
           <div className="race-legend" aria-hidden>
             <span><i className="sw sw-oppose" />In opposition</span>
             <span><i className="sw sw-support" />In support</span>
@@ -166,7 +166,7 @@ export default function RaceView({ t }: { t: any }) {
       {cands.length > 0 && (
         <section className="race-block" aria-labelledby="race-cands">
           <h2 id="race-cands">Candidates</h2>
-          <p className="race-note">Campaign totals each candidate reported to the FEC, through the date shown.</p>
+          <p className="race-note">Compare the campaign totals each candidate reported to the FEC through the date shown.</p>
           <div className="race-table-wrap">
             <table className="data-table race-cands">
               <thead><tr><th>Candidate</th><th className="num">Raised</th><th className="num">Spent</th><th className="num">Cash on hand</th></tr></thead>

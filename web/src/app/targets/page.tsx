@@ -82,7 +82,7 @@ export default async function Targets({ searchParams }: PageProps<"/targets">) {
   return (
     <div className="page pol-page">
       <h1>Policy</h1>
-      <p className="lede">The bills, rules, elections, and agencies that the money, lobbying, and positions reach.</p>
+      <p className="lede">Browse the bills, rules, elections, and agencies that the money, lobbying, and positions reach.</p>
       <Suspense fallback={<p className="mono muted" role="status">Loading the record…</p>}>
         <Listing sp={searchParams} />
       </Suspense>
