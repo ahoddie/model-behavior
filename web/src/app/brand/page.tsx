@@ -92,7 +92,7 @@ export default function Brand() {
       </div>
       <div className="bk-type">
         <p className="bk-cap">Literata. Everything else: body text, labels, tables, and navigation.</p>
-        <p className="bk-body">Every fact, quote, and amount links to its public source. Numbers are set in tabular figures so columns line up: $1,250,000.</p>
+        <p className="bk-body">Numbers are set in tabular figures so columns line up: $1,250,000.</p>
       </div>
 
       <h2>Voice</h2>

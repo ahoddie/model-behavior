@@ -1,7 +1,6 @@
 import Link from "@/components/Link";
-import { getHome, getAnalysis, getLobbyingByIssue, getTopics, getIssueActors, getIssueQuotes, type IssueActor } from "@/lib/data";
-import StanceBar from "@/components/StanceBar";
-import { fmtMoney, fmtDate, TYPE_LABEL } from "@/lib/format";
+import { getHome, getAnalysis, getIssueActors, type IssueActor } from "@/lib/data";
+import { fmtMoney, fmtDate } from "@/lib/format";
 import Src from "@/components/Src";
 import Skyline from "@/components/Skyline";
 import TitleCode from "@/components/TitleCode";
@@ -10,7 +9,6 @@ import CiteButton from "@/components/CiteButton";
 import { Named } from "@/components/ProfileHead";
 import RankChart from "@/components/RankChart";
 import TrendChart from "@/components/TrendChart";
-import TalkChart, { type TalkIssue, type ActorTopic } from "@/components/TalkChart";
 import { sourceName } from "@/lib/format";
 import HomeNav, { PageCard } from "@/components/HomeNav";
 
@@ -29,46 +27,34 @@ const sideOf = (s: string) => (s === "support" ? "support" : s === "oppose" ? "o
 
 // Built ahead of time from the cached record: a visit reads no request data and runs no query.
 // Old links to the map (/?focus=…, /?view=time) are redirected in next.config.ts.
-// Who agrees and who disagrees with a statement, most statements first; the first few of each side, then "and N more".
-const SHOW = 6;
-function Side({ label, side, actors, more }: { label: string; side: string; actors: IssueActor[]; more?: string }) {
-  if (!actors.length) return null;
+// The homepage shows only the most contested issues: both sides have someone on record, ranked by the smaller side,
+// then by how many took a side. The full list is on Statements.
+const CONTESTED = 4;
+const PREVIEW = 3;
+function TallySide({ side, actors }: { side: "agree" | "disagree"; actors: IssueActor[] }) {
+  const n = actors.length, verb = side === "agree" ? (n === 1 ? "agrees" : "agree") : (n === 1 ? "disagrees" : "disagree");
+  const li = (a: IssueActor) => <li key={a.id}><Link href={`/node/${a.id}`}>{a.name}</Link></li>;
   return (
-    <div className={`who-side ${side}`}>
-      <span className="who-label">{label} <span className="muted">{actors.length}</span></span>
-      <ul>{actors.slice(0, SHOW).map((a) => (
-        <li key={a.id}><Named node={a} size={18}><Link href={`/node/${a.id}`}>{a.name}</Link></Named></li>
-      ))}{actors.length > SHOW && <li className="who-rest">{more ? <Link href={more}>and {actors.length - SHOW} more</Link> : <>and {actors.length - SHOW} more</>}</li>}</ul>
-    </div>
-  );
-}
-function Who({ sides, topicId }: { sides?: { agree: IssueActor[]; disagree: IssueActor[] }; topicId?: string }) {
-  if (!sides || !(sides.agree.length + sides.disagree.length)) return null;
-  return (
-    <div className="who">
-      <Side label="Agree" side="support" actors={sides.agree} more={topicId && `/statements#${topicId}`} />
-      <Side label="Disagree" side="oppose" actors={sides.disagree} more={topicId && `/statements#${topicId}`} />
-      {topicId && <Link className="who-more" href={`/statements#${topicId}`}>Read their quotes</Link>}
+    <div className={`tally-side ${side}`}>
+      <div className="tally-n">{side === "agree" ? <>{n}<small>{verb}</small></> : <><small>{verb}</small>{n}</>}</div>
+      <ul className="tally-who">{actors.slice(0, PREVIEW).map(li)}</ul>
+      {n > PREVIEW && <details className="tally-more">
+        <summary><span className="open">Show {n - PREVIEW} more ↓</span><span className="close">Show fewer ↑</span></summary>
+        <ul className="tally-who">{actors.slice(PREVIEW).map(li)}</ul>
+      </details>}
     </div>
   );
 }
 
 export default async function Home() {
-  const [{ counts, givers, recipients, stances, byYear, quotes, talkers, today }, analysis, lobbying, topics, who, issueQuotes] = await Promise.all([getHome(), getAnalysis(), getLobbyingByIssue(), getTopics(), getIssueActors(), getIssueQuotes()]);
+  const [{ counts, givers, recipients, stances, byYear, quotes, today }, analysis, who] = await Promise.all([getHome(), getAnalysis(), getIssueActors()]);
   const asOf = fmtDate(today);
-  // The chart of who talks most about each statement: the 15 actors with the most sided statements, most-discussed issue first.
-  const talk: TalkIssue[] = (analysis?.issues ?? []).map((i) => ({
-    id: i.id, label: i.label, positive: i.positive, topicId: topics.find((t) => t.issue_id === i.id && t.confirmed > 0)?.id,
-    actors: [...(who[i.id]?.agree ?? []).map((a) => ({ ...a, agree: true })), ...(who[i.id]?.disagree ?? []).map((a) => ({ ...a, agree: false }))]
-      .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name)).slice(0, 15)
-      .map((a) => ({ id: a.id, name: a.name, kind: TYPE_LABEL[a.type] ?? a.type, n: a.n, agree: a.agree })),
-  })).filter((i) => i.actors.length >= 3);
-  // For the breakdown under a bar: each charted actor's sided statements per issue, most first.
-  const charted = new Set([...talkers.map((a: any) => a.id), ...talk.flatMap((i) => i.actors.map((a) => a.id))]);
-  const byActor: Record<string, ActorTopic[]> = {};
-  for (const i of analysis?.issues ?? []) for (const [side, agree] of [["agree", true], ["disagree", false]] as const)
-    for (const a of who[i.id]?.[side] ?? []) if (charted.has(a.id)) (byActor[a.id] ??= []).push({ id: i.id, label: i.label, n: a.n, agree });
-  for (const k in byActor) byActor[k].sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
+  const contested = (analysis?.issues ?? []).map((i) => ({ ...i, agree: who[i.id]?.agree ?? [], disagree: who[i.id]?.disagree ?? [] }))
+    .filter((i) => i.agree.length && i.disagree.length)
+    .sort((x, y) => Math.min(y.agree.length, y.disagree.length) - Math.min(x.agree.length, x.disagree.length)
+      || (y.agree.length + y.disagree.length) - (x.agree.length + x.disagree.length))
+    .slice(0, CONTESTED);
+  const most = Math.max(1, ...contested.flatMap((i) => [i.agree.length, i.disagree.length]));
 
   return (
     <div className="home">
@@ -147,55 +133,21 @@ export default async function Home() {
 
       {analysis && <section id="issues" className="home-sec">
         <div className="sec-head"><h2>What do they care about?</h2><CiteButton kind="page" title="What do they care about?" path="/#issues" asOf={asOf} /></div>
-        <p className="sec-lede">
-          Browse {analysis.meta.used.toLocaleString()} quotes sorted by issue and by whether each speaker agrees and see <Link href="/data?view=methodology#analysis">how the sorting works</Link>.
-        </p>
-        <div className="grid2 chart-pair">
-          <figure className="chart">
-            <figcaption className="chart-head"><h3>Statements by issue</h3></figcaption>
-            <RankChart label="Policy issues, by number of public statements" unit="statements"
-              rows={analysis.issues.filter((i) => i.statements > 0).map((i) => ({ id: i.id, name: i.label, value: i.statements, label: i.label }))} />
-          </figure>
-          <figure className="chart">
-            <figcaption className="chart-head"><h3>Lobbying filings by issue</h3></figcaption>
-            <RankChart label="Policy issues, by number of lobbying filings that name them" unit="filings"
-              rows={analysis.issues.filter((i) => lobbying[i.id]).map((i) => ({ id: i.id, name: i.label, value: lobbying[i.id].filings, label: i.label }))
-                .sort((a, b) => b.value - a.value)} />
-          </figure>
-        </div>
-        <TalkChart issues={talk} byActor={byActor} all={talkers.map((a: any) => ({ id: a.id, name: a.name, kind: TYPE_LABEL[a.type] ?? a.type, n: a.n,
-          rest: { neutral: a.neutral, off: a.off_issue, unsure: a.unsure, unsorted: a.unsorted } }))} />
-        <ul className="issues">{analysis.issues.filter((i) => i.statements > 0).map((i) => (
+        <p className="sec-lede">See the fights where people and groups on record actually split.</p>
+        <PageCard href="/statements" />
+        <div className="tally-key" aria-hidden><span className="disagree">← Disagree</span><span className="agree">Agree →</span></div>
+        <ol className="tallies">{contested.map((i) => (
           <li key={i.id}>
-            <div className="iss-head">
-              <h3>{i.positive}</h3>
-              <StanceBar value={i.avg} />
+            <h3>{i.label}</h3>
+            <p className="tally-q">{i.positive}</p>
+            <div className="tally-bar" role="img" aria-label={`${i.disagree.length} disagree, ${i.agree.length} agree`}>
+              <span className="half disagree"><span style={{ width: `${(i.disagree.length / most) * 100}%` }} /></span>
+              <span className="axis" />
+              <span className="half agree"><span style={{ width: `${(i.agree.length / most) * 100}%` }} /></span>
             </div>
-            <Who sides={who[i.id]} topicId={topics.find((t) => t.issue_id === i.id && t.confirmed > 0)?.id} />
-            {(issueQuotes[i.id]?.agree || issueQuotes[i.id]?.disagree) && <div className="iss-quotes">
-              {(["agree", "disagree"] as const).map((side) => { const qt = issueQuotes[i.id]?.[side]; return qt && (
-                <blockquote key={side} className={`iss-quote ${side === "agree" ? "support" : "oppose"}`}>
-                  <p className="q">“{qt.excerpt}”<Src url={qt.url} /></p>
-                  <p className="note"><Named node={{ name: qt.name, type: qt.type, logo_url: qt.logo_url }} size={16}><Link href={`/node/${qt.node_id}`}>{qt.name}</Link></Named> · {side === "agree" ? "agrees" : "disagrees"} · {fmtDate(qt.date)}</p>
-                </blockquote>); })}
-            </div>}
-            <p className="iss-facts note">
-              From {i.statements} {i.statements === 1 ? "statement" : "statements"} by {i.actors} {i.actors === 1 ? "speaker" : "speakers"}: {i.plus} agree, {i.minus} disagree, {i.neutral} neutral.
-              {i.money > 0 && <> {fmtMoney(i.money)} went to groups that speak on it, mostly from {i.money_givers.map((g, k) => <span key={g.id}>{k > 0 && (k === i.money_givers.length - 1 ? (i.money_givers.length > 2 ? ", and " : " and ") : ", ")}<Link href={`/node/${g.id}`}>{g.name}</Link></span>)}.</>}
-              {lobbying[i.id] && <> {lobbying[i.id].filings.toLocaleString()} lobbying {lobbying[i.id].filings === 1 ? "filing" : "filings"} from {lobbying[i.id].actors} {lobbying[i.id].actors === 1 ? "group" : "groups"} name it.</>}
-            </p>
+            <div className="tally-sides"><TallySide side="disagree" actors={i.disagree} /><TallySide side="agree" actors={i.agree} /></div>
           </li>
-        ))}</ul>
-        {(() => {
-          const quiet = analysis.issues.filter((i) => i.statements === 0 && lobbying[i.id]).sort((a, b) => lobbying[b.id].filings - lobbying[a.id].filings);
-          return quiet.length > 0 && <div className="iss-quiet">
-            <h3>Lobbied on, with no public statements on file yet</h3>
-            <ul>{quiet.map((i) => <li key={i.id}><strong>{i.label}</strong> <span className="muted">{lobbying[i.id].filings.toLocaleString()} {lobbying[i.id].filings === 1 ? "filing" : "filings"} from {lobbying[i.id].actors} {lobbying[i.id].actors === 1 ? "group" : "groups"}</span></li>)}</ul>
-          </div>;
-        })()}
-        <p className="note">
-          {fmtMoney(analysis.cover.assigned)} of {fmtMoney(analysis.cover.total)} in direct giving went to groups with enough statements to place by issue. Most of the rest went to candidates and parties.
-        </p>
+        ))}</ol>
       </section>}
 
       <section id="trend" className="home-sec">
