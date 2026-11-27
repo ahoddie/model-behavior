@@ -31,6 +31,8 @@ const sideOf = (s: string) => (s === "support" ? "support" : s === "oppose" ? "o
 // then by how many took a side. The full list is on Statements.
 const CONTESTED = 4;
 const PREVIEW = 3;
+// The positions section: the first few names per side, then "and N more".
+const SHOW = 6;
 function TallySide({ side, actors }: { side: "agree" | "disagree"; actors: IssueActor[] }) {
   const n = actors.length, verb = side === "agree" ? (n === 1 ? "agrees" : "agree") : (n === 1 ? "disagrees" : "disagree");
   const li = (a: IssueActor) => <li key={a.id}><Link href={`/node/${a.id}`}>{a.name}</Link></li>;
