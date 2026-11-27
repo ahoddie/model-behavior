@@ -5,8 +5,8 @@
 <p align="center"><strong>AI policy influence, on the record.</strong></p>
 
 <p align="center">
-  Who is trying to shape U.S. AI policy from outside government, and how.<br>
-  Every gift, filing, and quote links to its source.
+  Who is shaping U.S. AI policy from outside government.<br>
+  Everything links back to its source.
 </p>
 
 <p align="center">
