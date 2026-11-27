@@ -642,6 +642,18 @@ button.linkish { color: var(--carbon); font-weight: 500; }
 @media (max-width: 600px) { .iss-head { grid-template-columns: 1fr; gap: var(--s2); } .iss-head .stancebar { flex-wrap: wrap; gap: 4px 12px; } }
 .iss-head h3 { margin: 0; }
 .issues .note { font-size: 15px; color: var(--muted); margin: 4px 0 0; }
+.iss-facts { font-size: 14px; color: var(--muted); margin: var(--s2) 0 0; max-width: none; }
+/* One quote from each side under an issue, side by side; the rule on the left takes the side's color. */
+.iss-quotes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--s3); margin: var(--s3) 0 0; }
+.iss-quote { margin: 0; padding: 2px 0 2px var(--s3); border-left: 3px solid var(--carbon); }
+.iss-quote.oppose { border-left-color: var(--money); }
+.iss-quote .q { font-size: 16px; line-height: 1.45; margin: 0; }
+.issues .iss-quote .note { font-size: 13px; margin: 4px 0 0; }
+/* Issues lobbied on with no statements yet: a compact list after the issues. */
+.iss-quiet { border-top: 1px solid var(--rule); padding: var(--s4) 0 0; }
+.iss-quiet h3 { font-size: 16px; margin: 0 0 var(--s2); }
+.iss-quiet ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); }
+.iss-quiet li { font-size: 15px; }
 .stancebar { display: inline-flex; align-items: center; gap: 12px; white-space: nowrap; }
 @media (max-width: 900px) { .iss-head { grid-template-columns: 1fr; gap: var(--s2); } }
 .sb-word { font-weight: 700; font-size: 15px; }
@@ -870,7 +882,18 @@ img.mark { background: var(--logo-bg); }
 
 /* Home, "What they care about": who agrees and who disagrees under each statement */
 /* Who agrees and who disagrees: two columns side by side, names in an aligned grid under a colored rule. */
+.who { margin: var(--s3) 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3) var(--s6); font-size: 15px; align-items: start; }
+.who-label { display: block; font-weight: 700; font-size: 14px; padding-bottom: 5px; margin-bottom: 8px; border-bottom: 2px solid var(--rule); }
+.who-label .muted { font-weight: 400; margin-left: 4px; }
+.who-side.support .who-label { border-bottom-color: var(--carbon); }
+.who-side.oppose .who-label { border-bottom-color: var(--money); }
+.who ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px var(--s4); line-height: 1.25; }
+.who .named { align-items: flex-start; }
 .who-rest { align-self: center; font-size: 14px; color: var(--muted); }
+.who-more { grid-column: 1 / -1; font-size: 14px; justify-self: start; }
+@media (max-width: 700px) { .who { grid-template-columns: 1fr; } }
+@media (max-width: 420px) { .who ul { grid-template-columns: 1fr; } }
+.issues .who li { border: 0; padding: 0; }
 /* /topics: the name opens that person's quotes; the profile link sits under them */
 .topic-name { color: var(--link, var(--carbon)); }
 .topic-col details[open] .topic-name { font-weight: 700; }
@@ -1341,32 +1364,3 @@ html.theme-vt::view-transition-new(root) { animation: mo-wipe 480ms var(--ease-i
 
 /* Statements: keep "1 quote" on one line with the end of the name instead of breaking after the number. */
 .topic-count { white-space: nowrap; }
-
-/* Home, policy priorities: the most contested issues, each a bar split at a center rule. Disagree runs left, agree right. */
-.tally-key { display: flex; justify-content: space-between; font-family: var(--f-display); font-stretch: 75%; font-weight: 700; font-size: 13px;
-  text-transform: uppercase; letter-spacing: .04em; padding-bottom: var(--s2); border-bottom: 1px solid var(--ink); margin-top: var(--s5); }
-.tally-key .disagree { color: var(--money); } .tally-key .agree { color: var(--carbon); }
-.tallies { list-style: none; margin: 0; padding: 0; }
-.tallies > li { padding: var(--s5) 0 var(--s4); border-bottom: 1px solid var(--rule); }
-.tallies h3 { margin: 0; text-align: center; line-height: 1.2; }
-.tally-q { margin: 3px auto var(--s3); font-size: 14.5px; color: var(--muted); text-align: center; max-width: 52ch; }
-.tally-bar { display: grid; grid-template-columns: minmax(0, 1fr) 2px minmax(0, 1fr); align-items: center; }
-.tally-bar .axis { height: 44px; background: var(--ink); }
-.tally-bar .half { display: flex; height: 30px; background: var(--panel); }
-.tally-bar .half.disagree { justify-content: flex-end; }
-.tally-bar .half > span { height: 100%; }
-.tally-bar .disagree > span { background: var(--money); } .tally-bar .agree > span { background: var(--carbon); }
-.tally-sides { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; margin-top: 10px; }
-.tally-side.disagree { text-align: right; }
-.tally-n { font-family: var(--f-display); font-stretch: 75%; font-weight: 800; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
-.tally-side.disagree .tally-n { color: var(--money); } .tally-side.agree .tally-n { color: var(--carbon); }
-.tally-n small { font-family: var(--f-body); font-stretch: 100%; font-weight: 400; font-size: 13.5px; color: var(--muted); margin: 0 6px; }
-.tally-who { list-style: none; margin: var(--s2) 0 0; padding: 0; font-size: 14.5px; line-height: 1.45; }
-.tally-more summary { list-style: none; cursor: pointer; display: inline-block; min-height: 28px; margin-top: 4px; font-size: 13.5px; color: var(--muted); }
-.tally-more summary::-webkit-details-marker { display: none; }
-.tally-more summary:hover { color: var(--ink); }
-.tally-more[open] summary .open, .tally-more:not([open]) summary .close { display: none; }
-@media (max-width: 560px) {
-  .tallies h3, .tally-q { text-align: left; } .tally-q { margin-left: 0; }
-  .tally-sides { gap: 14px; } .tally-n { font-size: 26px; } .tally-n small { display: block; margin: 4px 0 0; } .tally-who { font-size: 13.5px; }
-}

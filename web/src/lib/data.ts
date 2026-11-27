@@ -267,9 +267,20 @@ export async function getHome() {
     FROM feed_items fi JOIN nodes n ON n.id=fi.node_id LEFT JOIN nodes t ON t.id=fi.target_id
     WHERE fi.status='approved' AND fi.excerpt IS NOT NULL AND fi.kind NOT IN ('donation','policy change','filing') AND n.type NOT IN ('lawmaker','agency') AND fi.date IS NOT NULL
     ORDER BY fi.date DESC, fi.id DESC LIMIT 12`);
+  // Who is quoted most: approved word-for-word statements per actor, on any subject.
+  // Alongside the count, where those quotes stand in the issue sorting, so a bar's breakdown can account for every one of them.
+  const talkers = await q<any>(`SELECT n.id, n.name, n.type, count(*)::int AS n,
+      count(*) FILTER (WHERE l.feed_id IS NOT NULL AND ${GOOD} AND EXISTS (SELECT 1 FROM jsonb_each_text(l.issues_ok) e WHERE e.value::int <> 0))::int AS sided,
+      count(*) FILTER (WHERE l.feed_id IS NOT NULL AND ${GOOD} AND l.issues_ok <> '{}'::jsonb AND NOT EXISTS (SELECT 1 FROM jsonb_each_text(l.issues_ok) e WHERE e.value::int <> 0))::int AS neutral,
+      count(*) FILTER (WHERE l.feed_id IS NOT NULL AND ${GOOD} AND l.issues_ok = '{}'::jsonb)::int AS off_issue,
+      count(*) FILTER (WHERE l.feed_id IS NOT NULL AND NOT (${GOOD}))::int AS unsure,
+      count(*) FILTER (WHERE l.feed_id IS NULL)::int AS unsorted
+    FROM feed_items fi JOIN nodes n ON n.id=fi.node_id LEFT JOIN ${LABELS} l ON l.feed_id=fi.id
+    WHERE fi.status='approved' AND fi.excerpt IS NOT NULL AND fi.kind NOT IN ('donation','policy change','filing') AND n.type NOT IN ('lawmaker','agency')
+    GROUP BY n.id ORDER BY count(*) DESC, n.name LIMIT 15`);
   // The date this overview was computed, read inside the cache so the page itself has no clock to wait on.
   const today = new Date().toISOString().slice(0, 10);
-  return { counts, givers, recipients, stances, byYear, quotes, today };
+  return { counts, givers, recipients, stances, byYear, quotes, talkers, today };
 }
 
 // Lands on: each target's latest stated position per actor, grouped into sides, so a row says who stood where.
@@ -341,6 +352,22 @@ export async function getIssueActors(): Promise<Record<string, { agree: IssueAct
     const o = (out[r.issue] ??= { agree: [], disagree: [] });
     if (r.avg > 0) o.agree.push(r); else if (r.avg < 0) o.disagree.push(r);
   }
+  return out;
+}
+
+// One quote from each side of every issue, for the homepage: the clearest (strongest stance), then the most recent.
+export type IssueQuote = { issue: string; side: "agree" | "disagree"; id: string; excerpt: string; url: string; date: string; node_id: string; name: string; type: string; logo_url: string | null };
+export async function getIssueQuotes(): Promise<Record<string, Partial<Record<"agree" | "disagree", IssueQuote>>>> {
+  "use cache";
+  cached();
+  const rows = await q<IssueQuote>(`
+    SELECT DISTINCT ON (e.key, sign(e.value::int)) e.key AS issue, CASE WHEN e.value::int > 0 THEN 'agree' ELSE 'disagree' END AS side,
+           fi.id::text AS id, fi.excerpt, fi.url, fi.date::date::text AS date, n.id AS node_id, n.name, n.type, n.logo_url
+    FROM ${LABELS} l JOIN feed_items fi ON fi.id=l.feed_id JOIN nodes n ON n.id=fi.node_id, jsonb_each_text(l.issues_ok) e
+    WHERE ${GOOD} AND fi.status='approved' AND fi.excerpt IS NOT NULL AND e.value::int <> 0
+    ORDER BY e.key, sign(e.value::int), abs(e.value::int) DESC, fi.date DESC`);
+  const out: Record<string, Partial<Record<"agree" | "disagree", IssueQuote>>> = {};
+  for (const r of rows) (out[r.issue] ??= {})[r.side] = r;
   return out;
 }
 
@@ -439,6 +466,16 @@ export async function getActorLobbyingIssues(id: string): Promise<LobbyIssue[]> 
     const gs = grants.filter((g: any) => g.issue === a.id).map(({ issue, ...g }: any) => g);
     return { id: a.id, label: a.label, n: fs.length, filings: fs, grants: gs };
   }).filter((r) => r.filings.length || r.grants.length).sort((x, y) => y.n - x.n || y.grants.length - x.grants.length);
+}
+
+// Per issue: how many LDA filings name it, from how many actors (the filing's client).
+export async function getLobbyingByIssue(): Promise<Record<string, { filings: number; actors: number }>> {
+  "use cache";
+  cached();
+  const rows = await q<any>(`
+    SELECT i AS issue, count(DISTINCT f.id)::int AS filings, count(DISTINCT f.node_id)::int AS actors
+    FROM ${FILING_TAGS} t JOIN filings f ON t.source_kind='filing' AND f.id=t.source_id, unnest(t.issues) i GROUP BY 1`);
+  return Object.fromEntries(rows.map((r: any) => [r.issue, { filings: r.filings, actors: r.actors }]));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
