@@ -12,7 +12,7 @@ export default function CoverageLine({ c }: { c: Coverage }) {
       {" · "}{c.audit_run ? <>{c.checked} link-checked{c.broken ? `, ${c.broken} failing` : ""}{unchecked > 0 ? `, ${unchecked} not checked yet` : ""}</> : "link check not run yet"}
       {" · "}{c.archived} archived
       {c.last_checked ? <> · last checked {fmtDate(c.last_checked)}</> : null}
-      {" · "}<Link href="/data?tab=methodology#coverage">What empty sections mean</Link>
+      {" · "}<Link href="/data?view=methodology#coverage">What empty sections mean</Link>
     </p>
   );
 }
